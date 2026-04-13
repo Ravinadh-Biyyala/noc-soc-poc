@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useCustomDashboards, classifyChart } from "@/lib/custom-dashboards";
+import { useCopilot } from "@/lib/copilot-context";
 import {
   useListOpenaiConversations,
   useCreateOpenaiConversation,
@@ -270,6 +271,8 @@ function ChatPanel() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [_, setLocation] = useLocation();
   const queryClient = useQueryClient();
+  const { registerHandler } = useCopilot();
+  const pendingQuestionRef = useRef<string | null>(null);
 
   const { data: conversations } = useListOpenaiConversations();
   const createConv = useCreateOpenaiConversation();
@@ -292,6 +295,22 @@ function ChatPanel() {
   }, [conversations, activeConvId, createConv, queryClient]);
 
   useEffect(() => {
+    registerHandler((question: string) => {
+      if (activeConvId && !isTyping) {
+        setInput(question);
+        pendingQuestionRef.current = question;
+      }
+    });
+  }, [registerHandler, activeConvId, isTyping]);
+
+  useEffect(() => {
+    if (pendingQuestionRef.current && input === pendingQuestionRef.current && activeConvId && !isTyping) {
+      pendingQuestionRef.current = null;
+      handleSendMessage(input);
+    }
+  }, [input, activeConvId]);
+
+  useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
@@ -306,10 +325,11 @@ function ChatPanel() {
     });
   };
 
-  const handleSend = async () => {
-    if (!input.trim() || !activeConvId) return;
+  const handleSendMessage = async (messageOverride?: string) => {
+    const msg = messageOverride || input;
+    if (!msg.trim() || !activeConvId) return;
     
-    const userMsg = input.trim();
+    const userMsg = msg.trim();
     setInput("");
     setIsTyping(true);
     setStreamingMessage("");
@@ -506,7 +526,7 @@ function ChatPanel() {
 
       <div className="p-3 border-t border-border bg-white">
         <form 
-          onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+          onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}
           className="relative flex items-center"
         >
           <Input 

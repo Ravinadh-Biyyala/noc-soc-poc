@@ -1,5 +1,6 @@
 import { useGetSalesPerformance } from "@workspace/api-client-react";
 import CustomChartsSection from "@/components/custom-charts-section";
+import { useCopilot } from "@/lib/copilot-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,6 +17,7 @@ import {
 
 export default function SalesPerformance() {
   const { data, isLoading } = useGetSalesPerformance();
+  const { askCopilot } = useCopilot();
 
   if (isLoading || !data) {
     return (
@@ -31,11 +33,11 @@ export default function SalesPerformance() {
   return (
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <MetricCard title="Quote Rate" value={formatPercent(data.quoteRate)} icon={Target} />
-        <MetricCard title="Bind Rate" value={formatPercent(data.bindRate)} icon={Award} />
-        <MetricCard title="Closing Ratio" value={formatPercent(data.closingRatio)} icon={Filter} />
-        <MetricCard title="Avg Days to Bind" value={data.avgDaysToBind.toString()} icon={Clock} suffix="days" />
-        <MetricCard title="New Business" value={formatCurrency(data.newBusinessPremium)} icon={Users} />
+        <MetricCard title="Quote Rate" value={formatPercent(data.quoteRate)} icon={Target} onClick={() => askCopilot("Summarize our Quote Rate — current level and trend over recent years.")} />
+        <MetricCard title="Bind Rate" value={formatPercent(data.bindRate)} icon={Award} onClick={() => askCopilot("Summarize our Bind Rate — what's our conversion and which producers have the best bind rates?")} />
+        <MetricCard title="Closing Ratio" value={formatPercent(data.closingRatio)} icon={Filter} onClick={() => askCopilot("Explain our Closing Ratio performance and how it's trending.")} />
+        <MetricCard title="Avg Days to Bind" value={data.avgDaysToBind.toString()} icon={Clock} suffix="days" onClick={() => askCopilot("Summarize Average Days to Bind — is our turnaround improving?")} />
+        <MetricCard title="New Business" value={formatCurrency(data.newBusinessPremium)} icon={Users} onClick={() => askCopilot("Summarize New Business Premium — how much new business are we writing and which lines are growing?")} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -112,7 +114,7 @@ export default function SalesPerformance() {
               </TableHeader>
               <TableBody>
                 {data.producerLeaderboard.map((producer, i) => (
-                  <TableRow key={producer.name} className={i % 2 === 1 ? 'bg-muted/20' : ''}>
+                  <TableRow key={producer.name} className={`${i % 2 === 1 ? 'bg-muted/20' : ''} cursor-pointer hover:bg-primary/5`} onClick={() => askCopilot(`Summarize ${producer.name}'s sales performance — premium, bind rate, retention, and growth trend.`)}>
                     <TableCell className="font-medium text-sm text-foreground">{producer.name}</TableCell>
                     <TableCell className="text-right text-sm text-primary font-mono font-medium">{formatCurrency(producer.writtenPremium)}</TableCell>
                     <TableCell className="text-right text-sm font-mono text-muted-foreground">{formatCurrency(producer.commissionRevenue)}</TableCell>
@@ -131,9 +133,9 @@ export default function SalesPerformance() {
   );
 }
 
-function MetricCard({ title, value, icon: Icon, suffix }: any) {
+function MetricCard({ title, value, icon: Icon, suffix, onClick }: any) {
   return (
-    <Card className="shadow-sm hover:shadow-md transition-shadow">
+    <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={onClick}>
       <CardContent className="p-3">
         <div className="flex justify-between items-center mb-1.5">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{title}</p>

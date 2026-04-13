@@ -1,5 +1,6 @@
 import { useGetRenewalsRetention } from "@workspace/api-client-react";
 import CustomChartsSection from "@/components/custom-charts-section";
+import { useCopilot } from "@/lib/copilot-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,6 +17,7 @@ import {
 
 export default function RenewalsRetention() {
   const { data, isLoading } = useGetRenewalsRetention();
+  const { askCopilot } = useCopilot();
 
   if (isLoading || !data) {
     return <Skeleton className="h-[800px] w-full rounded-xl" />;
@@ -24,10 +26,10 @@ export default function RenewalsRetention() {
   return (
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        <MetricCard title="Renewal Rate" value={formatPercent(data.renewalRate)} icon={RefreshCw} />
-        <MetricCard title="Retained Premium" value={formatCurrency(data.retainedPremium)} icon={RotateCcw} />
-        <MetricCard title="Lost Premium" value={formatCurrency(data.lostPremium)} icon={FileWarning} isAlert />
-        <MetricCard title="Premium at Risk (90d)" value={formatCurrency(data.premiumAtRisk90)} icon={AlertTriangle} isAlert />
+        <MetricCard title="Renewal Rate" value={formatPercent(data.renewalRate)} icon={RefreshCw} onClick={() => askCopilot("Summarize our Renewal Rate — current level, YoY trend, and how it compares across producers.")} />
+        <MetricCard title="Retained Premium" value={formatCurrency(data.retainedPremium)} icon={RotateCcw} onClick={() => askCopilot("Summarize Retained Premium and which lines contribute the most to retention.")} />
+        <MetricCard title="Lost Premium" value={formatCurrency(data.lostPremium)} icon={FileWarning} isAlert onClick={() => askCopilot("Analyze our Lost Premium — how much are we losing, which producers and lines have the highest churn?")} />
+        <MetricCard title="Premium at Risk (90d)" value={formatCurrency(data.premiumAtRisk90)} icon={AlertTriangle} isAlert onClick={() => askCopilot("What premium is at risk of non-renewal in the next 90 days? Break it down by producer and line.")} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -75,7 +77,7 @@ export default function RenewalsRetention() {
                 </TableHeader>
                 <TableBody>
                   {data.churnByProducer.map((prod, i) => (
-                    <TableRow key={prod.producer} className={i % 2 === 1 ? 'bg-muted/20' : ''}>
+                    <TableRow key={prod.producer} className={`${i % 2 === 1 ? 'bg-muted/20' : ''} cursor-pointer hover:bg-primary/5`} onClick={() => askCopilot(`Analyze ${prod.producer}'s retention performance — why are they losing policies and what can improve?`)}>
                       <TableCell className="font-medium text-sm">{prod.producer}</TableCell>
                       <TableCell className="text-right text-sm text-red-500 font-mono font-medium">{formatCurrency(prod.lostPremium)}</TableCell>
                       <TableCell className="text-right text-sm text-muted-foreground">{prod.lostPolicies}</TableCell>
@@ -96,9 +98,9 @@ export default function RenewalsRetention() {
   );
 }
 
-function MetricCard({ title, value, icon: Icon, isAlert = false }: any) {
+function MetricCard({ title, value, icon: Icon, isAlert = false, onClick }: any) {
   return (
-    <Card className="shadow-sm hover:shadow-md transition-shadow">
+    <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={onClick}>
       <CardContent className="p-4">
         <div className="flex justify-between items-center mb-2">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{title}</p>

@@ -1,5 +1,6 @@
 import { useGetProductAnalytics } from "@workspace/api-client-react";
 import CustomChartsSection from "@/components/custom-charts-section";
+import { useCopilot } from "@/lib/copilot-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 
 export default function ProductAnalytics() {
   const { data, isLoading } = useGetProductAnalytics();
+  const { askCopilot } = useCopilot();
 
   if (isLoading || !data) {
     return <Skeleton className="h-[800px] w-full rounded-xl" />;
@@ -67,7 +69,7 @@ export default function ProductAnalytics() {
                 </TableHeader>
                 <TableBody>
                   {data.lineOfBusiness.map((line, i) => (
-                    <TableRow key={line.line} className={i % 2 === 1 ? 'bg-muted/20' : ''}>
+                    <TableRow key={line.line} className={`${i % 2 === 1 ? 'bg-muted/20' : ''} cursor-pointer hover:bg-primary/5`} onClick={() => askCopilot(`Give me a quick summary of ${line.line} — premium, growth, loss ratio, and top states.`)}>
                       <TableCell className="font-medium text-sm">{line.line}</TableCell>
                       <TableCell className="text-right text-sm text-primary font-mono font-medium">{formatCurrency(line.premium2023)}</TableCell>
                       <TableCell className="text-right">
@@ -104,7 +106,7 @@ export default function ProductAnalytics() {
                 </TableHeader>
                 <TableBody>
                   {data.carriers.map((carrier, i) => (
-                    <TableRow key={carrier.carrier} className={i % 2 === 1 ? 'bg-muted/20' : ''}>
+                    <TableRow key={carrier.carrier} className={`${i % 2 === 1 ? 'bg-muted/20' : ''} cursor-pointer hover:bg-primary/5`} onClick={() => askCopilot(`Summarize our relationship with ${carrier.carrier} — premium placed, bind ratio, and strengths.`)}>
                       <TableCell className="font-medium text-sm">{carrier.carrier}</TableCell>
                       <TableCell className="text-right text-sm text-primary font-mono font-medium">{formatCurrency(carrier.premiumPlaced)}</TableCell>
                       <TableCell className="text-right text-sm">{formatPercent(carrier.bindRatio)}</TableCell>

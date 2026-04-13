@@ -6,9 +6,11 @@ import { formatCurrency, formatPercent } from "@/lib/utils";
 import { TrendingUp, TrendingDown, DollarSign, FileText, Shield, Target, BarChart3, Percent } from "lucide-react";
 import USAMap from "@/components/USAMap";
 import CustomChartsSection from "@/components/custom-charts-section";
+import { useCopilot } from "@/lib/copilot-context";
 
 export default function Dashboard() {
   const { data, isLoading } = useGetExecutiveSummary();
+  const { askCopilot } = useCopilot();
 
   if (isLoading || !data) {
     return (
@@ -31,31 +33,35 @@ export default function Dashboard() {
           value={formatCurrency(data.writtenPremium.current)}
           change={data.writtenPremium.changePercent}
           icon={DollarSign}
+          onClick={() => askCopilot("Give me a brief summary of Written Premium performance, YoY trend, and top contributing states.")}
         />
         <KPICard
           title="Commission Revenue"
           value={formatCurrency(data.commissionRevenue.current)}
           change={data.commissionRevenue.changePercent}
           icon={BarChart3}
+          onClick={() => askCopilot("Summarize Commission Revenue performance and how it tracks against Written Premium.")}
         />
         <KPICard
           title="Policies Bound"
           value={data.policiesBound.current.toLocaleString()}
           change={data.policiesBound.changePercent}
           icon={FileText}
+          onClick={() => askCopilot("Summarize Policies Bound performance — how many policies, YoY growth, and which lines are driving volume?")}
         />
         <KPICard
           title="Renewal Rate"
           value={formatPercent(data.renewalRate)}
           icon={Shield}
+          onClick={() => askCopilot("Summarize our Renewal Rate — current rate, trend over years, and how it compares to industry benchmarks.")}
         />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MiniKPI title="Quote-to-Bind" value={formatPercent(data.quoteToBind)} icon={Target} />
-        <MiniKPI title="YoY Book Growth" value={`+${(data.yoyBookGrowth * 100).toFixed(1)}%`} icon={TrendingUp} positive />
-        <MiniKPI title="Avg Premium / Policy" value={formatCurrency(data.avgPremiumPerPolicy)} icon={DollarSign} />
-        <MiniKPI title="Loss Ratio" value={formatPercent(data.lossRatio)} icon={Percent} alert={data.lossRatio > 0.5} />
+        <MiniKPI title="Quote-to-Bind" value={formatPercent(data.quoteToBind)} icon={Target} onClick={() => askCopilot("Summarize our Quote-to-Bind ratio and what's driving conversion.")} />
+        <MiniKPI title="YoY Book Growth" value={`+${(data.yoyBookGrowth * 100).toFixed(1)}%`} icon={TrendingUp} positive onClick={() => askCopilot("Explain our YoY Book Growth — what lines and states are driving it?")} />
+        <MiniKPI title="Avg Premium / Policy" value={formatCurrency(data.avgPremiumPerPolicy)} icon={DollarSign} onClick={() => askCopilot("Summarize Average Premium per Policy and how it's changed over recent years.")} />
+        <MiniKPI title="Loss Ratio" value={formatPercent(data.lossRatio)} icon={Percent} alert={data.lossRatio > 0.5} onClick={() => askCopilot("Summarize our Loss Ratio — current level, trend, and which lines have the highest loss ratios.")} />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
@@ -176,11 +182,11 @@ export default function Dashboard() {
   );
 }
 
-function KPICard({ title, value, change, icon: Icon }: { title: string; value: string; change?: number; icon: any }) {
+function KPICard({ title, value, change, icon: Icon, onClick }: { title: string; value: string; change?: number; icon: any; onClick?: () => void }) {
   const isPositive = change !== undefined && change > 0;
   return (
-    <Card className="shadow-sm hover:shadow-md transition-shadow">
-      <CardContent className="p-4">
+    <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer group" onClick={onClick}>
+      <CardContent className="p-4 relative overflow-hidden">
         <div className="flex justify-between items-start mb-2">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{title}</p>
           <div className="w-7 h-7 rounded-md bg-primary/8 flex items-center justify-center">
@@ -199,9 +205,9 @@ function KPICard({ title, value, change, icon: Icon }: { title: string; value: s
   );
 }
 
-function MiniKPI({ title, value, icon: Icon, positive, alert }: { title: string; value: string; icon: any; positive?: boolean; alert?: boolean }) {
+function MiniKPI({ title, value, icon: Icon, positive, alert, onClick }: { title: string; value: string; icon: any; positive?: boolean; alert?: boolean; onClick?: () => void }) {
   return (
-    <Card className="shadow-sm">
+    <Card className="shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={onClick}>
       <CardContent className="p-3 flex items-center gap-2.5">
         <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${alert ? 'bg-red-50 text-red-500' : 'bg-primary/8 text-primary'}`}>
           <Icon className="w-3.5 h-3.5" />

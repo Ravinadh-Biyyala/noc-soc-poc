@@ -261,6 +261,7 @@ ADDITIONAL RESPONSE RULES:
 3. Always use proper insurance terminology: GWP, Earned Premium, Quote-to-Bind, Loss Ratio, Retention, Book of Business, Producer, Bind Rate.
 4. For navigation, include [NAVIGATE:/route] after the chart.
 5. For dashboard creation requests, include [CREATE_DASHBOARD:Title].
+6. When the user asks to "Summarize" or "Analyze" a specific metric (these are auto-triggered from clicking a KPI card), give a SHORT 2-3 sentence insight with 1-2 bold key facts, then a small chart showing the trend or breakdown. Keep it concise — this is a quick tooltip-style summary, not a full analysis.
 6. You have data from 2022-2026. Reference the most relevant years.
 7. If asked about a specific time range for a state/producer/line, filter the monthly data and build the chart from it.`,
     },

@@ -1,5 +1,6 @@
 import { useGetClaimsRisk } from "@workspace/api-client-react";
 import CustomChartsSection from "@/components/custom-charts-section";
+import { useCopilot } from "@/lib/copilot-context";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +18,7 @@ import {
 
 export default function ClaimsRisk() {
   const { data, isLoading } = useGetClaimsRisk();
+  const { askCopilot } = useCopilot();
 
   if (isLoading || !data) {
     return <Skeleton className="h-[800px] w-full rounded-xl" />;
@@ -27,10 +29,10 @@ export default function ClaimsRisk() {
   return (
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        <MetricCard title="Overall Loss Ratio" value={formatPercent(data.lossRatio)} icon={ShieldAlert} isAlert={data.lossRatio > 0.55} />
-        <MetricCard title="Open Claims" value={data.openClaims.toString()} icon={AlertCircle} />
-        <MetricCard title="Avg Incurred Loss" value={formatCurrency(data.avgIncurredLoss)} icon={FileText} />
-        <MetricCard title="Claim Severity" value={formatCurrency(data.severity)} icon={AlertCircle} isAlert />
+        <MetricCard title="Overall Loss Ratio" value={formatPercent(data.lossRatio)} icon={ShieldAlert} isAlert={data.lossRatio > 0.55} onClick={() => askCopilot("Summarize our Overall Loss Ratio — current level, trend, and which lines have the highest loss ratios.")} />
+        <MetricCard title="Open Claims" value={data.openClaims.toString()} icon={AlertCircle} onClick={() => askCopilot("How many open claims do we have? Break down by line and state.")} />
+        <MetricCard title="Avg Incurred Loss" value={formatCurrency(data.avgIncurredLoss)} icon={FileText} onClick={() => askCopilot("Summarize Average Incurred Loss per claim and how it compares across lines of business.")} />
+        <MetricCard title="Claim Severity" value={formatCurrency(data.severity)} icon={AlertCircle} isAlert onClick={() => askCopilot("Analyze Claim Severity — which lines and states have the highest severity?")} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -107,7 +109,7 @@ export default function ClaimsRisk() {
               </TableHeader>
               <TableBody>
                 {data.recentClaims.map((claim, i) => (
-                  <TableRow key={claim.claimId} className={i % 2 === 1 ? 'bg-muted/20' : ''}>
+                  <TableRow key={claim.claimId} className={`${i % 2 === 1 ? 'bg-muted/20' : ''} cursor-pointer hover:bg-primary/5`} onClick={() => askCopilot(`Tell me about claim ${claim.claimId} — ${claim.policyLine} claim filed ${claim.filedDate} with ${formatCurrency(claim.incurredLoss)} incurred loss, status: ${claim.status}. What should we know?`)}>
                     <TableCell className="font-mono text-xs text-primary font-medium">{claim.claimId}</TableCell>
                     <TableCell className="text-sm">{claim.policyLine}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{claim.filedDate}</TableCell>
@@ -134,9 +136,9 @@ export default function ClaimsRisk() {
   );
 }
 
-function MetricCard({ title, value, icon: Icon, isAlert = false }: any) {
+function MetricCard({ title, value, icon: Icon, isAlert = false, onClick }: any) {
   return (
-    <Card className="shadow-sm hover:shadow-md transition-shadow">
+    <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={onClick}>
       <CardContent className="p-4">
         <div className="flex justify-between items-center mb-2">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{title}</p>
