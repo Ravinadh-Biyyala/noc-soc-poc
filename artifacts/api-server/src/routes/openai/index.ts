@@ -11,6 +11,12 @@ import {
   ListOpenaiMessagesParams,
   SendOpenaiMessageParams,
 } from "@workspace/api-zod";
+import { executiveData } from "../dashboard/data/executive.js";
+import { salesData } from "../dashboard/data/sales.js";
+import { productData } from "../dashboard/data/products.js";
+import { renewalsData } from "../dashboard/data/renewals.js";
+import { claimsData } from "../dashboard/data/claims.js";
+import { geographyData } from "../dashboard/data/geography.js";
 
 const router: IRouter = Router();
 
@@ -105,6 +111,75 @@ router.get("/openai/conversations/:id/messages", async (req: Request, res: Respo
   );
 });
 
+function buildDataContext(): string {
+  const stateMonthly = executiveData.stateMonthlyPremium.map(s => {
+    const total2023 = s.monthly.filter(m => m.date.includes('2023')).reduce((sum, m) => sum + m.value, 0);
+    const total2024 = s.monthly.filter(m => m.date.includes('2024')).reduce((sum, m) => sum + m.value, 0);
+    const total2025 = s.monthly.filter(m => m.date.includes('2025')).reduce((sum, m) => sum + m.value, 0);
+    return `${s.stateName} (${s.state}): 2023=$${(total2023/1e6).toFixed(1)}M, 2024=$${(total2024/1e6).toFixed(1)}M, 2025=$${(total2025/1e6).toFixed(1)}M`;
+  }).join('; ');
+
+  const producerMonthly = executiveData.producerMonthlyPremium.map(p => {
+    const total = p.monthly.reduce((sum, m) => sum + m.value, 0);
+    return `${p.producer}: 2025 Total=$${(total/1e6).toFixed(1)}M`;
+  }).join('; ');
+
+  const lineMonthly = executiveData.lineMonthlyPremium.map(l => {
+    const total = l.monthly.reduce((sum, m) => sum + m.value, 0);
+    return `${l.line}: 2025 Total=$${(total/1e6).toFixed(1)}M`;
+  }).join('; ');
+
+  const yearly = executiveData.yearlyPerformance.map(y => 
+    `${y.year}: GWP=$${(y.writtenPremium/1e6).toFixed(1)}M, Commission=$${(y.commissionRevenue/1e6).toFixed(1)}M, Policies=${y.policiesBound}, Renewal=${(y.renewalRate*100).toFixed(1)}%, Loss Ratio=${(y.lossRatio*100).toFixed(1)}%`
+  ).join('\n');
+
+  return `
+YEARLY PERFORMANCE:
+${yearly}
+
+CURRENT YEAR (2025-2026):
+- Written Premium: $${(executiveData.writtenPremium.current/1e6).toFixed(1)}M (+${executiveData.writtenPremium.changePercent}% YoY)
+- Commission Revenue: $${(executiveData.commissionRevenue.current/1e6).toFixed(1)}M
+- Policies Bound: ${executiveData.policiesBound.current.toLocaleString()} (+${executiveData.policiesBound.changePercent}%)
+- Renewal Rate: ${(executiveData.renewalRate*100).toFixed(1)}%
+- Quote-to-Bind: ${(executiveData.quoteToBind*100).toFixed(1)}%
+- Retention Ratio: ${(executiveData.retentionRate*100).toFixed(1)}%
+- Loss Ratio: ${(executiveData.lossRatio*100).toFixed(1)}%
+- Avg Premium/Policy: $${executiveData.avgPremiumPerPolicy.toLocaleString()}
+- Active in ${geographyData.totalStatesActive} states
+
+TOP STATES: ${executiveData.topStatesByPremium.map(s => `${s.state} ($${(s.premium/1e6).toFixed(1)}M)`).join(', ')}
+
+STATE MONTHLY DATA: ${stateMonthly}
+
+PRODUCER LEADERBOARD:
+${salesData.producerLeaderboard.map(p => `${p.name}: GWP=$${(p.writtenPremium/1e6).toFixed(1)}M, Bind=${(p.bindRate*100).toFixed(1)}%, Retention=${(p.renewalRetention*100).toFixed(1)}%`).join('\n')}
+
+PRODUCER MONTHLY DATA: ${producerMonthly}
+
+LINES OF BUSINESS:
+${productData.lineOfBusiness.map(l => `${l.line}: 2025=$${((l.premium2025 || l.premium2023)/1e6).toFixed(1)}M, YoY=${l.yoyChange}%, Loss Ratio=${(l.lossRatio*100).toFixed(1)}%, Bind=${(l.bindRate*100).toFixed(1)}%`).join('\n')}
+
+LINE MONTHLY DATA: ${lineMonthly}
+
+CARRIERS:
+${productData.carriers.map(c => `${c.carrier}: Placed=$${(c.premiumPlaced/1e6).toFixed(1)}M, Bind=${(c.bindRatio*100).toFixed(1)}%, Turn=${c.avgQuoteTurnaround}d`).join('\n')}
+
+CLAIMS:
+- Open: ${claimsData.openClaims}, Closed: ${claimsData.closedClaims}
+- Loss Ratio: ${(claimsData.lossRatio*100).toFixed(1)}%, Avg Incurred: $${claimsData.avgIncurredLoss.toLocaleString()}, Severity: $${claimsData.severity.toLocaleString()}
+${claimsData.claimsByLine.map(c => `${c.line}: ${c.claims} claims, $${(c.incurredLoss/1e6).toFixed(1)}M incurred, ${(c.lossRatio*100).toFixed(1)}% loss ratio`).join('\n')}
+
+RENEWALS:
+- Renewal Rate: ${(renewalsData.renewalRate*100).toFixed(1)}%, Retained: $${(renewalsData.retainedPremium/1e6).toFixed(1)}M, Lost: $${(renewalsData.lostPremium/1e6).toFixed(1)}M
+- At Risk (90d): $${(renewalsData.premiumAtRisk90/1e6).toFixed(1)}M
+
+MONTHLY PREMIUM DATA (available for Jan 2022 - Apr 2026):
+Total monthly premium values range from $12.8M to $23.1M with consistent upward trend.
+Monthly bind counts range from 540 to 1,005 policies.
+`;
+}
+
 router.post("/openai/conversations/:id/messages", async (req: Request, res: Response) => {
   const { id } = SendOpenaiMessageParams.parse({ id: Number(req.params.id) });
   const body = SendOpenaiMessageBody.parse(req.body);
@@ -131,42 +206,63 @@ router.post("/openai/conversations/:id/messages", async (req: Request, res: Resp
     .where(eq(messagesTable.conversationId, id))
     .orderBy(messagesTable.createdAt);
 
+  const dataContext = buildDataContext();
+
   const chatMessages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
     {
       role: "system" as const,
-      content: `You are Broker Copilot, an AI analytics assistant for INVEX Insurance USA — a $187M premium U.S. insurance brokerage. You speak with authority on insurance broker metrics and help producers, managers, and executives understand performance data.
+      content: `You are Broker Copilot, a Gen-BI (Generative Business Intelligence) analytics engine for INVEX Insurance USA. You combine conversational AI with dynamic data visualization. You have FULL ACCESS to all brokerage data from 2022-2026.
 
-BROKERAGE CONTEXT (2023 vs 2022):
-- Written Premium: $187.4M (+11.4% YoY from $168.2M)
-- Commission Revenue: $28.1M (+11.4% YoY)
-- Policies Bound: 8,234 (+10.4% YoY)
-- Renewal Rate: 91.2%
-- Quote-to-Bind Rate: 34.2%
-- Retention Ratio: 93.4%
-- Loss Ratio: 48.7%
-- Average Premium per Policy: $22,758
-- Active in 42 states
-- Top States: CA ($34.2M), TX ($28.9M), NY ($24.1M), FL ($19.8M), IL ($14.3M)
-- Top Producer: Sarah Mitchell ($32.4M written premium, 96% retention)
-- Fastest Growing Lines: Cyber (+33.9%), Commercial Property (+13.7%)
-- Top Carrier: Hartford Financial ($42.3M placed, 3.2 day turnaround)
+${dataContext}
 
 AVAILABLE DASHBOARDS:
 - Executive Summary (/) — Written Premium, Commission Revenue, Policies Bound, Renewal Rate, Quote-to-Bind, YoY Growth, Top States, Premium Trends, Policy Mix, USA Geographic Heat Map
-- Sales Performance (/sales) — Sales Funnel (Lead->Qualified->Quoted->Bound->Renewed), Producer Leaderboard, Bind Trends, Account Size Distribution, Closing Ratio, Avg Days to Bind
-- Product Analytics (/products) — Line of Business performance (Commercial Property, GL, Commercial Auto, Workers Comp, Cyber, Professional Liability), Carrier Performance, Premium by Line Trends
-- Renewals & Retention (/renewals) — Renewal Rate, Retention Ratio, Retained vs Lost Premium, Premium at Risk (30/60/90 day), Churn by Producer, Churn by Line of Business
-- Claims & Risk (/claims) — Open/Closed Claims, Claim Frequency, Avg Incurred Loss, Loss Ratio, Claims by Line, Claims by State, Recent Claims Table
+- Sales Performance (/sales) — Sales Funnel, Producer Leaderboard, Bind Trends, Account Size, Closing Ratio
+- Product Analytics (/products) — Line of Business performance, Carrier Performance, Premium by Line Trends
+- Renewals & Retention (/renewals) — Renewal Rate, Retention Ratio, Retained vs Lost Premium, Premium at Risk, Churn
+- Claims & Risk (/claims) — Open/Closed Claims, Loss Ratio, Claims by Line, Claims by State, Recent Claims
 
-RESPONSE RULES:
-1. For simple metric questions, answer directly with the specific number. Example: "What's our renewal rate?" -> "Your renewal rate is 91.2%, up from 89.8% in 2022."
-2. For trend/visual questions, provide context AND suggest the dashboard: include [NAVIGATE:/route] in your response. Example: "Show me premium trends" -> explain the trend + [NAVIGATE:/]
-3. When asked to create a new dashboard or analysis, include [CREATE_DASHBOARD:Dashboard Title] in your response and describe what it would contain.
-4. Use **bold** for key metrics and important terms.
-5. Keep responses concise but insightful — you are a premium analytics copilot, not a chatbot.
-6. Always use proper insurance broker terminology: Written Premium, Gross Written Premium (GWP), Earned Premium, Quote-to-Bind, Loss Ratio, Retention Ratio, Book of Business, Producer, Bind Rate, etc.
-7. When comparing years, always reference 2023 vs 2022 data.
-8. If asked about a specific state, producer, carrier, or line of business, provide the specific data you know.`,
+CRITICAL RULE — GENERATIVE BI CHARTS:
+When a user asks ANY data question (numbers, trends, comparisons, breakdowns, state data, producer data, line data, etc.), you MUST generate an inline chart visualization. Use this exact format:
+
+[CHART:{"type":"bar|line|area|pie","title":"Chart Title","xKey":"labelField","yKey":"valueField","data":[{"labelField":"Label1","valueField":123},{"labelField":"Label2","valueField":456}]}]
+
+Chart types to use:
+- "bar" for comparisons (state vs state, producer vs producer, line vs line)
+- "line" or "area" for trends over time (monthly premium, bind trends, loss ratio over time)
+- "pie" for composition/mix (policy mix, premium breakdown by segment)
+
+IMPORTANT CHART RULES:
+1. ALWAYS include a [CHART:...] block when the user asks about data. This is Gen-BI — every data question gets a visualization.
+2. Use real data from the context above. Never make up numbers.
+3. For monetary values, provide raw numbers (not formatted strings) in the data array. The frontend will format them.
+4. The xKey and yKey must match the keys in your data objects exactly.
+5. Keep data arrays concise (max 12-15 data points for readability).
+6. Add a brief text insight BEFORE the chart (1-2 sentences max).
+7. After the chart, you can add [NAVIGATE:/route] if there's a relevant dashboard.
+
+EXAMPLES:
+User: "What is California's premium trend?"
+Response: California's premium has grown steadily from **$34.2M** in 2023 to **$48.8M** in 2025, a **42.7%** increase over 3 years.
+[CHART:{"type":"area","title":"California Written Premium (Monthly)","xKey":"month","yKey":"premium","data":[{"month":"Jan 2024","premium":2950000},{"month":"Apr 2024","premium":3150000},{"month":"Jul 2024","premium":3280000},{"month":"Oct 2024","premium":3350000},{"month":"Jan 2025","premium":3380000},{"month":"Apr 2025","premium":3600000},{"month":"Jul 2025","premium":3760000},{"month":"Oct 2025","premium":3820000},{"month":"Jan 2026","premium":3850000},{"month":"Apr 2026","premium":4100000}]}]
+[NAVIGATE:/]
+
+User: "Compare top 5 states by premium"
+Response: California leads the book at **$48.8M**, followed by Texas at **$41.2M**. The top 5 states represent **64.5%** of total GWP.
+[CHART:{"type":"bar","title":"Top 5 States by Written Premium","xKey":"state","yKey":"premium","data":[{"state":"California","premium":48800000},{"state":"Texas","premium":41200000},{"state":"New York","premium":33600000},{"state":"Florida","premium":28900000},{"state":"Illinois","premium":20400000}]}]
+
+User: "Show policy mix"
+Response: Commercial Property dominates at **25%** of our book, followed by General Liability at **20%**.
+[CHART:{"type":"pie","title":"Premium by Line of Business","xKey":"line","yKey":"premium","data":[{"line":"Comm. Property","premium":66950000},{"line":"Gen. Liability","premium":53560000},{"line":"Comm. Auto","premium":42838000},{"line":"Workers Comp","premium":37494000},{"line":"Cyber","premium":29458000},{"line":"Prof. Liability","premium":18746000}]}]
+
+ADDITIONAL RESPONSE RULES:
+1. Use **bold** for key metrics.
+2. Keep text concise — the chart IS the answer.
+3. Always use proper insurance terminology: GWP, Earned Premium, Quote-to-Bind, Loss Ratio, Retention, Book of Business, Producer, Bind Rate.
+4. For navigation, include [NAVIGATE:/route] after the chart.
+5. For dashboard creation requests, include [CREATE_DASHBOARD:Title].
+6. You have data from 2022-2026. Reference the most relevant years.
+7. If asked about a specific time range for a state/producer/line, filter the monthly data and build the chart from it.`,
     },
     ...existingMessages.map((m) => ({
       role: m.role as "user" | "assistant",
@@ -182,7 +278,7 @@ RESPONSE RULES:
 
   try {
     const stream = await openai.chat.completions.create({
-      model: "gpt-5.2",
+      model: "gpt-4.1-mini",
       max_completion_tokens: 8192,
       messages: chatMessages,
       stream: true,
