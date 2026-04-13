@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatPercent } from "@/lib/utils";
-import { ShieldAlert, AlertCircle, FileText, CheckCircle2 } from "lucide-react";
+import { ShieldAlert, AlertCircle, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -18,43 +18,39 @@ export default function ClaimsRisk() {
   const { data, isLoading } = useGetClaimsRisk();
 
   if (isLoading || !data) {
-    return <Skeleton className="h-[800px] w-full rounded-xl bg-card border-border" />;
+    return <Skeleton className="h-[800px] w-full rounded-xl" />;
   }
 
-  const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
+  const CHART_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))", "#6366f1"];
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard title="Overall Loss Ratio" value={formatPercent(data.lossRatio)} icon={ShieldAlert} isAlert={data.lossRatio > 65} />
+    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <MetricCard title="Overall Loss Ratio" value={formatPercent(data.lossRatio)} icon={ShieldAlert} isAlert={data.lossRatio > 0.55} />
         <MetricCard title="Open Claims" value={data.openClaims.toString()} icon={AlertCircle} />
         <MetricCard title="Avg Incurred Loss" value={formatCurrency(data.avgIncurredLoss)} icon={FileText} />
-        <MetricCard title="Claim Severity" value={formatCurrency(data.severity)} icon={AlertCircle} isAlert={true} />
+        <MetricCard title="Claim Severity" value={formatCurrency(data.severity)} icon={AlertCircle} isAlert />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Claims by Line */}
-        <Card className="lg:col-span-2 bg-card border-border shadow-md">
-          <CardHeader>
-            <CardTitle className="text-white text-lg">Incurred Loss by Line of Business</CardTitle>
-            <CardDescription className="text-muted-foreground">Distribution of claim severity</CardDescription>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <Card className="lg:col-span-2 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">Incurred Loss by Line of Business</CardTitle>
+            <CardDescription className="text-xs">Distribution of claim severity</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px] w-full">
+            <div className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.claimsByLine} margin={{ top: 10, right: 10, left: 20, bottom: 20 }}>
+                <BarChart data={data.claimsByLine} margin={{ top: 10, right: 10, left: 20, bottom: 40 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                  <XAxis dataKey="line" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} angle={-15} textAnchor="end" />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `$${val/1000}k`} />
-                  <Tooltip 
-                    cursor={{fill: 'hsl(var(--border))', opacity: 0.4}}
-                    contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px', color: '#fff' }}
+                  <XAxis dataKey="line" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} angle={-20} textAnchor="end" />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(val) => `$${(val / 1000000).toFixed(0)}M`} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#fff', borderColor: 'hsl(var(--border))', borderRadius: '8px', fontSize: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
                     formatter={(value: number) => [formatCurrency(value), 'Incurred Loss']}
                   />
                   <Bar dataKey="incurredLoss" radius={[4, 4, 0, 0]}>
-                    {data.claimsByLine.map((entry, index) => (
+                    {data.claimsByLine.map((_entry, index) => (
                       <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
                   </Bar>
@@ -64,68 +60,63 @@ export default function ClaimsRisk() {
           </CardContent>
         </Card>
 
-        {/* Claims by State Table */}
-        <Card className="bg-card border-border shadow-md">
-          <CardHeader>
-            <CardTitle className="text-white text-lg">Top States by Risk</CardTitle>
-            <CardDescription className="text-muted-foreground">Highest incurred losses</CardDescription>
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">Top States by Risk</CardTitle>
+            <CardDescription className="text-xs">Highest incurred losses</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {data.claimsByState.map((state, i) => {
+            <div className="space-y-3">
+              {data.claimsByState.map((state) => {
                 const max = Math.max(...data.claimsByState.map(s => s.incurredLoss));
                 const width = `${(state.incurredLoss / max) * 100}%`;
                 return (
-                  <div key={state.stateCode} className="space-y-1.5">
-                    <div className="flex justify-between text-sm">
+                  <div key={state.stateCode} className="space-y-1">
+                    <div className="flex justify-between text-xs">
                       <span className="font-medium text-foreground">{state.state}</span>
-                      <span className="text-destructive font-mono">{formatCurrency(state.incurredLoss)}</span>
+                      <span className="text-red-500 font-mono font-medium">{formatCurrency(state.incurredLoss)}</span>
                     </div>
-                    <div className="h-1.5 w-full bg-sidebar-accent rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-destructive rounded-full" 
-                        style={{ width }}
-                      />
+                    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-red-400 rounded-full" style={{ width }} />
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Claims Table */}
-      <Card className="bg-card border-border shadow-md">
-        <CardHeader>
-          <CardTitle className="text-white text-lg">Recent Claims Activity</CardTitle>
-          <CardDescription className="text-muted-foreground">Latest filed claims</CardDescription>
+      <Card className="shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold">Recent Claims Activity</CardTitle>
+          <CardDescription className="text-xs">Latest filed claims</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border border-border overflow-hidden">
+          <div className="rounded-lg border overflow-hidden">
             <Table>
-              <TableHeader className="bg-sidebar">
-                <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-muted-foreground font-medium">Claim ID</TableHead>
-                  <TableHead className="text-muted-foreground font-medium">Line</TableHead>
-                  <TableHead className="text-muted-foreground font-medium">Filed Date</TableHead>
-                  <TableHead className="text-right text-muted-foreground font-medium">Incurred Loss</TableHead>
-                  <TableHead className="text-center text-muted-foreground font-medium">Status</TableHead>
+              <TableHeader>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                  <TableHead className="text-xs font-medium text-muted-foreground">Claim ID</TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground">Line</TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground">Filed</TableHead>
+                  <TableHead className="text-right text-xs font-medium text-muted-foreground">Incurred</TableHead>
+                  <TableHead className="text-center text-xs font-medium text-muted-foreground">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.recentClaims.map((claim, i) => (
-                  <TableRow key={claim.claimId} className={`border-border hover:bg-sidebar-accent/50 ${i % 2 === 0 ? 'bg-transparent' : 'bg-sidebar/30'}`}>
-                    <TableCell className="font-mono text-xs text-primary">{claim.claimId}</TableCell>
-                    <TableCell className="font-medium text-foreground">{claim.policyLine}</TableCell>
-                    <TableCell className="text-muted-foreground">{claim.filedDate}</TableCell>
-                    <TableCell className="text-right text-white font-mono">{formatCurrency(claim.incurredLoss)}</TableCell>
+                  <TableRow key={claim.claimId} className={i % 2 === 1 ? 'bg-muted/20' : ''}>
+                    <TableCell className="font-mono text-xs text-primary font-medium">{claim.claimId}</TableCell>
+                    <TableCell className="text-sm">{claim.policyLine}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{claim.filedDate}</TableCell>
+                    <TableCell className="text-right text-sm font-mono font-medium">{formatCurrency(claim.incurredLoss)}</TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="outline" className={`
-                        ${claim.status === 'Open' ? 'text-destructive border-destructive/50' : ''}
-                        ${claim.status === 'Under Review' ? 'text-chart-4 border-chart-4/50' : ''}
-                        ${claim.status === 'Closed' ? 'text-primary border-primary/50' : ''}
-                      `}>
+                      <Badge variant="outline" className={`text-[10px] ${
+                        claim.status === 'Open' ? 'text-amber-600 border-amber-200 bg-amber-50' :
+                        claim.status === 'Under Review' ? 'text-blue-600 border-blue-200 bg-blue-50' :
+                        'text-emerald-600 border-emerald-200 bg-emerald-50'
+                      }`}>
                         {claim.status}
                       </Badge>
                     </TableCell>
@@ -136,22 +127,21 @@ export default function ClaimsRisk() {
           </div>
         </CardContent>
       </Card>
-
     </div>
   );
 }
 
 function MetricCard({ title, value, icon: Icon, isAlert = false }: any) {
   return (
-    <Card className="bg-card border-border shadow-sm group hover:border-primary/30 transition-all">
+    <Card className="shadow-sm hover:shadow-md transition-shadow">
       <CardContent className="p-4">
         <div className="flex justify-between items-center mb-2">
-          <p className="text-xs font-medium text-muted-foreground">{title}</p>
-          <div className={isAlert ? "text-destructive" : "text-primary"}>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{title}</p>
+          <div className={isAlert ? "text-red-400" : "text-primary/60"}>
             <Icon className="w-4 h-4" />
           </div>
         </div>
-        <p className={`text-2xl font-bold tracking-tight ${isAlert ? 'text-destructive' : 'text-white'}`}>
+        <p className={`text-xl font-bold ${isAlert ? 'text-red-500' : 'text-foreground'}`}>
           {value}
         </p>
       </CardContent>
