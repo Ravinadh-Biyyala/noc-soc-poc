@@ -14,3 +14,439 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * @summary List all conversations
+ */
+export const ListOpenaiConversationsResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+export const ListOpenaiConversationsResponse = zod.array(
+  ListOpenaiConversationsResponseItem,
+);
+
+/**
+ * @summary Create a new conversation
+ */
+export const CreateOpenaiConversationBody = zod.object({
+  title: zod.string(),
+});
+
+/**
+ * @summary Get conversation with messages
+ */
+export const GetOpenaiConversationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetOpenaiConversationResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  createdAt: zod.coerce.date(),
+  messages: zod.array(
+    zod.object({
+      id: zod.number(),
+      conversationId: zod.number(),
+      role: zod.string(),
+      content: zod.string(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Delete a conversation
+ */
+export const DeleteOpenaiConversationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List messages in a conversation
+ */
+export const ListOpenaiMessagesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListOpenaiMessagesResponseItem = zod.object({
+  id: zod.number(),
+  conversationId: zod.number(),
+  role: zod.string(),
+  content: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+export const ListOpenaiMessagesResponse = zod.array(
+  ListOpenaiMessagesResponseItem,
+);
+
+/**
+ * @summary Send a text message and receive a streaming text response
+ */
+export const SendOpenaiMessageParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const SendOpenaiMessageBody = zod.object({
+  content: zod.string(),
+});
+
+/**
+ * @summary Get insurance broker overview metrics
+ */
+export const GetDashboardOverviewResponse = zod.object({
+  totalPolicies: zod.number(),
+  activePolicies: zod.number(),
+  totalPremium: zod.number(),
+  totalClaims: zod.number(),
+  claimsRatio: zod.number(),
+  customerRetentionRate: zod.number(),
+  avgPolicyValue: zod.number(),
+  monthlyGrowthRate: zod.number(),
+  newCustomersThisMonth: zod.number(),
+  renewalRate: zod.number(),
+  policyTypeBreakdown: zod.array(
+    zod.object({
+      name: zod.string(),
+      value: zod.number(),
+      percentage: zod.number(),
+    }),
+  ),
+  monthlyPremiumTrend: zod.array(
+    zod.object({
+      date: zod.string(),
+      value: zod.number(),
+    }),
+  ),
+  claimsTrend: zod.array(
+    zod.object({
+      date: zod.string(),
+      value: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get claims analysis data
+ */
+export const GetClaimsAnalysisResponse = zod.object({
+  totalClaims: zod.number(),
+  approvedClaims: zod.number(),
+  rejectedClaims: zod.number(),
+  pendingClaims: zod.number(),
+  avgResolutionDays: zod.number(),
+  totalClaimAmount: zod.number(),
+  avgClaimAmount: zod.number(),
+  fraudRate: zod.number(),
+  claimsByType: zod.array(
+    zod.object({
+      name: zod.string(),
+      value: zod.number(),
+      percentage: zod.number(),
+    }),
+  ),
+  claimsByStatus: zod.array(
+    zod.object({
+      name: zod.string(),
+      value: zod.number(),
+      percentage: zod.number(),
+    }),
+  ),
+  claimsBySeverity: zod.array(
+    zod.object({
+      name: zod.string(),
+      value: zod.number(),
+      percentage: zod.number(),
+    }),
+  ),
+  monthlyClaimsTrend: zod.array(
+    zod.object({
+      date: zod.string(),
+      value: zod.number(),
+    }),
+  ),
+  recentClaims: zod.array(
+    zod.object({
+      id: zod.string(),
+      policyType: zod.string(),
+      claimAmount: zod.number(),
+      status: zod.string(),
+      filedDate: zod.string(),
+      resolutionDays: zod.number(),
+      severity: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get policy analytics data
+ */
+export const GetPolicyAnalyticsResponse = zod.object({
+  totalPolicies: zod.number(),
+  activePolicies: zod.number(),
+  expiredPolicies: zod.number(),
+  cancelledPolicies: zod.number(),
+  avgPremium: zod.number(),
+  avgCoverageAmount: zod.number(),
+  renewalRate: zod.number(),
+  conversionRate: zod.number(),
+  policyDistribution: zod.array(
+    zod.object({
+      name: zod.string(),
+      value: zod.number(),
+      percentage: zod.number(),
+    }),
+  ),
+  premiumByType: zod.array(
+    zod.object({
+      name: zod.string(),
+      value: zod.number(),
+      percentage: zod.number(),
+    }),
+  ),
+  policyGrowthTrend: zod.array(
+    zod.object({
+      date: zod.string(),
+      value: zod.number(),
+    }),
+  ),
+  renewalTrend: zod.array(
+    zod.object({
+      date: zod.string(),
+      value: zod.number(),
+    }),
+  ),
+  topPoliciesByPremium: zod.array(
+    zod.object({
+      policyId: zod.string(),
+      customerName: zod.string(),
+      type: zod.string(),
+      premium: zod.number(),
+      coverage: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get predictive analysis data
+ */
+export const GetPredictiveAnalysisResponse = zod.object({
+  churnProbability: zod.number(),
+  expectedClaimsNextQuarter: zod.number(),
+  projectedPremiumGrowth: zod.number(),
+  riskScore: zod.number(),
+  churnRiskDistribution: zod.array(
+    zod.object({
+      name: zod.string(),
+      value: zod.number(),
+      percentage: zod.number(),
+    }),
+  ),
+  claimsPredictionTrend: zod.array(
+    zod.object({
+      date: zod.string(),
+      value: zod.number(),
+    }),
+  ),
+  premiumForecast: zod.array(
+    zod.object({
+      date: zod.string(),
+      value: zod.number(),
+    }),
+  ),
+  riskSegments: zod.array(
+    zod.object({
+      segment: zod.string(),
+      count: zod.number(),
+      avgRisk: zod.number(),
+      avgPremium: zod.number(),
+    }),
+  ),
+  customerLifetimeValue: zod.array(
+    zod.object({
+      date: zod.string(),
+      value: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get customer sentiment analysis
+ */
+export const GetSentimentAnalysisResponse = zod.object({
+  overallScore: zod.number(),
+  positivePercentage: zod.number(),
+  neutralPercentage: zod.number(),
+  negativePercentage: zod.number(),
+  npsScore: zod.number(),
+  avgResponseTime: zod.number(),
+  sentimentTrend: zod.array(
+    zod.object({
+      date: zod.string(),
+      value: zod.number(),
+    }),
+  ),
+  sentimentByChannel: zod.array(
+    zod.object({
+      channel: zod.string(),
+      positive: zod.number(),
+      neutral: zod.number(),
+      negative: zod.number(),
+    }),
+  ),
+  topComplaints: zod.array(
+    zod.object({
+      topic: zod.string(),
+      count: zod.number(),
+      sentiment: zod.number(),
+    }),
+  ),
+  recentFeedback: zod.array(
+    zod.object({
+      id: zod.string(),
+      text: zod.string(),
+      sentiment: zod.string(),
+      score: zod.number(),
+      date: zod.string(),
+      channel: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get exploratory data analysis
+ */
+export const GetEdaAnalysisResponse = zod.object({
+  correlationMatrix: zod.array(
+    zod.object({
+      xVar: zod.string(),
+      yVar: zod.string(),
+      correlation: zod.number(),
+    }),
+  ),
+  ageDistribution: zod.array(
+    zod.object({
+      name: zod.string(),
+      value: zod.number(),
+      percentage: zod.number(),
+    }),
+  ),
+  premiumDistribution: zod.array(
+    zod.object({
+      name: zod.string(),
+      value: zod.number(),
+      percentage: zod.number(),
+    }),
+  ),
+  geographicDistribution: zod.array(
+    zod.object({
+      region: zod.string(),
+      policyCount: zod.number(),
+      avgPremium: zod.number(),
+      claimsRate: zod.number(),
+    }),
+  ),
+  outliers: zod.array(
+    zod.object({
+      metric: zod.string(),
+      value: zod.number(),
+      zScore: zod.number(),
+      description: zod.string(),
+    }),
+  ),
+  featureImportance: zod.array(
+    zod.object({
+      feature: zod.string(),
+      importance: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get broker performance metrics
+ */
+export const GetBrokerPerformanceResponse = zod.object({
+  totalBrokers: zod.number(),
+  avgConversionRate: zod.number(),
+  avgRetentionRate: zod.number(),
+  totalPremiumGenerated: zod.number(),
+  topBrokers: zod.array(
+    zod.object({
+      brokerId: zod.string(),
+      name: zod.string(),
+      region: zod.string(),
+      totalPolicies: zod.number(),
+      totalPremium: zod.number(),
+      conversionRate: zod.number(),
+      retentionRate: zod.number(),
+      avgDealSize: zod.number(),
+      claimsHandled: zod.number(),
+      customerSatisfaction: zod.number(),
+      rank: zod.number(),
+    }),
+  ),
+  performanceTrend: zod.array(
+    zod.object({
+      date: zod.string(),
+      value: zod.number(),
+    }),
+  ),
+  brokersByRegion: zod.array(
+    zod.object({
+      name: zod.string(),
+      value: zod.number(),
+      percentage: zod.number(),
+    }),
+  ),
+  conversionTrend: zod.array(
+    zod.object({
+      date: zod.string(),
+      value: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get revenue and commission analysis
+ */
+export const GetRevenueAnalysisResponse = zod.object({
+  totalRevenue: zod.number(),
+  totalCommission: zod.number(),
+  avgCommissionRate: zod.number(),
+  monthlyRecurringRevenue: zod.number(),
+  revenueGrowth: zod.number(),
+  revenueTrend: zod.array(
+    zod.object({
+      date: zod.string(),
+      value: zod.number(),
+    }),
+  ),
+  commissionTrend: zod.array(
+    zod.object({
+      date: zod.string(),
+      value: zod.number(),
+    }),
+  ),
+  revenueByProduct: zod.array(
+    zod.object({
+      name: zod.string(),
+      value: zod.number(),
+      percentage: zod.number(),
+    }),
+  ),
+  revenueByChannel: zod.array(
+    zod.object({
+      name: zod.string(),
+      value: zod.number(),
+      percentage: zod.number(),
+    }),
+  ),
+  topRevenueDrivers: zod.array(
+    zod.object({
+      driver: zod.string(),
+      amount: zod.number(),
+      growth: zod.number(),
+    }),
+  ),
+});

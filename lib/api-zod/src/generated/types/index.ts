@@ -6,4 +6,32 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./brokerMetric";
+export * from "./brokerPerformance";
+export * from "./categoryBreakdown";
+export * from "./claimItem";
+export * from "./claimsAnalysis";
+export * from "./createOpenaiConversationBody";
+export * from "./dashboardOverview";
+export * from "./edaAnalysis";
+export * from "./edaAnalysisCorrelationMatrixItem";
+export * from "./edaAnalysisFeatureImportanceItem";
+export * from "./edaAnalysisGeographicDistributionItem";
+export * from "./edaAnalysisOutliersItem";
 export * from "./healthStatus";
+export * from "./openaiConversation";
+export * from "./openaiConversationWithMessages";
+export * from "./openaiError";
+export * from "./openaiMessage";
+export * from "./policyAnalytics";
+export * from "./policyAnalyticsTopPoliciesByPremiumItem";
+export * from "./predictiveAnalysis";
+export * from "./predictiveAnalysisRiskSegmentsItem";
+export * from "./revenueAnalysis";
+export * from "./revenueAnalysisTopRevenueDriversItem";
+export * from "./sendOpenaiMessageBody";
+export * from "./sentimentAnalysis";
+export * from "./sentimentAnalysisRecentFeedbackItem";
+export * from "./sentimentAnalysisSentimentByChannelItem";
+export * from "./sentimentAnalysisTopComplaintsItem";
+export * from "./timeSeriesPoint";

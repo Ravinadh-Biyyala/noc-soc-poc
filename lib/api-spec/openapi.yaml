@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: openai
+    description: OpenAI AI chat operations
+  - name: dashboard
+    description: Insurance dashboard data operations
 paths:
   /healthz:
     get:
@@ -24,6 +28,217 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /openai/conversations:
+    get:
+      operationId: listOpenaiConversations
+      tags: [openai]
+      summary: List all conversations
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenaiConversation"
+    post:
+      operationId: createOpenaiConversation
+      tags: [openai]
+      summary: Create a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOpenaiConversationBody"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversation"
+  /openai/conversations/{id}:
+    get:
+      operationId: getOpenaiConversation
+      tags: [openai]
+      summary: Get conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversationWithMessages"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+    delete:
+      operationId: deleteOpenaiConversation
+      tags: [openai]
+      summary: Delete a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+  /openai/conversations/{id}/messages:
+    get:
+      operationId: listOpenaiMessages
+      tags: [openai]
+      summary: List messages in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenaiMessage"
+    post:
+      operationId: sendOpenaiMessage
+      tags: [openai]
+      summary: Send a text message and receive a streaming text response
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendOpenaiMessageBody"
+      responses:
+        "200":
+          description: SSE stream of assistant text chunks
+          content:
+            text/event-stream: {}
+  /dashboard/overview:
+    get:
+      operationId: getDashboardOverview
+      tags: [dashboard]
+      summary: Get insurance broker overview metrics
+      responses:
+        "200":
+          description: Overview metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardOverview"
+  /dashboard/claims:
+    get:
+      operationId: getClaimsAnalysis
+      tags: [dashboard]
+      summary: Get claims analysis data
+      responses:
+        "200":
+          description: Claims analysis data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClaimsAnalysis"
+  /dashboard/policies:
+    get:
+      operationId: getPolicyAnalytics
+      tags: [dashboard]
+      summary: Get policy analytics data
+      responses:
+        "200":
+          description: Policy analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PolicyAnalytics"
+  /dashboard/predictive:
+    get:
+      operationId: getPredictiveAnalysis
+      tags: [dashboard]
+      summary: Get predictive analysis data
+      responses:
+        "200":
+          description: Predictive analysis data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PredictiveAnalysis"
+  /dashboard/sentiment:
+    get:
+      operationId: getSentimentAnalysis
+      tags: [dashboard]
+      summary: Get customer sentiment analysis
+      responses:
+        "200":
+          description: Sentiment analysis data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SentimentAnalysis"
+  /dashboard/eda:
+    get:
+      operationId: getEdaAnalysis
+      tags: [dashboard]
+      summary: Get exploratory data analysis
+      responses:
+        "200":
+          description: EDA data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EdaAnalysis"
+  /dashboard/brokers:
+    get:
+      operationId: getBrokerPerformance
+      tags: [dashboard]
+      summary: Get broker performance metrics
+      responses:
+        "200":
+          description: Broker performance data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrokerPerformance"
+  /dashboard/revenue:
+    get:
+      operationId: getRevenueAnalysis
+      tags: [dashboard]
+      summary: Get revenue and commission analysis
+      responses:
+        "200":
+          description: Revenue analysis data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevenueAnalysis"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +248,648 @@ components:
           type: string
       required:
         - status
-
+    OpenaiConversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - createdAt
+    OpenaiMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - conversationId
+        - role
+        - content
+        - createdAt
+    CreateOpenaiConversationBody:
+      type: object
+      properties:
+        title:
+          type: string
+      required:
+        - title
+    SendOpenaiMessageBody:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+    OpenaiConversationWithMessages:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpenaiMessage"
+      required:
+        - id
+        - title
+        - createdAt
+        - messages
+    OpenaiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    TimeSeriesPoint:
+      type: object
+      properties:
+        date:
+          type: string
+        value:
+          type: number
+      required:
+        - date
+        - value
+    CategoryBreakdown:
+      type: object
+      properties:
+        name:
+          type: string
+        value:
+          type: number
+        percentage:
+          type: number
+      required:
+        - name
+        - value
+        - percentage
+    DashboardOverview:
+      type: object
+      properties:
+        totalPolicies:
+          type: integer
+        activePolicies:
+          type: integer
+        totalPremium:
+          type: number
+        totalClaims:
+          type: integer
+        claimsRatio:
+          type: number
+        customerRetentionRate:
+          type: number
+        avgPolicyValue:
+          type: number
+        monthlyGrowthRate:
+          type: number
+        newCustomersThisMonth:
+          type: integer
+        renewalRate:
+          type: number
+        policyTypeBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryBreakdown"
+        monthlyPremiumTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeSeriesPoint"
+        claimsTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeSeriesPoint"
+      required:
+        - totalPolicies
+        - activePolicies
+        - totalPremium
+        - totalClaims
+        - claimsRatio
+        - customerRetentionRate
+        - avgPolicyValue
+        - monthlyGrowthRate
+        - newCustomersThisMonth
+        - renewalRate
+        - policyTypeBreakdown
+        - monthlyPremiumTrend
+        - claimsTrend
+    ClaimItem:
+      type: object
+      properties:
+        id:
+          type: string
+        policyType:
+          type: string
+        claimAmount:
+          type: number
+        status:
+          type: string
+        filedDate:
+          type: string
+        resolutionDays:
+          type: integer
+        severity:
+          type: string
+      required:
+        - id
+        - policyType
+        - claimAmount
+        - status
+        - filedDate
+        - resolutionDays
+        - severity
+    ClaimsAnalysis:
+      type: object
+      properties:
+        totalClaims:
+          type: integer
+        approvedClaims:
+          type: integer
+        rejectedClaims:
+          type: integer
+        pendingClaims:
+          type: integer
+        avgResolutionDays:
+          type: number
+        totalClaimAmount:
+          type: number
+        avgClaimAmount:
+          type: number
+        fraudRate:
+          type: number
+        claimsByType:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryBreakdown"
+        claimsByStatus:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryBreakdown"
+        claimsBySeverity:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryBreakdown"
+        monthlyClaimsTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeSeriesPoint"
+        recentClaims:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClaimItem"
+      required:
+        - totalClaims
+        - approvedClaims
+        - rejectedClaims
+        - pendingClaims
+        - avgResolutionDays
+        - totalClaimAmount
+        - avgClaimAmount
+        - fraudRate
+        - claimsByType
+        - claimsByStatus
+        - claimsBySeverity
+        - monthlyClaimsTrend
+        - recentClaims
+    PolicyAnalytics:
+      type: object
+      properties:
+        totalPolicies:
+          type: integer
+        activePolicies:
+          type: integer
+        expiredPolicies:
+          type: integer
+        cancelledPolicies:
+          type: integer
+        avgPremium:
+          type: number
+        avgCoverageAmount:
+          type: number
+        renewalRate:
+          type: number
+        conversionRate:
+          type: number
+        policyDistribution:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryBreakdown"
+        premiumByType:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryBreakdown"
+        policyGrowthTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeSeriesPoint"
+        renewalTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeSeriesPoint"
+        topPoliciesByPremium:
+          type: array
+          items:
+            type: object
+            properties:
+              policyId:
+                type: string
+              customerName:
+                type: string
+              type:
+                type: string
+              premium:
+                type: number
+              coverage:
+                type: number
+            required:
+              - policyId
+              - customerName
+              - type
+              - premium
+              - coverage
+      required:
+        - totalPolicies
+        - activePolicies
+        - expiredPolicies
+        - cancelledPolicies
+        - avgPremium
+        - avgCoverageAmount
+        - renewalRate
+        - conversionRate
+        - policyDistribution
+        - premiumByType
+        - policyGrowthTrend
+        - renewalTrend
+        - topPoliciesByPremium
+    PredictiveAnalysis:
+      type: object
+      properties:
+        churnProbability:
+          type: number
+        expectedClaimsNextQuarter:
+          type: integer
+        projectedPremiumGrowth:
+          type: number
+        riskScore:
+          type: number
+        churnRiskDistribution:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryBreakdown"
+        claimsPredictionTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeSeriesPoint"
+        premiumForecast:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeSeriesPoint"
+        riskSegments:
+          type: array
+          items:
+            type: object
+            properties:
+              segment:
+                type: string
+              count:
+                type: integer
+              avgRisk:
+                type: number
+              avgPremium:
+                type: number
+            required:
+              - segment
+              - count
+              - avgRisk
+              - avgPremium
+        customerLifetimeValue:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeSeriesPoint"
+      required:
+        - churnProbability
+        - expectedClaimsNextQuarter
+        - projectedPremiumGrowth
+        - riskScore
+        - churnRiskDistribution
+        - claimsPredictionTrend
+        - premiumForecast
+        - riskSegments
+        - customerLifetimeValue
+    SentimentAnalysis:
+      type: object
+      properties:
+        overallScore:
+          type: number
+        positivePercentage:
+          type: number
+        neutralPercentage:
+          type: number
+        negativePercentage:
+          type: number
+        npsScore:
+          type: number
+        avgResponseTime:
+          type: number
+        sentimentTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeSeriesPoint"
+        sentimentByChannel:
+          type: array
+          items:
+            type: object
+            properties:
+              channel:
+                type: string
+              positive:
+                type: number
+              neutral:
+                type: number
+              negative:
+                type: number
+            required:
+              - channel
+              - positive
+              - neutral
+              - negative
+        topComplaints:
+          type: array
+          items:
+            type: object
+            properties:
+              topic:
+                type: string
+              count:
+                type: integer
+              sentiment:
+                type: number
+            required:
+              - topic
+              - count
+              - sentiment
+        recentFeedback:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              text:
+                type: string
+              sentiment:
+                type: string
+              score:
+                type: number
+              date:
+                type: string
+              channel:
+                type: string
+            required:
+              - id
+              - text
+              - sentiment
+              - score
+              - date
+              - channel
+      required:
+        - overallScore
+        - positivePercentage
+        - neutralPercentage
+        - negativePercentage
+        - npsScore
+        - avgResponseTime
+        - sentimentTrend
+        - sentimentByChannel
+        - topComplaints
+        - recentFeedback
+    EdaAnalysis:
+      type: object
+      properties:
+        correlationMatrix:
+          type: array
+          items:
+            type: object
+            properties:
+              xVar:
+                type: string
+              yVar:
+                type: string
+              correlation:
+                type: number
+            required:
+              - xVar
+              - yVar
+              - correlation
+        ageDistribution:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryBreakdown"
+        premiumDistribution:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryBreakdown"
+        geographicDistribution:
+          type: array
+          items:
+            type: object
+            properties:
+              region:
+                type: string
+              policyCount:
+                type: integer
+              avgPremium:
+                type: number
+              claimsRate:
+                type: number
+            required:
+              - region
+              - policyCount
+              - avgPremium
+              - claimsRate
+        outliers:
+          type: array
+          items:
+            type: object
+            properties:
+              metric:
+                type: string
+              value:
+                type: number
+              zScore:
+                type: number
+              description:
+                type: string
+            required:
+              - metric
+              - value
+              - zScore
+              - description
+        featureImportance:
+          type: array
+          items:
+            type: object
+            properties:
+              feature:
+                type: string
+              importance:
+                type: number
+            required:
+              - feature
+              - importance
+      required:
+        - correlationMatrix
+        - ageDistribution
+        - premiumDistribution
+        - geographicDistribution
+        - outliers
+        - featureImportance
+    BrokerMetric:
+      type: object
+      properties:
+        brokerId:
+          type: string
+        name:
+          type: string
+        region:
+          type: string
+        totalPolicies:
+          type: integer
+        totalPremium:
+          type: number
+        conversionRate:
+          type: number
+        retentionRate:
+          type: number
+        avgDealSize:
+          type: number
+        claimsHandled:
+          type: integer
+        customerSatisfaction:
+          type: number
+        rank:
+          type: integer
+      required:
+        - brokerId
+        - name
+        - region
+        - totalPolicies
+        - totalPremium
+        - conversionRate
+        - retentionRate
+        - avgDealSize
+        - claimsHandled
+        - customerSatisfaction
+        - rank
+    BrokerPerformance:
+      type: object
+      properties:
+        totalBrokers:
+          type: integer
+        avgConversionRate:
+          type: number
+        avgRetentionRate:
+          type: number
+        totalPremiumGenerated:
+          type: number
+        topBrokers:
+          type: array
+          items:
+            $ref: "#/components/schemas/BrokerMetric"
+        performanceTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeSeriesPoint"
+        brokersByRegion:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryBreakdown"
+        conversionTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeSeriesPoint"
+      required:
+        - totalBrokers
+        - avgConversionRate
+        - avgRetentionRate
+        - totalPremiumGenerated
+        - topBrokers
+        - performanceTrend
+        - brokersByRegion
+        - conversionTrend
+    RevenueAnalysis:
+      type: object
+      properties:
+        totalRevenue:
+          type: number
+        totalCommission:
+          type: number
+        avgCommissionRate:
+          type: number
+        monthlyRecurringRevenue:
+          type: number
+        revenueGrowth:
+          type: number
+        revenueTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeSeriesPoint"
+        commissionTrend:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimeSeriesPoint"
+        revenueByProduct:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryBreakdown"
+        revenueByChannel:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryBreakdown"
+        topRevenueDrivers:
+          type: array
+          items:
+            type: object
+            properties:
+              driver:
+                type: string
+              amount:
+                type: number
+              growth:
+                type: number
+            required:
+              - driver
+              - amount
+              - growth
+      required:
+        - totalRevenue
+        - totalCommission
+        - avgCommissionRate
+        - monthlyRecurringRevenue
+        - revenueGrowth
+        - revenueTrend
+        - commissionTrend
+        - revenueByProduct
+        - revenueByChannel
+        - topRevenueDrivers
