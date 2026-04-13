@@ -12,9 +12,12 @@ import {
   Send,
   ChevronRight,
   BrainCircuit,
-  Loader2
+  Loader2,
+  PlusCircle,
+  Check
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
+import { useCustomDashboards, classifyChart } from "@/lib/custom-dashboards";
 import {
   useListOpenaiConversations,
   useCreateOpenaiConversation,
@@ -119,6 +122,25 @@ const CHART_COLORS = ["#1565C0", "#0288D1", "#0097A7", "#00838F", "#00695C", "#6
 
 function InlineChart({ chartData }: { chartData: { type: string; title: string; xKey: string; yKey: string; data: any[] } }) {
   const { type, title, xKey, yKey, data } = chartData;
+  const { addChart, charts } = useCustomDashboards();
+  const [added, setAdded] = useState(false);
+  const classification = classifyChart(chartData);
+
+  const alreadyAdded = charts.some(c => c.title === title && c.type === type && c.section === classification.section);
+
+  const handleAdd = () => {
+    if (alreadyAdded || added) return;
+    addChart({
+      type,
+      title,
+      xKey,
+      yKey,
+      data,
+      section: classification.section,
+      sectionLabel: classification.sectionLabel,
+    });
+    setAdded(true);
+  };
 
   const formatValue = (val: number) => {
     if (val >= 1000000) return `$${(val / 1000000).toFixed(1)}M`;
@@ -129,7 +151,25 @@ function InlineChart({ chartData }: { chartData: { type: string; title: string; 
 
   return (
     <div className="mt-2 mb-1 bg-muted/40 rounded-lg border border-border p-3">
-      <p className="text-[11px] font-semibold text-foreground mb-2">{title}</p>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[11px] font-semibold text-foreground">{title}</p>
+        <button
+          onClick={handleAdd}
+          disabled={alreadyAdded || added}
+          className={cn(
+            "flex items-center gap-1 text-[9px] font-medium px-2 py-0.5 rounded-full transition-all",
+            alreadyAdded || added
+              ? "bg-emerald-50 text-emerald-600 cursor-default"
+              : "bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"
+          )}
+        >
+          {alreadyAdded || added ? (
+            <><Check className="w-2.5 h-2.5" /> Added to {classification.sectionLabel}</>
+          ) : (
+            <><PlusCircle className="w-2.5 h-2.5" /> Add to {classification.sectionLabel}</>
+          )}
+        </button>
+      </div>
       <div className="h-[180px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           {type === 'pie' ? (

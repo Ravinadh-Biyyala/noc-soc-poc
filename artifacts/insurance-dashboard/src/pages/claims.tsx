@@ -1,4 +1,5 @@
 import { useGetClaimsRisk } from "@workspace/api-client-react";
+import CustomChartsSection from "@/components/custom-charts-section";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -127,6 +128,8 @@ export default function ClaimsRisk() {
           </div>
         </CardContent>
       </Card>
+
+      <CustomChartsSection section="/claims" />
     </div>
   );
 }

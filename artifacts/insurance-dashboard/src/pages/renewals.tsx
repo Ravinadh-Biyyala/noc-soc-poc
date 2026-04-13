@@ -1,4 +1,5 @@
 import { useGetRenewalsRetention } from "@workspace/api-client-react";
+import CustomChartsSection from "@/components/custom-charts-section";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -89,6 +90,8 @@ export default function RenewalsRetention() {
           </CardContent>
         </Card>
       </div>
+
+      <CustomChartsSection section="/renewals" />
     </div>
   );
 }

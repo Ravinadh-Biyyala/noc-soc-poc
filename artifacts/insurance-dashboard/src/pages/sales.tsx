@@ -1,4 +1,5 @@
 import { useGetSalesPerformance } from "@workspace/api-client-react";
+import CustomChartsSection from "@/components/custom-charts-section";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -124,6 +125,8 @@ export default function SalesPerformance() {
           </div>
         </CardContent>
       </Card>
+
+      <CustomChartsSection section="/sales" />
     </div>
   );
 }

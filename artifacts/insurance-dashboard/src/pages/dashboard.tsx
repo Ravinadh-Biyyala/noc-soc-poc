@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatPercent } from "@/lib/utils";
 import { TrendingUp, TrendingDown, DollarSign, FileText, Shield, Target, BarChart3, Percent } from "lucide-react";
 import USAMap from "@/components/USAMap";
+import CustomChartsSection from "@/components/custom-charts-section";
 
 export default function Dashboard() {
   const { data, isLoading } = useGetExecutiveSummary();
@@ -169,6 +170,8 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <CustomChartsSection section="/" />
     </div>
   );
 }
