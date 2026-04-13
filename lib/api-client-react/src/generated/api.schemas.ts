@@ -42,211 +42,219 @@ export interface OpenaiError {
   error: string;
 }
 
-export interface TimeSeriesPoint {
+export interface TrendPoint {
   date: string;
   value: number;
 }
 
-export interface CategoryBreakdown {
-  name: string;
-  value: number;
-  percentage: number;
+export interface YoyComparison {
+  current: number;
+  previous: number;
+  changePercent: number;
 }
 
-export interface DashboardOverview {
-  totalPolicies: number;
-  activePolicies: number;
-  totalPremium: number;
-  totalClaims: number;
-  claimsRatio: number;
-  customerRetentionRate: number;
-  avgPolicyValue: number;
-  monthlyGrowthRate: number;
-  newCustomersThisMonth: number;
+export type ExecutiveSummaryTopStatesByPremiumItem = {
+  state: string;
+  stateCode: string;
+  premium: number;
+};
+
+export type ExecutiveSummaryPolicyMixItem = {
+  line: string;
+  premium: number;
+  share: number;
+};
+
+export interface ExecutiveSummary {
+  writtenPremium: YoyComparison;
+  commissionRevenue: YoyComparison;
+  policiesBound: YoyComparison;
   renewalRate: number;
-  policyTypeBreakdown: CategoryBreakdown[];
-  monthlyPremiumTrend: TimeSeriesPoint[];
-  claimsTrend: TimeSeriesPoint[];
+  quoteToBind: number;
+  yoyBookGrowth: number;
+  avgPremiumPerPolicy: number;
+  retentionRate: number;
+  lossRatio: number;
+  topStatesByPremium: ExecutiveSummaryTopStatesByPremiumItem[];
+  monthlyPremiumTrend: TrendPoint[];
+  monthlyCommissionTrend: TrendPoint[];
+  policyMix: ExecutiveSummaryPolicyMixItem[];
 }
 
-export interface ClaimItem {
-  id: string;
-  policyType: string;
-  claimAmount: number;
+export interface ProducerMetric {
+  name: string;
+  writtenPremium: number;
+  commissionRevenue: number;
+  quoteRate: number;
+  bindRate: number;
+  renewalRetention: number;
+  avgAccountSize: number;
+  policiesBound: number;
+}
+
+export type SalesPerformanceFunnelStagesItem = {
+  stage: string;
+  count: number;
+  value: number;
+};
+
+export type SalesPerformanceAccountSizeBucketsItem = {
+  bucket: string;
+  count: number;
+  premium: number;
+};
+
+export interface SalesPerformance {
+  leadVolume: number;
+  qualifiedLeadRatio: number;
+  quotesIssued: number;
+  quoteRate: number;
+  bindRate: number;
+  closingRatio: number;
+  premiumBound: number;
+  avgDaysToBind: number;
+  newBusinessPremium: number;
+  renewalPremium: number;
+  funnelStages: SalesPerformanceFunnelStagesItem[];
+  producerLeaderboard: ProducerMetric[];
+  monthlyBindTrend: TrendPoint[];
+  accountSizeBuckets: SalesPerformanceAccountSizeBucketsItem[];
+}
+
+export interface LineOfBusiness {
+  line: string;
+  premium2023: number;
+  premium2022: number;
+  yoyChange: number;
+  policyCount: number;
+  avgPolicySize: number;
+  bindRate: number;
+  renewalRate: number;
+  lossRatio: number;
+  commissionRevenue: number;
+}
+
+export interface CarrierMetric {
+  carrier: string;
+  premiumPlaced: number;
+  submissions: number;
+  bindRatio: number;
+  avgQuoteTurnaround: number;
+  retentionRate: number;
+  lossRatio: number;
+  commissionRate: number;
+}
+
+export type ProductAnalyticsPremiumByLineTrendItem = {
+  date: string;
+  commercialProperty: number;
+  generalLiability: number;
+  commercialAuto: number;
+  workersComp: number;
+  cyber: number;
+};
+
+export interface ProductAnalytics {
+  lineOfBusiness: LineOfBusiness[];
+  carriers: CarrierMetric[];
+  premiumByLineTrend: ProductAnalyticsPremiumByLineTrendItem[];
+}
+
+export type RenewalsRetentionChurnByProducerItem = {
+  producer: string;
+  lostPolicies: number;
+  lostPremium: number;
+  retentionRate: number;
+};
+
+export type RenewalsRetentionChurnByLineItem = {
+  line: string;
+  lostPolicies: number;
+  lostPremium: number;
+  retentionRate: number;
+};
+
+export interface RenewalsRetention {
+  renewalRate: number;
+  retentionRatio: number;
+  retainedPremium: number;
+  lostPremium: number;
+  premiumAtRisk30: number;
+  premiumAtRisk60: number;
+  premiumAtRisk90: number;
+  nonRenewalCount: number;
+  remarketingSuccessRate: number;
+  churnByProducer: RenewalsRetentionChurnByProducerItem[];
+  churnByLine: RenewalsRetentionChurnByLineItem[];
+  renewalTrend: TrendPoint[];
+  retentionTrend: TrendPoint[];
+}
+
+export type ClaimsRiskClaimsByLineItem = {
+  line: string;
+  claims: number;
+  incurredLoss: number;
+  lossRatio: number;
+};
+
+export type ClaimsRiskClaimsByStateItem = {
+  state: string;
+  stateCode: string;
+  claims: number;
+  incurredLoss: number;
+};
+
+export type ClaimsRiskRecentClaimsItem = {
+  claimId: string;
+  policyLine: string;
+  state: string;
+  incurredLoss: number;
   status: string;
   filedDate: string;
-  resolutionDays: number;
   severity: string;
+};
+
+export interface ClaimsRisk {
+  openClaims: number;
+  closedClaims: number;
+  claimFrequency: number;
+  avgIncurredLoss: number;
+  severity: number;
+  lossRatio: number;
+  claimsByLine: ClaimsRiskClaimsByLineItem[];
+  claimsByState: ClaimsRiskClaimsByStateItem[];
+  claimsTrend: TrendPoint[];
+  lossRatioTrend: TrendPoint[];
+  recentClaims: ClaimsRiskRecentClaimsItem[];
 }
 
-export interface ClaimsAnalysis {
-  totalClaims: number;
-  approvedClaims: number;
-  rejectedClaims: number;
-  pendingClaims: number;
-  avgResolutionDays: number;
-  totalClaimAmount: number;
-  avgClaimAmount: number;
-  fraudRate: number;
-  claimsByType: CategoryBreakdown[];
-  claimsByStatus: CategoryBreakdown[];
-  claimsBySeverity: CategoryBreakdown[];
-  monthlyClaimsTrend: TimeSeriesPoint[];
-  recentClaims: ClaimItem[];
-}
-
-export type PolicyAnalyticsTopPoliciesByPremiumItem = {
-  policyId: string;
-  customerName: string;
-  type: string;
-  premium: number;
-  coverage: number;
-};
-
-export interface PolicyAnalytics {
-  totalPolicies: number;
-  activePolicies: number;
-  expiredPolicies: number;
-  cancelledPolicies: number;
-  avgPremium: number;
-  avgCoverageAmount: number;
-  renewalRate: number;
-  conversionRate: number;
-  policyDistribution: CategoryBreakdown[];
-  premiumByType: CategoryBreakdown[];
-  policyGrowthTrend: TimeSeriesPoint[];
-  renewalTrend: TimeSeriesPoint[];
-  topPoliciesByPremium: PolicyAnalyticsTopPoliciesByPremiumItem[];
-}
-
-export type PredictiveAnalysisRiskSegmentsItem = {
-  segment: string;
-  count: number;
-  avgRisk: number;
-  avgPremium: number;
-};
-
-export interface PredictiveAnalysis {
-  churnProbability: number;
-  expectedClaimsNextQuarter: number;
-  projectedPremiumGrowth: number;
-  riskScore: number;
-  churnRiskDistribution: CategoryBreakdown[];
-  claimsPredictionTrend: TimeSeriesPoint[];
-  premiumForecast: TimeSeriesPoint[];
-  riskSegments: PredictiveAnalysisRiskSegmentsItem[];
-  customerLifetimeValue: TimeSeriesPoint[];
-}
-
-export type SentimentAnalysisSentimentByChannelItem = {
-  channel: string;
-  positive: number;
-  neutral: number;
-  negative: number;
-};
-
-export type SentimentAnalysisTopComplaintsItem = {
-  topic: string;
-  count: number;
-  sentiment: number;
-};
-
-export type SentimentAnalysisRecentFeedbackItem = {
-  id: string;
-  text: string;
-  sentiment: string;
-  score: number;
-  date: string;
-  channel: string;
-};
-
-export interface SentimentAnalysis {
-  overallScore: number;
-  positivePercentage: number;
-  neutralPercentage: number;
-  negativePercentage: number;
-  npsScore: number;
-  avgResponseTime: number;
-  sentimentTrend: TimeSeriesPoint[];
-  sentimentByChannel: SentimentAnalysisSentimentByChannelItem[];
-  topComplaints: SentimentAnalysisTopComplaintsItem[];
-  recentFeedback: SentimentAnalysisRecentFeedbackItem[];
-}
-
-export type EdaAnalysisCorrelationMatrixItem = {
-  xVar: string;
-  yVar: string;
-  correlation: number;
-};
-
-export type EdaAnalysisGeographicDistributionItem = {
-  region: string;
+export interface StateData {
+  stateCode: string;
+  stateName: string;
+  writtenPremium: number;
+  commissionRevenue: number;
   policyCount: number;
-  avgPremium: number;
-  claimsRate: number;
-};
-
-export type EdaAnalysisOutliersItem = {
-  metric: string;
-  value: number;
-  zScore: number;
-  description: string;
-};
-
-export type EdaAnalysisFeatureImportanceItem = {
-  feature: string;
-  importance: number;
-};
-
-export interface EdaAnalysis {
-  correlationMatrix: EdaAnalysisCorrelationMatrixItem[];
-  ageDistribution: CategoryBreakdown[];
-  premiumDistribution: CategoryBreakdown[];
-  geographicDistribution: EdaAnalysisGeographicDistributionItem[];
-  outliers: EdaAnalysisOutliersItem[];
-  featureImportance: EdaAnalysisFeatureImportanceItem[];
-}
-
-export interface BrokerMetric {
-  brokerId: string;
-  name: string;
-  region: string;
-  totalPolicies: number;
-  totalPremium: number;
-  conversionRate: number;
+  quoteToBind: number;
   retentionRate: number;
-  avgDealSize: number;
-  claimsHandled: number;
-  customerSatisfaction: number;
-  rank: number;
+  lossRatio: number;
+  yoyGrowth: number;
 }
 
-export interface BrokerPerformance {
-  totalBrokers: number;
-  avgConversionRate: number;
-  avgRetentionRate: number;
-  totalPremiumGenerated: number;
-  topBrokers: BrokerMetric[];
-  performanceTrend: TimeSeriesPoint[];
-  brokersByRegion: CategoryBreakdown[];
-  conversionTrend: TimeSeriesPoint[];
-}
-
-export type RevenueAnalysisTopRevenueDriversItem = {
-  driver: string;
-  amount: number;
+export type GeographyDataTopGrowthStatesItem = {
+  stateCode: string;
+  stateName: string;
   growth: number;
 };
 
-export interface RevenueAnalysis {
-  totalRevenue: number;
-  totalCommission: number;
-  avgCommissionRate: number;
-  monthlyRecurringRevenue: number;
-  revenueGrowth: number;
-  revenueTrend: TimeSeriesPoint[];
-  commissionTrend: TimeSeriesPoint[];
-  revenueByProduct: CategoryBreakdown[];
-  revenueByChannel: CategoryBreakdown[];
-  topRevenueDrivers: RevenueAnalysisTopRevenueDriversItem[];
+export type GeographyDataConcentrationRiskItem = {
+  stateCode: string;
+  stateName: string;
+  sharePercent: number;
+};
+
+export interface GeographyData {
+  states: StateData[];
+  totalStatesActive: number;
+  topGrowthStates: GeographyDataTopGrowthStatesItem[];
+  concentrationRisk: GeographyDataConcentrationRiskItem[];
 }

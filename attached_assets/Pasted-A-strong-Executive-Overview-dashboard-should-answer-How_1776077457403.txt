@@ -1,0 +1,84 @@
+A strong Executive Overview dashboard should answer: “How did the brokerage perform in 2023 versus 2022?” The hero tiles should be Written Premium, Commission Revenue, Policies Bound, Renewal Rate, Quote-to-Bind Rate, YoY Book Growth, Average Premium per Policy, and Top 5 States by Premium. Written premium, growth rate, and renewal rate are repeatedly cited as core insurance KPIs, while quote-to-bind shows sales effectiveness.
+
+Your second dashboard should be Sales / Pipeline / Placement Analytics. This is where the brokerage sees lead-to-policy conversion: lead volume, qualified lead ratio, quotes issued, closing ratio, quote rate, bind rate, premium bound, average days to bind, new business premium, renewal premium, producer leaderboard, and account size buckets. Qualified lead ratio, closing ratio, and quote/bind metrics are especially valuable because they reveal whether weak growth is a lead problem, a quoting problem, or a closing problem.
+
+The third dashboard should be Renewal / Retention / Book Stability. This is one of the most important broker views because recurring revenue quality matters more than raw sales spikes. Track renewal rate, retention ratio, retained premium, lost premium, premium at risk in next 30/60/90 days, non-renewal counts, remarketing success rate, churn by producer, churn by line of business, and churn by state. Independent agency guidance consistently treats retention as a foundational operating metric, and industry sale benchmarks often view 90%–95% client retention as a very attractive range.
+
+A Geography dashboard is essential for a U.S. brokerage, especially since you asked for a beautiful USA map. The best metrics to map are written premium by state, commission revenue by state, policy count by state, quote-to-bind by state, retention by state, loss ratio by state, and account concentration by state. This also matches how U.S. insurance data is often analyzed by state in NAIC market-share and profitability publications.
+
+For Line of Business / Product dashboards, split the book into things like Commercial Property, General Liability, Commercial Auto, Workers’ Compensation, Cyber, Professional Liability, Homeowners, Personal Auto, Life/Health/Benefits depending on your brokerage model. Show premium, revenue, average policy size, bind rate, renewal rate, loss ratio, and YoY change by line. This is especially relevant because commercial lines pricing moved materially across 2022 and 2023, with CIAB/NAIC-referenced data showing average commercial premium increases of about 8.0% in Q4 2022 and 5.7% in Q4 2023, while commercial property remained the hardest line in late 2023.
+
+A Carrier / Underwriter dashboard is another must. Insurance brokers live or die by carrier relationships and placement efficiency. Track premium placed by carrier, submissions by carrier, quote turnaround time, bind ratio by carrier, declination rate, retention by carrier, loss ratio by carrier, commission rate by carrier, contingency income, and market appetite success by risk class. This lets you identify which carriers are profitable, fast, and sticky for each segment. Loss ratio and quote-to-bind are already recognized as core performance indicators, and carrier contract/contingency quality materially affects agency value.
+
+A Producer / Team Performance dashboard should rank people not only on sales, but on quality of sales. The right fields are written premium by producer, commission revenue by producer, quote rate, bind rate, renewal retention, average account size, cross-sell rate, lead follow-up time, effective production time, and revenue per employee. The “effective production time” idea is especially useful because it separates real selling time from administrative busywork.
+
+A Claims and Loss dashboard should exist even for a broker, though it is usually more of a client-service and book-quality view than a carrier actuarial one. Track open claims, closed claims, claim frequency, average incurred loss, severity, claims by line, claims by state, claims-to-premium trend, and loss ratio by account/segment/producer. Loss ratio is one of the most important metrics because it directly affects profitability, carrier relationships, and future pricing.
+
+A Service Operations dashboard is often ignored, but it becomes one of the most valuable in practice. Include endorsements processed, certificates issued, policy servicing turnaround time, renewal touchpoint completion, remarketing workload, client response SLA, backlog aging, open service requests, and NPS / CSAT if available. Operational dashboards become especially important when retention pressure increases, as agencies in difficult markets have reported measurable drops in retention tied to customer movement and carrier availability constraints.
+
+A Finance / Revenue / Profitability dashboard should sit separately from pure sales. Show commission revenue, contingency revenue, fee income, new vs renewal revenue mix, revenue by state, revenue by line, revenue by carrier, average commission per account, revenue per producer, revenue per employee, gross margin if known, AR aging, cash collection, and concentration risk. Written premium alone is not enough; the finance view tells you whether growth is efficient and profitable.
+
+For 2022–2023 specifically, I would build the data model so every dashboard can compare those years at a monthly grain. That means every fact table should carry: date, state, producer, office, line of business, carrier, client segment, account, policy count, quoted premium, bound premium, commission revenue, claims, and renewal status. Then every view can show 2022 vs 2023 side-by-side, YoY delta, and monthly trend. This is useful because the U.S. market itself was meaningfully changing across those years, including persistent commercial rate increases and state-by-state premium variation.
+
+For the visual design, these are the most beautiful choices for your case:
+
+1. USA choropleth heat map
+Use this for written premium by state or retention by state. Add a toggle for 2022 / 2023 / YoY delta. This should be your centerpiece.
+
+2. Bubble map on top of USA map
+Bubble size = premium, bubble color = growth or loss ratio. It looks premium and instantly shows where the book is concentrated.
+
+3. Donut + nested donut
+Outer ring = line of business share. Inner ring = new vs renewal share. Very elegant for book mix.
+
+4. Dotted lollipop chart
+Perfect for top producers, top carriers, or top states. It feels much cleaner than a heavy bar chart.
+
+5. Dumbbell chart
+Best for 2022 vs 2023 comparisons by state, line, or producer. Very aesthetic and immediately shows movement.
+
+6. Slopegraph
+Use for carrier share shift from 2022 to 2023 or state rank movement.
+
+7. Packed bubble chart
+Use for book mix by line of business or carrier portfolio share.
+
+8. Dot matrix / dotted scatter
+Use for accounts plotted by premium vs loss ratio, with color by renewal risk. This is beautiful and analytically rich.
+
+9. Funnel chart
+Lead → Qualified → Quoted → Bound → Renewed. This is critical for brokerage conversion logic.
+
+10. Small-multiple sparklines
+Tiny monthly trend lines for each top state or top line of business from Jan 2022 to Dec 2023.
+
+The most elegant dashboard pack would be this:
+
+Page 1: Executive Overview
+Page 2: USA Geographic Performance
+Page 3: Sales Funnel & Placement
+Page 4: Renewal / Retention
+Page 5: Line of Business Performance
+Page 6: Carrier / Market Performance
+Page 7: Producer Performance
+Page 8: Claims / Loss Quality
+Page 9: Service Operations
+Page 10: Finance / Profitability
+
+For colors, I would avoid loud insurance-blue dashboards. A far more premium U.S. enterprise look would be:
+
+Deep navy / charcoal base
+Muted teal for positive growth
+Burnt orange / amber for risk
+Soft gray dotted backgrounds
+White cards with thin shadows
+Map glow and subtle gradients
+Fine dotted gridlines instead of thick axis lines
+
+If you want this to feel truly premium, the best storytelling flow is:
+National view → state hotspots → line-of-business mix → conversion efficiency → renewal stickiness → carrier leverage → producer productivity → profitability.
+
+The most important KPIs to definitely include are:
+Written Premium, Commission Revenue, Policy Count, Quote Rate, Bind Rate, Renewal Rate, Retention Ratio, Growth Rate, Average Policy Size, Loss Ratio, Claims Frequency, Average Turnaround Time, Revenue per Producer, Revenue per Employee, Carrier Share, and State Share. These are the load-bearing metrics across broker sales, operations, service, and profitability.
+
+One important note: since the public U.S. INVEX I found is not actually an insurance broker, I would treat “INVEX Insurance USA” as your dashboard theme, not as a researched public insurance company profile. The dashboard ideas above are still the right ones for a U.S. insurance brokerage operating over 2022–2023.

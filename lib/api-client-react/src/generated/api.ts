@@ -17,21 +17,19 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
-  BrokerPerformance,
-  ClaimsAnalysis,
+  ClaimsRisk,
   CreateOpenaiConversationBody,
-  DashboardOverview,
-  EdaAnalysis,
+  ExecutiveSummary,
+  GeographyData,
   HealthStatus,
   OpenaiConversation,
   OpenaiConversationWithMessages,
   OpenaiError,
   OpenaiMessage,
-  PolicyAnalytics,
-  PredictiveAnalysis,
-  RevenueAnalysis,
+  ProductAnalytics,
+  RenewalsRetention,
+  SalesPerformance,
   SendOpenaiMessageBody,
-  SentimentAnalysis,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -44,7 +42,6 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const getHealthCheckUrl = () => {
@@ -632,31 +629,31 @@ export const useSendOpenaiMessage = <
 };
 
 /**
- * @summary Get insurance broker overview metrics
+ * @summary Get executive summary KPIs
  */
-export const getGetDashboardOverviewUrl = () => {
-  return `/api/dashboard/overview`;
+export const getGetExecutiveSummaryUrl = () => {
+  return `/api/dashboard/executive`;
 };
 
-export const getDashboardOverview = async (
+export const getExecutiveSummary = async (
   options?: RequestInit,
-): Promise<DashboardOverview> => {
-  return customFetch<DashboardOverview>(getGetDashboardOverviewUrl(), {
+): Promise<ExecutiveSummary> => {
+  return customFetch<ExecutiveSummary>(getGetExecutiveSummaryUrl(), {
     ...options,
     method: "GET",
   });
 };
 
-export const getGetDashboardOverviewQueryKey = () => {
-  return [`/api/dashboard/overview`] as const;
+export const getGetExecutiveSummaryQueryKey = () => {
+  return [`/api/dashboard/executive`] as const;
 };
 
-export const getGetDashboardOverviewQueryOptions = <
-  TData = Awaited<ReturnType<typeof getDashboardOverview>>,
+export const getGetExecutiveSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getExecutiveSummary>>,
   TError = ErrorType<unknown>,
 >(options?: {
   query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getDashboardOverview>>,
+    Awaited<ReturnType<typeof getExecutiveSummary>>,
     TError,
     TData
   >;
@@ -664,40 +661,40 @@ export const getGetDashboardOverviewQueryOptions = <
 }) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetDashboardOverviewQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getGetExecutiveSummaryQueryKey();
 
   const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getDashboardOverview>>
-  > = ({ signal }) => getDashboardOverview({ signal, ...requestOptions });
+    Awaited<ReturnType<typeof getExecutiveSummary>>
+  > = ({ signal }) => getExecutiveSummary({ signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getDashboardOverview>>,
+    Awaited<ReturnType<typeof getExecutiveSummary>>,
     TError,
     TData
   > & { queryKey: QueryKey };
 };
 
-export type GetDashboardOverviewQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getDashboardOverview>>
+export type GetExecutiveSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getExecutiveSummary>>
 >;
-export type GetDashboardOverviewQueryError = ErrorType<unknown>;
+export type GetExecutiveSummaryQueryError = ErrorType<unknown>;
 
 /**
- * @summary Get insurance broker overview metrics
+ * @summary Get executive summary KPIs
  */
 
-export function useGetDashboardOverview<
-  TData = Awaited<ReturnType<typeof getDashboardOverview>>,
+export function useGetExecutiveSummary<
+  TData = Awaited<ReturnType<typeof getExecutiveSummary>>,
   TError = ErrorType<unknown>,
 >(options?: {
   query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getDashboardOverview>>,
+    Awaited<ReturnType<typeof getExecutiveSummary>>,
     TError,
     TData
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetDashboardOverviewQueryOptions(options);
+  const queryOptions = getGetExecutiveSummaryQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -707,31 +704,256 @@ export function useGetDashboardOverview<
 }
 
 /**
- * @summary Get claims analysis data
+ * @summary Get sales pipeline and placement analytics
  */
-export const getGetClaimsAnalysisUrl = () => {
+export const getGetSalesPerformanceUrl = () => {
+  return `/api/dashboard/sales`;
+};
+
+export const getSalesPerformance = async (
+  options?: RequestInit,
+): Promise<SalesPerformance> => {
+  return customFetch<SalesPerformance>(getGetSalesPerformanceUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSalesPerformanceQueryKey = () => {
+  return [`/api/dashboard/sales`] as const;
+};
+
+export const getGetSalesPerformanceQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSalesPerformance>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSalesPerformance>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSalesPerformanceQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSalesPerformance>>
+  > = ({ signal }) => getSalesPerformance({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSalesPerformance>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSalesPerformanceQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSalesPerformance>>
+>;
+export type GetSalesPerformanceQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get sales pipeline and placement analytics
+ */
+
+export function useGetSalesPerformance<
+  TData = Awaited<ReturnType<typeof getSalesPerformance>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSalesPerformance>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSalesPerformanceQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get line of business and product analytics
+ */
+export const getGetProductAnalyticsUrl = () => {
+  return `/api/dashboard/products`;
+};
+
+export const getProductAnalytics = async (
+  options?: RequestInit,
+): Promise<ProductAnalytics> => {
+  return customFetch<ProductAnalytics>(getGetProductAnalyticsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetProductAnalyticsQueryKey = () => {
+  return [`/api/dashboard/products`] as const;
+};
+
+export const getGetProductAnalyticsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getProductAnalytics>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getProductAnalytics>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetProductAnalyticsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getProductAnalytics>>
+  > = ({ signal }) => getProductAnalytics({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getProductAnalytics>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetProductAnalyticsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getProductAnalytics>>
+>;
+export type GetProductAnalyticsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get line of business and product analytics
+ */
+
+export function useGetProductAnalytics<
+  TData = Awaited<ReturnType<typeof getProductAnalytics>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getProductAnalytics>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetProductAnalyticsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get renewals and retention metrics
+ */
+export const getGetRenewalsRetentionUrl = () => {
+  return `/api/dashboard/renewals`;
+};
+
+export const getRenewalsRetention = async (
+  options?: RequestInit,
+): Promise<RenewalsRetention> => {
+  return customFetch<RenewalsRetention>(getGetRenewalsRetentionUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetRenewalsRetentionQueryKey = () => {
+  return [`/api/dashboard/renewals`] as const;
+};
+
+export const getGetRenewalsRetentionQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRenewalsRetention>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getRenewalsRetention>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetRenewalsRetentionQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getRenewalsRetention>>
+  > = ({ signal }) => getRenewalsRetention({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRenewalsRetention>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRenewalsRetentionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRenewalsRetention>>
+>;
+export type GetRenewalsRetentionQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get renewals and retention metrics
+ */
+
+export function useGetRenewalsRetention<
+  TData = Awaited<ReturnType<typeof getRenewalsRetention>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getRenewalsRetention>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRenewalsRetentionQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get claims and risk analytics
+ */
+export const getGetClaimsRiskUrl = () => {
   return `/api/dashboard/claims`;
 };
 
-export const getClaimsAnalysis = async (
+export const getClaimsRisk = async (
   options?: RequestInit,
-): Promise<ClaimsAnalysis> => {
-  return customFetch<ClaimsAnalysis>(getGetClaimsAnalysisUrl(), {
+): Promise<ClaimsRisk> => {
+  return customFetch<ClaimsRisk>(getGetClaimsRiskUrl(), {
     ...options,
     method: "GET",
   });
 };
 
-export const getGetClaimsAnalysisQueryKey = () => {
+export const getGetClaimsRiskQueryKey = () => {
   return [`/api/dashboard/claims`] as const;
 };
 
-export const getGetClaimsAnalysisQueryOptions = <
-  TData = Awaited<ReturnType<typeof getClaimsAnalysis>>,
+export const getGetClaimsRiskQueryOptions = <
+  TData = Awaited<ReturnType<typeof getClaimsRisk>>,
   TError = ErrorType<unknown>,
 >(options?: {
   query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getClaimsAnalysis>>,
+    Awaited<ReturnType<typeof getClaimsRisk>>,
     TError,
     TData
   >;
@@ -739,340 +961,40 @@ export const getGetClaimsAnalysisQueryOptions = <
 }) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetClaimsAnalysisQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getGetClaimsRiskQueryKey();
 
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getClaimsAnalysis>>
-  > = ({ signal }) => getClaimsAnalysis({ signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getClaimsAnalysis>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type GetClaimsAnalysisQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getClaimsAnalysis>>
->;
-export type GetClaimsAnalysisQueryError = ErrorType<unknown>;
-
-/**
- * @summary Get claims analysis data
- */
-
-export function useGetClaimsAnalysis<
-  TData = Awaited<ReturnType<typeof getClaimsAnalysis>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getClaimsAnalysis>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetClaimsAnalysisQueryOptions(options);
-
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-/**
- * @summary Get policy analytics data
- */
-export const getGetPolicyAnalyticsUrl = () => {
-  return `/api/dashboard/policies`;
-};
-
-export const getPolicyAnalytics = async (
-  options?: RequestInit,
-): Promise<PolicyAnalytics> => {
-  return customFetch<PolicyAnalytics>(getGetPolicyAnalyticsUrl(), {
-    ...options,
-    method: "GET",
-  });
-};
-
-export const getGetPolicyAnalyticsQueryKey = () => {
-  return [`/api/dashboard/policies`] as const;
-};
-
-export const getGetPolicyAnalyticsQueryOptions = <
-  TData = Awaited<ReturnType<typeof getPolicyAnalytics>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getPolicyAnalytics>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getGetPolicyAnalyticsQueryKey();
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getPolicyAnalytics>>
-  > = ({ signal }) => getPolicyAnalytics({ signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getPolicyAnalytics>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type GetPolicyAnalyticsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getPolicyAnalytics>>
->;
-export type GetPolicyAnalyticsQueryError = ErrorType<unknown>;
-
-/**
- * @summary Get policy analytics data
- */
-
-export function useGetPolicyAnalytics<
-  TData = Awaited<ReturnType<typeof getPolicyAnalytics>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getPolicyAnalytics>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetPolicyAnalyticsQueryOptions(options);
-
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-/**
- * @summary Get predictive analysis data
- */
-export const getGetPredictiveAnalysisUrl = () => {
-  return `/api/dashboard/predictive`;
-};
-
-export const getPredictiveAnalysis = async (
-  options?: RequestInit,
-): Promise<PredictiveAnalysis> => {
-  return customFetch<PredictiveAnalysis>(getGetPredictiveAnalysisUrl(), {
-    ...options,
-    method: "GET",
-  });
-};
-
-export const getGetPredictiveAnalysisQueryKey = () => {
-  return [`/api/dashboard/predictive`] as const;
-};
-
-export const getGetPredictiveAnalysisQueryOptions = <
-  TData = Awaited<ReturnType<typeof getPredictiveAnalysis>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getPredictiveAnalysis>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getGetPredictiveAnalysisQueryKey();
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getPredictiveAnalysis>>
-  > = ({ signal }) => getPredictiveAnalysis({ signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getPredictiveAnalysis>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type GetPredictiveAnalysisQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getPredictiveAnalysis>>
->;
-export type GetPredictiveAnalysisQueryError = ErrorType<unknown>;
-
-/**
- * @summary Get predictive analysis data
- */
-
-export function useGetPredictiveAnalysis<
-  TData = Awaited<ReturnType<typeof getPredictiveAnalysis>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getPredictiveAnalysis>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetPredictiveAnalysisQueryOptions(options);
-
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-/**
- * @summary Get customer sentiment analysis
- */
-export const getGetSentimentAnalysisUrl = () => {
-  return `/api/dashboard/sentiment`;
-};
-
-export const getSentimentAnalysis = async (
-  options?: RequestInit,
-): Promise<SentimentAnalysis> => {
-  return customFetch<SentimentAnalysis>(getGetSentimentAnalysisUrl(), {
-    ...options,
-    method: "GET",
-  });
-};
-
-export const getGetSentimentAnalysisQueryKey = () => {
-  return [`/api/dashboard/sentiment`] as const;
-};
-
-export const getGetSentimentAnalysisQueryOptions = <
-  TData = Awaited<ReturnType<typeof getSentimentAnalysis>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getSentimentAnalysis>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getGetSentimentAnalysisQueryKey();
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getSentimentAnalysis>>
-  > = ({ signal }) => getSentimentAnalysis({ signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getSentimentAnalysis>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type GetSentimentAnalysisQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getSentimentAnalysis>>
->;
-export type GetSentimentAnalysisQueryError = ErrorType<unknown>;
-
-/**
- * @summary Get customer sentiment analysis
- */
-
-export function useGetSentimentAnalysis<
-  TData = Awaited<ReturnType<typeof getSentimentAnalysis>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getSentimentAnalysis>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetSentimentAnalysisQueryOptions(options);
-
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-/**
- * @summary Get exploratory data analysis
- */
-export const getGetEdaAnalysisUrl = () => {
-  return `/api/dashboard/eda`;
-};
-
-export const getEdaAnalysis = async (
-  options?: RequestInit,
-): Promise<EdaAnalysis> => {
-  return customFetch<EdaAnalysis>(getGetEdaAnalysisUrl(), {
-    ...options,
-    method: "GET",
-  });
-};
-
-export const getGetEdaAnalysisQueryKey = () => {
-  return [`/api/dashboard/eda`] as const;
-};
-
-export const getGetEdaAnalysisQueryOptions = <
-  TData = Awaited<ReturnType<typeof getEdaAnalysis>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getEdaAnalysis>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getGetEdaAnalysisQueryKey();
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getEdaAnalysis>>> = ({
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getClaimsRisk>>> = ({
     signal,
-  }) => getEdaAnalysis({ signal, ...requestOptions });
+  }) => getClaimsRisk({ signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getEdaAnalysis>>,
+    Awaited<ReturnType<typeof getClaimsRisk>>,
     TError,
     TData
   > & { queryKey: QueryKey };
 };
 
-export type GetEdaAnalysisQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getEdaAnalysis>>
+export type GetClaimsRiskQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getClaimsRisk>>
 >;
-export type GetEdaAnalysisQueryError = ErrorType<unknown>;
+export type GetClaimsRiskQueryError = ErrorType<unknown>;
 
 /**
- * @summary Get exploratory data analysis
+ * @summary Get claims and risk analytics
  */
 
-export function useGetEdaAnalysis<
-  TData = Awaited<ReturnType<typeof getEdaAnalysis>>,
+export function useGetClaimsRisk<
+  TData = Awaited<ReturnType<typeof getClaimsRisk>>,
   TError = ErrorType<unknown>,
 >(options?: {
   query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getEdaAnalysis>>,
+    Awaited<ReturnType<typeof getClaimsRisk>>,
     TError,
     TData
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetEdaAnalysisQueryOptions(options);
+  const queryOptions = getGetClaimsRiskQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -1082,31 +1004,31 @@ export function useGetEdaAnalysis<
 }
 
 /**
- * @summary Get broker performance metrics
+ * @summary Get US geographic performance data for heat map
  */
-export const getGetBrokerPerformanceUrl = () => {
-  return `/api/dashboard/brokers`;
+export const getGetGeographyDataUrl = () => {
+  return `/api/dashboard/geography`;
 };
 
-export const getBrokerPerformance = async (
+export const getGeographyData = async (
   options?: RequestInit,
-): Promise<BrokerPerformance> => {
-  return customFetch<BrokerPerformance>(getGetBrokerPerformanceUrl(), {
+): Promise<GeographyData> => {
+  return customFetch<GeographyData>(getGetGeographyDataUrl(), {
     ...options,
     method: "GET",
   });
 };
 
-export const getGetBrokerPerformanceQueryKey = () => {
-  return [`/api/dashboard/brokers`] as const;
+export const getGetGeographyDataQueryKey = () => {
+  return [`/api/dashboard/geography`] as const;
 };
 
-export const getGetBrokerPerformanceQueryOptions = <
-  TData = Awaited<ReturnType<typeof getBrokerPerformance>>,
+export const getGetGeographyDataQueryOptions = <
+  TData = Awaited<ReturnType<typeof getGeographyData>>,
   TError = ErrorType<unknown>,
 >(options?: {
   query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getBrokerPerformance>>,
+    Awaited<ReturnType<typeof getGeographyData>>,
     TError,
     TData
   >;
@@ -1114,115 +1036,40 @@ export const getGetBrokerPerformanceQueryOptions = <
 }) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetBrokerPerformanceQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getGetGeographyDataQueryKey();
 
   const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getBrokerPerformance>>
-  > = ({ signal }) => getBrokerPerformance({ signal, ...requestOptions });
+    Awaited<ReturnType<typeof getGeographyData>>
+  > = ({ signal }) => getGeographyData({ signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getBrokerPerformance>>,
+    Awaited<ReturnType<typeof getGeographyData>>,
     TError,
     TData
   > & { queryKey: QueryKey };
 };
 
-export type GetBrokerPerformanceQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getBrokerPerformance>>
+export type GetGeographyDataQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getGeographyData>>
 >;
-export type GetBrokerPerformanceQueryError = ErrorType<unknown>;
+export type GetGeographyDataQueryError = ErrorType<unknown>;
 
 /**
- * @summary Get broker performance metrics
+ * @summary Get US geographic performance data for heat map
  */
 
-export function useGetBrokerPerformance<
-  TData = Awaited<ReturnType<typeof getBrokerPerformance>>,
+export function useGetGeographyData<
+  TData = Awaited<ReturnType<typeof getGeographyData>>,
   TError = ErrorType<unknown>,
 >(options?: {
   query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getBrokerPerformance>>,
+    Awaited<ReturnType<typeof getGeographyData>>,
     TError,
     TData
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetBrokerPerformanceQueryOptions(options);
-
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-/**
- * @summary Get revenue and commission analysis
- */
-export const getGetRevenueAnalysisUrl = () => {
-  return `/api/dashboard/revenue`;
-};
-
-export const getRevenueAnalysis = async (
-  options?: RequestInit,
-): Promise<RevenueAnalysis> => {
-  return customFetch<RevenueAnalysis>(getGetRevenueAnalysisUrl(), {
-    ...options,
-    method: "GET",
-  });
-};
-
-export const getGetRevenueAnalysisQueryKey = () => {
-  return [`/api/dashboard/revenue`] as const;
-};
-
-export const getGetRevenueAnalysisQueryOptions = <
-  TData = Awaited<ReturnType<typeof getRevenueAnalysis>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getRevenueAnalysis>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getGetRevenueAnalysisQueryKey();
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getRevenueAnalysis>>
-  > = ({ signal }) => getRevenueAnalysis({ signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getRevenueAnalysis>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type GetRevenueAnalysisQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getRevenueAnalysis>>
->;
-export type GetRevenueAnalysisQueryError = ErrorType<unknown>;
-
-/**
- * @summary Get revenue and commission analysis
- */
-
-export function useGetRevenueAnalysis<
-  TData = Awaited<ReturnType<typeof getRevenueAnalysis>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getRevenueAnalysis>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetRevenueAnalysisQueryOptions(options);
+  const queryOptions = getGetGeographyDataQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

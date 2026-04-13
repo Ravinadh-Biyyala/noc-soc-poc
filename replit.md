@@ -1,8 +1,8 @@
-# Insurance Broker Analytics Dashboard
+# Insurance Broker Analytics Dashboard — INVEX USA
 
 ## Overview
 
-A comprehensive insurance broker analytics dashboard with multiple dashboard views, AI-powered chatbot, and real-time data visualization. Built as a pnpm monorepo with React + Vite frontend and Express backend.
+A premium insurance broker analytics command center ("InsureBroker") themed as INVEX Insurance USA. Features 5 core dashboard sections with insurance-domain KPIs, a USA geographic heat map, and an AI "Broker Copilot" chatbot with streaming responses, thinking indicators, dashboard navigation, and dynamic dashboard creation prompts.
 
 ## Stack
 
@@ -10,7 +10,7 @@ A comprehensive insurance broker analytics dashboard with multiple dashboard vie
 - **Node.js version**: 24
 - **Package manager**: pnpm
 - **TypeScript version**: 5.9
-- **Frontend**: React + Vite + Tailwind CSS + Recharts + shadcn/ui
+- **Frontend**: React + Vite + Tailwind CSS + Recharts + shadcn/ui + wouter
 - **Backend**: Express 5
 - **Database**: PostgreSQL + Drizzle ORM
 - **AI Integration**: OpenAI via Replit AI Integrations (gpt-5.2)
@@ -18,21 +18,31 @@ A comprehensive insurance broker analytics dashboard with multiple dashboard vie
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
 
+## Color Palette (Dark Theme)
+
+- Background: Deep navy (#0a0e27) / charcoal
+- Cards: Semi-transparent dark navy (#1a1f3a) with thin borders (#2a3055)
+- Sidebar: Very dark navy (#070b1e)
+- Primary accent: Muted teal (#14b8a6) for positive growth
+- Destructive: Burnt orange/amber (#f59e0b) for risk/warnings
+- Charts: Teal, Sky blue, Indigo, Amber, Rose
+- Text: White (#f8fafc) headers, Soft gray (#94a3b8) secondary
+
 ## Architecture
 
 ### Frontend (artifacts/insurance-dashboard)
-- React + Vite app with Tailwind CSS styling
-- 8 dashboard views: Overview, Claims, Policies, Predictive, Sentiment, EDA, Brokers, Revenue
-- AI chatbot panel with streaming responses via SSE
+- React + Vite app with dark navy theme
+- 5 dashboard views with insurance broker terminology
+- USAMap component — SVG grid-based US state heat map with premium data
+- Broker Copilot chatbot panel with SSE streaming, thinking indicators, navigation buttons, and dynamic dashboard creation UI
 - Uses generated API hooks from @workspace/api-client-react
-- Recharts for data visualization
 
 ### Backend (artifacts/api-server)
 - Express 5 REST API
-- Dashboard data endpoints serving insurance analytics data
-- OpenAI chat endpoints with SSE streaming
+- Dashboard data endpoints: /api/dashboard/executive, /sales, /products, /renewals, /claims, /geography
+- OpenAI chat endpoints with SSE streaming and insurance-contextual system prompt
 - PostgreSQL for conversation/message persistence
-- Routes: /api/dashboard/*, /api/openai/*
+- Data files in src/routes/dashboard/data/ — modular per section
 
 ### Database Tables
 - `conversations` — AI chat conversations
@@ -48,19 +58,33 @@ A comprehensive insurance broker analytics dashboard with multiple dashboard vie
 
 ## Dashboard Pages
 
-1. **Overview** (`/`) — KPIs, premium trends, claims trends, policy distribution
-2. **Claims Analysis** (`/claims`) — Claims by type/status/severity, recent claims table
-3. **Policy Analytics** (`/policies`) — Policy distribution, premium analysis, renewal rates
-4. **Predictive Insights** (`/predictive`) — Churn prediction, risk scoring, forecasts
-5. **Sentiment** (`/sentiment`) — NPS, feedback analysis, sentiment by channel
-6. **Data Explorer** (`/eda`) — Correlations, distributions, outliers, feature importance
-7. **Broker Teams** (`/brokers`) — Broker leaderboard, conversion rates, regional performance
-8. **Revenue** (`/revenue`) — Revenue trends, commissions, revenue drivers
+1. **Executive Summary** (`/`) — Written Premium ($187.4M), Commission Revenue, Policies Bound, Renewal Rate, Quote-to-Bind, YoY Growth, Premium & Commission Trends chart, Policy Mix donut, USA Geographic Heat Map, Top States by Premium
+2. **Sales Performance** (`/sales`) — Quote Rate, Bind Rate, Closing Ratio, Avg Days to Bind, Sales Pipeline funnel, Monthly Bind Trend, Producer Leaderboard table, Account Size Distribution
+3. **Product Analytics** (`/products`) — Premium by Line of Business stacked area chart, Lines of Business performance table (Commercial Property, GL, Commercial Auto, Workers Comp, Cyber, Professional Liability), Carrier Performance table (Hartford, Travelers, Chubb, etc.)
+4. **Renewals & Retention** (`/renewals`) — Renewal Rate, Retention Ratio, Retained vs Lost Premium, Premium at Risk (30/60/90d), Retention Trend chart, Churn by Producer table
+5. **Claims & Risk** (`/claims`) — Loss Ratio, Open/Closed Claims, Claim Frequency, Avg Incurred Loss, Severity, Incurred Loss by LOB bar chart, Top States by Risk, Recent Claims Activity table with status badges
 
-## AI Chatbot Features
+## AI Broker Copilot Features
 - Streaming AI responses via Server-Sent Events
-- Context-aware insurance analytics assistant
-- Dashboard navigation suggestions via [NAVIGATE:/route] markers
-- Conversation history persistence in PostgreSQL
+- "Analyzing data..." thinking indicator with spinning animation
+- Context-aware with full brokerage data (2023 vs 2022 YoY)
+- Dashboard navigation via [NAVIGATE:/route] parsed as "View Dashboard" buttons
+- Dynamic dashboard creation via [CREATE_DASHBOARD:title] with Yes/No confirmation cards
+- Bold text markdown (**text**) rendering in messages
+- Conversation persistence in PostgreSQL
+- New chat creation via + button
+
+## Data Context (2023 vs 2022)
+- Written Premium: $187.4M (+11.4% YoY)
+- Commission Revenue: $28.1M
+- Policies Bound: 8,234 (+10.4% YoY)
+- Renewal Rate: 91.2%
+- Quote-to-Bind: 34.2%
+- Retention Ratio: 93.4%
+- Loss Ratio: 48.7%
+- Active in 42 US states
+- Top States: CA, TX, NY, FL, IL
+- Top Producer: Sarah Mitchell ($32.4M)
+- Fastest Growing Line: Cyber (+33.9%)
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.

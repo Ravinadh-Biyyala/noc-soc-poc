@@ -8,7 +8,6 @@
 import * as zod from "zod";
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -93,24 +92,35 @@ export const SendOpenaiMessageBody = zod.object({
 });
 
 /**
- * @summary Get insurance broker overview metrics
+ * @summary Get executive summary KPIs
  */
-export const GetDashboardOverviewResponse = zod.object({
-  totalPolicies: zod.number(),
-  activePolicies: zod.number(),
-  totalPremium: zod.number(),
-  totalClaims: zod.number(),
-  claimsRatio: zod.number(),
-  customerRetentionRate: zod.number(),
-  avgPolicyValue: zod.number(),
-  monthlyGrowthRate: zod.number(),
-  newCustomersThisMonth: zod.number(),
+export const GetExecutiveSummaryResponse = zod.object({
+  writtenPremium: zod.object({
+    current: zod.number(),
+    previous: zod.number(),
+    changePercent: zod.number(),
+  }),
+  commissionRevenue: zod.object({
+    current: zod.number(),
+    previous: zod.number(),
+    changePercent: zod.number(),
+  }),
+  policiesBound: zod.object({
+    current: zod.number(),
+    previous: zod.number(),
+    changePercent: zod.number(),
+  }),
   renewalRate: zod.number(),
-  policyTypeBreakdown: zod.array(
+  quoteToBind: zod.number(),
+  yoyBookGrowth: zod.number(),
+  avgPremiumPerPolicy: zod.number(),
+  retentionRate: zod.number(),
+  lossRatio: zod.number(),
+  topStatesByPremium: zod.array(
     zod.object({
-      name: zod.string(),
-      value: zod.number(),
-      percentage: zod.number(),
+      state: zod.string(),
+      stateCode: zod.string(),
+      premium: zod.number(),
     }),
   ),
   monthlyPremiumTrend: zod.array(
@@ -119,96 +129,138 @@ export const GetDashboardOverviewResponse = zod.object({
       value: zod.number(),
     }),
   ),
-  claimsTrend: zod.array(
+  monthlyCommissionTrend: zod.array(
     zod.object({
       date: zod.string(),
       value: zod.number(),
     }),
   ),
+  policyMix: zod.array(
+    zod.object({
+      line: zod.string(),
+      premium: zod.number(),
+      share: zod.number(),
+    }),
+  ),
 });
 
 /**
- * @summary Get claims analysis data
+ * @summary Get sales pipeline and placement analytics
  */
-export const GetClaimsAnalysisResponse = zod.object({
-  totalClaims: zod.number(),
-  approvedClaims: zod.number(),
-  rejectedClaims: zod.number(),
-  pendingClaims: zod.number(),
-  avgResolutionDays: zod.number(),
-  totalClaimAmount: zod.number(),
-  avgClaimAmount: zod.number(),
-  fraudRate: zod.number(),
-  claimsByType: zod.array(
+export const GetSalesPerformanceResponse = zod.object({
+  leadVolume: zod.number(),
+  qualifiedLeadRatio: zod.number(),
+  quotesIssued: zod.number(),
+  quoteRate: zod.number(),
+  bindRate: zod.number(),
+  closingRatio: zod.number(),
+  premiumBound: zod.number(),
+  avgDaysToBind: zod.number(),
+  newBusinessPremium: zod.number(),
+  renewalPremium: zod.number(),
+  funnelStages: zod.array(
     zod.object({
-      name: zod.string(),
+      stage: zod.string(),
+      count: zod.number(),
       value: zod.number(),
-      percentage: zod.number(),
     }),
   ),
-  claimsByStatus: zod.array(
+  producerLeaderboard: zod.array(
     zod.object({
       name: zod.string(),
-      value: zod.number(),
-      percentage: zod.number(),
+      writtenPremium: zod.number(),
+      commissionRevenue: zod.number(),
+      quoteRate: zod.number(),
+      bindRate: zod.number(),
+      renewalRetention: zod.number(),
+      avgAccountSize: zod.number(),
+      policiesBound: zod.number(),
     }),
   ),
-  claimsBySeverity: zod.array(
-    zod.object({
-      name: zod.string(),
-      value: zod.number(),
-      percentage: zod.number(),
-    }),
-  ),
-  monthlyClaimsTrend: zod.array(
+  monthlyBindTrend: zod.array(
     zod.object({
       date: zod.string(),
       value: zod.number(),
     }),
   ),
-  recentClaims: zod.array(
+  accountSizeBuckets: zod.array(
     zod.object({
-      id: zod.string(),
-      policyType: zod.string(),
-      claimAmount: zod.number(),
-      status: zod.string(),
-      filedDate: zod.string(),
-      resolutionDays: zod.number(),
-      severity: zod.string(),
+      bucket: zod.string(),
+      count: zod.number(),
+      premium: zod.number(),
     }),
   ),
 });
 
 /**
- * @summary Get policy analytics data
+ * @summary Get line of business and product analytics
  */
-export const GetPolicyAnalyticsResponse = zod.object({
-  totalPolicies: zod.number(),
-  activePolicies: zod.number(),
-  expiredPolicies: zod.number(),
-  cancelledPolicies: zod.number(),
-  avgPremium: zod.number(),
-  avgCoverageAmount: zod.number(),
+export const GetProductAnalyticsResponse = zod.object({
+  lineOfBusiness: zod.array(
+    zod.object({
+      line: zod.string(),
+      premium2023: zod.number(),
+      premium2022: zod.number(),
+      yoyChange: zod.number(),
+      policyCount: zod.number(),
+      avgPolicySize: zod.number(),
+      bindRate: zod.number(),
+      renewalRate: zod.number(),
+      lossRatio: zod.number(),
+      commissionRevenue: zod.number(),
+    }),
+  ),
+  carriers: zod.array(
+    zod.object({
+      carrier: zod.string(),
+      premiumPlaced: zod.number(),
+      submissions: zod.number(),
+      bindRatio: zod.number(),
+      avgQuoteTurnaround: zod.number(),
+      retentionRate: zod.number(),
+      lossRatio: zod.number(),
+      commissionRate: zod.number(),
+    }),
+  ),
+  premiumByLineTrend: zod.array(
+    zod.object({
+      date: zod.string(),
+      commercialProperty: zod.number(),
+      generalLiability: zod.number(),
+      commercialAuto: zod.number(),
+      workersComp: zod.number(),
+      cyber: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get renewals and retention metrics
+ */
+export const GetRenewalsRetentionResponse = zod.object({
   renewalRate: zod.number(),
-  conversionRate: zod.number(),
-  policyDistribution: zod.array(
+  retentionRatio: zod.number(),
+  retainedPremium: zod.number(),
+  lostPremium: zod.number(),
+  premiumAtRisk30: zod.number(),
+  premiumAtRisk60: zod.number(),
+  premiumAtRisk90: zod.number(),
+  nonRenewalCount: zod.number(),
+  remarketingSuccessRate: zod.number(),
+  churnByProducer: zod.array(
     zod.object({
-      name: zod.string(),
-      value: zod.number(),
-      percentage: zod.number(),
+      producer: zod.string(),
+      lostPolicies: zod.number(),
+      lostPremium: zod.number(),
+      retentionRate: zod.number(),
     }),
   ),
-  premiumByType: zod.array(
+  churnByLine: zod.array(
     zod.object({
-      name: zod.string(),
-      value: zod.number(),
-      percentage: zod.number(),
-    }),
-  ),
-  policyGrowthTrend: zod.array(
-    zod.object({
-      date: zod.string(),
-      value: zod.number(),
+      line: zod.string(),
+      lostPolicies: zod.number(),
+      lostPremium: zod.number(),
+      retentionRate: zod.number(),
     }),
   ),
   renewalTrend: zod.array(
@@ -217,53 +269,7 @@ export const GetPolicyAnalyticsResponse = zod.object({
       value: zod.number(),
     }),
   ),
-  topPoliciesByPremium: zod.array(
-    zod.object({
-      policyId: zod.string(),
-      customerName: zod.string(),
-      type: zod.string(),
-      premium: zod.number(),
-      coverage: zod.number(),
-    }),
-  ),
-});
-
-/**
- * @summary Get predictive analysis data
- */
-export const GetPredictiveAnalysisResponse = zod.object({
-  churnProbability: zod.number(),
-  expectedClaimsNextQuarter: zod.number(),
-  projectedPremiumGrowth: zod.number(),
-  riskScore: zod.number(),
-  churnRiskDistribution: zod.array(
-    zod.object({
-      name: zod.string(),
-      value: zod.number(),
-      percentage: zod.number(),
-    }),
-  ),
-  claimsPredictionTrend: zod.array(
-    zod.object({
-      date: zod.string(),
-      value: zod.number(),
-    }),
-  ),
-  premiumForecast: zod.array(
-    zod.object({
-      date: zod.string(),
-      value: zod.number(),
-    }),
-  ),
-  riskSegments: zod.array(
-    zod.object({
-      segment: zod.string(),
-      count: zod.number(),
-      avgRisk: zod.number(),
-      avgPremium: zod.number(),
-    }),
-  ),
-  customerLifetimeValue: zod.array(
+  retentionTrend: zod.array(
     zod.object({
       date: zod.string(),
       value: zod.number(),
@@ -272,181 +278,86 @@ export const GetPredictiveAnalysisResponse = zod.object({
 });
 
 /**
- * @summary Get customer sentiment analysis
+ * @summary Get claims and risk analytics
  */
-export const GetSentimentAnalysisResponse = zod.object({
-  overallScore: zod.number(),
-  positivePercentage: zod.number(),
-  neutralPercentage: zod.number(),
-  negativePercentage: zod.number(),
-  npsScore: zod.number(),
-  avgResponseTime: zod.number(),
-  sentimentTrend: zod.array(
+export const GetClaimsRiskResponse = zod.object({
+  openClaims: zod.number(),
+  closedClaims: zod.number(),
+  claimFrequency: zod.number(),
+  avgIncurredLoss: zod.number(),
+  severity: zod.number(),
+  lossRatio: zod.number(),
+  claimsByLine: zod.array(
+    zod.object({
+      line: zod.string(),
+      claims: zod.number(),
+      incurredLoss: zod.number(),
+      lossRatio: zod.number(),
+    }),
+  ),
+  claimsByState: zod.array(
+    zod.object({
+      state: zod.string(),
+      stateCode: zod.string(),
+      claims: zod.number(),
+      incurredLoss: zod.number(),
+    }),
+  ),
+  claimsTrend: zod.array(
     zod.object({
       date: zod.string(),
       value: zod.number(),
     }),
   ),
-  sentimentByChannel: zod.array(
+  lossRatioTrend: zod.array(
     zod.object({
-      channel: zod.string(),
-      positive: zod.number(),
-      neutral: zod.number(),
-      negative: zod.number(),
-    }),
-  ),
-  topComplaints: zod.array(
-    zod.object({
-      topic: zod.string(),
-      count: zod.number(),
-      sentiment: zod.number(),
-    }),
-  ),
-  recentFeedback: zod.array(
-    zod.object({
-      id: zod.string(),
-      text: zod.string(),
-      sentiment: zod.string(),
-      score: zod.number(),
       date: zod.string(),
-      channel: zod.string(),
+      value: zod.number(),
+    }),
+  ),
+  recentClaims: zod.array(
+    zod.object({
+      claimId: zod.string(),
+      policyLine: zod.string(),
+      state: zod.string(),
+      incurredLoss: zod.number(),
+      status: zod.string(),
+      filedDate: zod.string(),
+      severity: zod.string(),
     }),
   ),
 });
 
 /**
- * @summary Get exploratory data analysis
+ * @summary Get US geographic performance data for heat map
  */
-export const GetEdaAnalysisResponse = zod.object({
-  correlationMatrix: zod.array(
+export const GetGeographyDataResponse = zod.object({
+  states: zod.array(
     zod.object({
-      xVar: zod.string(),
-      yVar: zod.string(),
-      correlation: zod.number(),
-    }),
-  ),
-  ageDistribution: zod.array(
-    zod.object({
-      name: zod.string(),
-      value: zod.number(),
-      percentage: zod.number(),
-    }),
-  ),
-  premiumDistribution: zod.array(
-    zod.object({
-      name: zod.string(),
-      value: zod.number(),
-      percentage: zod.number(),
-    }),
-  ),
-  geographicDistribution: zod.array(
-    zod.object({
-      region: zod.string(),
+      stateCode: zod.string(),
+      stateName: zod.string(),
+      writtenPremium: zod.number(),
+      commissionRevenue: zod.number(),
       policyCount: zod.number(),
-      avgPremium: zod.number(),
-      claimsRate: zod.number(),
-    }),
-  ),
-  outliers: zod.array(
-    zod.object({
-      metric: zod.string(),
-      value: zod.number(),
-      zScore: zod.number(),
-      description: zod.string(),
-    }),
-  ),
-  featureImportance: zod.array(
-    zod.object({
-      feature: zod.string(),
-      importance: zod.number(),
-    }),
-  ),
-});
-
-/**
- * @summary Get broker performance metrics
- */
-export const GetBrokerPerformanceResponse = zod.object({
-  totalBrokers: zod.number(),
-  avgConversionRate: zod.number(),
-  avgRetentionRate: zod.number(),
-  totalPremiumGenerated: zod.number(),
-  topBrokers: zod.array(
-    zod.object({
-      brokerId: zod.string(),
-      name: zod.string(),
-      region: zod.string(),
-      totalPolicies: zod.number(),
-      totalPremium: zod.number(),
-      conversionRate: zod.number(),
+      quoteToBind: zod.number(),
       retentionRate: zod.number(),
-      avgDealSize: zod.number(),
-      claimsHandled: zod.number(),
-      customerSatisfaction: zod.number(),
-      rank: zod.number(),
+      lossRatio: zod.number(),
+      yoyGrowth: zod.number(),
     }),
   ),
-  performanceTrend: zod.array(
+  totalStatesActive: zod.number(),
+  topGrowthStates: zod.array(
     zod.object({
-      date: zod.string(),
-      value: zod.number(),
-    }),
-  ),
-  brokersByRegion: zod.array(
-    zod.object({
-      name: zod.string(),
-      value: zod.number(),
-      percentage: zod.number(),
-    }),
-  ),
-  conversionTrend: zod.array(
-    zod.object({
-      date: zod.string(),
-      value: zod.number(),
-    }),
-  ),
-});
-
-/**
- * @summary Get revenue and commission analysis
- */
-export const GetRevenueAnalysisResponse = zod.object({
-  totalRevenue: zod.number(),
-  totalCommission: zod.number(),
-  avgCommissionRate: zod.number(),
-  monthlyRecurringRevenue: zod.number(),
-  revenueGrowth: zod.number(),
-  revenueTrend: zod.array(
-    zod.object({
-      date: zod.string(),
-      value: zod.number(),
-    }),
-  ),
-  commissionTrend: zod.array(
-    zod.object({
-      date: zod.string(),
-      value: zod.number(),
-    }),
-  ),
-  revenueByProduct: zod.array(
-    zod.object({
-      name: zod.string(),
-      value: zod.number(),
-      percentage: zod.number(),
-    }),
-  ),
-  revenueByChannel: zod.array(
-    zod.object({
-      name: zod.string(),
-      value: zod.number(),
-      percentage: zod.number(),
-    }),
-  ),
-  topRevenueDrivers: zod.array(
-    zod.object({
-      driver: zod.string(),
-      amount: zod.number(),
+      stateCode: zod.string(),
+      stateName: zod.string(),
       growth: zod.number(),
+    }),
+  ),
+  concentrationRisk: zod.array(
+    zod.object({
+      stateCode: zod.string(),
+      stateName: zod.string(),
+      sharePercent: zod.number(),
     }),
   ),
 });

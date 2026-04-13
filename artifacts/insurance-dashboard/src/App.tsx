@@ -5,28 +5,29 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Layout from "@/components/layout";
 import Dashboard from "@/pages/dashboard";
-import Claims from "@/pages/claims";
-import Policies from "@/pages/policies";
-import Predictive from "@/pages/predictive";
-import Sentiment from "@/pages/sentiment";
-import Eda from "@/pages/eda";
-import Brokers from "@/pages/brokers";
-import Revenue from "@/pages/revenue";
+import SalesPerformance from "@/pages/sales";
+import ProductAnalytics from "@/pages/products";
+import RenewalsRetention from "@/pages/renewals";
+import ClaimsRisk from "@/pages/claims";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    }
+  }
+});
 
 function Router() {
   return (
     <Layout>
       <Switch>
         <Route path="/" component={Dashboard} />
-        <Route path="/claims" component={Claims} />
-        <Route path="/policies" component={Policies} />
-        <Route path="/predictive" component={Predictive} />
-        <Route path="/sentiment" component={Sentiment} />
-        <Route path="/eda" component={Eda} />
-        <Route path="/brokers" component={Brokers} />
-        <Route path="/revenue" component={Revenue} />
+        <Route path="/sales" component={SalesPerformance} />
+        <Route path="/products" component={ProductAnalytics} />
+        <Route path="/renewals" component={RenewalsRetention} />
+        <Route path="/claims" component={ClaimsRisk} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

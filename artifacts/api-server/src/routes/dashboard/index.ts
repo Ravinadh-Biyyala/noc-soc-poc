@@ -1,46 +1,36 @@
 import { Router, type IRouter } from "express";
 import type { Request, Response } from "express";
-import { overviewData } from "./data/overview";
+import { executiveData } from "./data/executive";
+import { salesData } from "./data/sales";
+import { productData } from "./data/products";
+import { renewalsData } from "./data/renewals";
 import { claimsData } from "./data/claims";
-import { policyData } from "./data/policies";
-import { predictiveData } from "./data/predictive";
-import { sentimentData } from "./data/sentiment";
-import { edaData } from "./data/eda";
-import { brokerData } from "./data/brokers";
-import { revenueData } from "./data/revenue";
+import { geographyData } from "./data/geography";
 
 const router: IRouter = Router();
 
-router.get("/dashboard/overview", (_req: Request, res: Response) => {
-  res.json(overviewData);
+router.get("/dashboard/executive", (_req: Request, res: Response) => {
+  res.json(executiveData);
+});
+
+router.get("/dashboard/sales", (_req: Request, res: Response) => {
+  res.json(salesData);
+});
+
+router.get("/dashboard/products", (_req: Request, res: Response) => {
+  res.json(productData);
+});
+
+router.get("/dashboard/renewals", (_req: Request, res: Response) => {
+  res.json(renewalsData);
 });
 
 router.get("/dashboard/claims", (_req: Request, res: Response) => {
   res.json(claimsData);
 });
 
-router.get("/dashboard/policies", (_req: Request, res: Response) => {
-  res.json(policyData);
-});
-
-router.get("/dashboard/predictive", (_req: Request, res: Response) => {
-  res.json(predictiveData);
-});
-
-router.get("/dashboard/sentiment", (_req: Request, res: Response) => {
-  res.json(sentimentData);
-});
-
-router.get("/dashboard/eda", (_req: Request, res: Response) => {
-  res.json(edaData);
-});
-
-router.get("/dashboard/brokers", (_req: Request, res: Response) => {
-  res.json(brokerData);
-});
-
-router.get("/dashboard/revenue", (_req: Request, res: Response) => {
-  res.json(revenueData);
+router.get("/dashboard/geography", (_req: Request, res: Response) => {
+  res.json(geographyData);
 });
 
 export default router;
