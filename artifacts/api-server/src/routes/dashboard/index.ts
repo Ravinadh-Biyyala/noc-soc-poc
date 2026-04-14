@@ -1,16 +1,22 @@
 import { Router, type IRouter } from "express";
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { getClientConfig, getDataForSection } from "../../config/index.js";
 
 const router: IRouter = Router();
+
+const legacySectionIds = new Set(["executive", "sales", "products", "renewals", "claims", "geography"]);
 
 router.get("/config", (_req: Request, res: Response) => {
   res.json(getClientConfig());
 });
 
-router.get("/dashboard/section/:sectionId", (req: Request, res: Response) => {
+router.get("/dashboard/:sectionId", async (req: Request, res: Response, next: NextFunction) => {
   const { sectionId } = req.params;
-  const data = getDataForSection(sectionId);
+  if (legacySectionIds.has(sectionId)) {
+    next();
+    return;
+  }
+  const data = await getDataForSection(sectionId);
   if (!data || Object.keys(data).length === 0) {
     res.status(404).json({ error: `Section '${sectionId}' not found` });
     return;
@@ -27,8 +33,8 @@ const legacySectionMap: Record<string, string> = {
 };
 
 for (const [legacyPath, sectionId] of Object.entries(legacySectionMap)) {
-  router.get(`/dashboard/${legacyPath}`, (_req: Request, res: Response) => {
-    const data = getDataForSection(sectionId);
+  router.get(`/dashboard/${legacyPath}`, async (_req: Request, res: Response) => {
+    const data = await getDataForSection(sectionId);
     if (!data || Object.keys(data).length === 0) {
       res.status(404).json({ error: `Section '${sectionId}' not available for current tenant` });
       return;
@@ -37,8 +43,8 @@ for (const [legacyPath, sectionId] of Object.entries(legacySectionMap)) {
   });
 }
 
-router.get("/dashboard/geography", (_req: Request, res: Response) => {
-  const execData = getDataForSection("executive");
+router.get("/dashboard/geography", async (_req: Request, res: Response) => {
+  const execData = await getDataForSection("executive");
   if (execData?.geography) {
     res.json(execData.geography);
     return;

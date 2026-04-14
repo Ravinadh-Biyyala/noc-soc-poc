@@ -227,7 +227,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TenantClientConfig"
-  /dashboard/section/{sectionId}:
+  /dashboard/{sectionId}:
     get:
       operationId: getDashboardSection
       tags: [dashboard]

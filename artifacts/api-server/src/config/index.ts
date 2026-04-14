@@ -1,26 +1,26 @@
 import type { TenantConfig } from "./types.js";
+import type { DataAdapter } from "./data-adapter.js";
+import { StaticDataAdapter } from "./data-adapter.js";
 import { insuranceConfig, getInsuranceDataForSection, buildInsuranceDataContext } from "./tenants/insurance.js";
 import { bankingConfig, getBankingDataForSection, buildBankingDataContext } from "./tenants/banking.js";
 
 export type { TenantConfig } from "./types.js";
 export type { SectionConfig, KpiConfig, ChartConfig, TableConfig, WidgetConfig, PromptConfig, TenantBranding } from "./types.js";
+export type { DataAdapter } from "./data-adapter.js";
 
 interface TenantRegistry {
   config: TenantConfig;
-  getDataForSection: (sectionId: string) => Record<string, unknown>;
-  buildDataContext: () => string;
+  adapter: DataAdapter;
 }
 
 const tenants: Record<string, TenantRegistry> = {
   insurance: {
     config: insuranceConfig,
-    getDataForSection: getInsuranceDataForSection,
-    buildDataContext: buildInsuranceDataContext,
+    adapter: new StaticDataAdapter(getInsuranceDataForSection, buildInsuranceDataContext),
   },
   banking: {
     config: bankingConfig,
-    getDataForSection: getBankingDataForSection,
-    buildDataContext: buildBankingDataContext,
+    adapter: new StaticDataAdapter(getBankingDataForSection, buildBankingDataContext),
   },
 };
 
@@ -39,12 +39,16 @@ export function getTenantConfig(): TenantConfig {
   return tenants[getActiveTenantId()].config;
 }
 
-export function getDataForSection(sectionId: string): Record<string, unknown> {
-  return tenants[getActiveTenantId()].getDataForSection(sectionId);
+export function getAdapter(): DataAdapter {
+  return tenants[getActiveTenantId()].adapter;
 }
 
-export function buildDataContext(): string {
-  return tenants[getActiveTenantId()].buildDataContext();
+export async function getDataForSection(sectionId: string): Promise<Record<string, unknown>> {
+  return tenants[getActiveTenantId()].adapter.getDataForSection(sectionId);
+}
+
+export async function buildDataContext(): Promise<string> {
+  return tenants[getActiveTenantId()].adapter.getFullDataContext();
 }
 
 export function getClientConfig(): {

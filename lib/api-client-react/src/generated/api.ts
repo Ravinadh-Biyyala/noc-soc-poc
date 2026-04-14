@@ -1159,7 +1159,7 @@ export function useGetTenantConfig<
  * @summary Get data for a specific dashboard section by config-driven section ID
  */
 export const getGetDashboardSectionUrl = (sectionId: string) => {
-  return `/api/dashboard/section/${sectionId}`;
+  return `/api/dashboard/${sectionId}`;
 };
 
 export const getDashboardSection = async (
@@ -1176,7 +1176,7 @@ export const getDashboardSection = async (
 };
 
 export const getGetDashboardSectionQueryKey = (sectionId: string) => {
-  return [`/api/dashboard/section/${sectionId}`] as const;
+  return [`/api/dashboard/${sectionId}`] as const;
 };
 
 export const getGetDashboardSectionQueryOptions = <

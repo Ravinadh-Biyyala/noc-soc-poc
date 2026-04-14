@@ -132,7 +132,7 @@ router.post("/openai/conversations/:id/messages", async (req: Request, res: Resp
     .where(eq(messagesTable.conversationId, id))
     .orderBy(messagesTable.createdAt);
 
-  const systemPrompt = buildSystemPrompt();
+  const systemPrompt = await buildSystemPrompt();
 
   const chatMessages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
     {
