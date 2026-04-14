@@ -8,6 +8,7 @@ import { TenantConfigProvider, useTenantConfig } from "@/lib/tenant-config";
 import NotFound from "@/pages/not-found";
 import Layout from "@/components/layout";
 import DashboardSection from "@/components/DashboardSection";
+import CustomDashboardPage from "@/components/CustomDashboardPage";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const queryClient = new QueryClient({
@@ -42,6 +43,7 @@ function ConfigDrivenRoutes() {
           component={() => <DashboardSection sectionId={section.id} />}
         />
       ))}
+      <Route path="/custom/:slug" component={CustomDashboardPage} />
       <Route component={NotFound} />
     </Switch>
   );

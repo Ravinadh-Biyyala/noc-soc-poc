@@ -9,10 +9,12 @@ import {
   BrainCircuit,
   Loader2,
   PlusCircle,
-  Check
+  Check,
+  LayoutDashboard,
+  X
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
-import { useCustomDashboards, classifyChart } from "@/lib/custom-dashboards";
+import { useCustomDashboards, classifyChart, type CustomSidebarEntry } from "@/lib/custom-dashboards";
 import { useCopilot } from "@/lib/copilot-context";
 import { useTenantConfig, resolveIcon } from "@/lib/tenant-config";
 import {
@@ -35,8 +37,9 @@ import {
 } from "recharts";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { config } = useTenantConfig();
+  const { sidebarEntries, removeSidebarEntry } = useCustomDashboards();
 
   const navItems = (config?.sections || []).map((s) => ({
     href: s.route,
@@ -80,6 +83,39 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+          {sidebarEntries.length > 0 && (
+            <>
+              <div className="text-[10px] font-semibold text-sidebar-foreground/50 uppercase tracking-[0.1em] mt-5 mb-3 px-2.5">
+                Custom
+              </div>
+              {sidebarEntries.map((entry) => {
+                const isActive = location === entry.route;
+                return (
+                  <div key={entry.id} className="group relative">
+                    <Link href={entry.route}>
+                      <div
+                        className={cn(
+                          "flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] transition-all cursor-pointer",
+                          isActive
+                            ? "bg-sidebar-accent text-white font-medium"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-white"
+                        )}
+                      >
+                        <LayoutDashboard className={cn("w-4 h-4", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/50")} />
+                        <span className="truncate flex-1">{entry.title}</span>
+                      </div>
+                    </Link>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); removeSidebarEntry(entry.id); if (isActive) setLocation("/"); }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-white/10"
+                    >
+                      <X className="w-3 h-3 text-sidebar-foreground/50 hover:text-white" />
+                    </button>
+                  </div>
+                );
+              })}
+            </>
+          )}
         </nav>
         <div className="p-3 border-t border-sidebar-border text-[10px] text-sidebar-foreground/40">
           {brandName} {new Date().getFullYear()}
@@ -272,6 +308,8 @@ function ChatPanel() {
   const { registerHandler } = useCopilot();
   const pendingQuestionRef = useRef<string | null>(null);
   const { config } = useTenantConfig();
+  const { addSidebarEntry } = useCustomDashboards();
+  const [dismissedCreates, setDismissedCreates] = useState<Set<string>>(new Set());
 
   const copilotName = config?.branding?.copilotName || "Broker Copilot";
   const suggestedPrompts = config?.suggestedPrompts?.slice(0, 3) || [
@@ -418,12 +456,18 @@ function ChatPanel() {
             View Dashboard <ChevronRight className="w-3.5 h-3.5 ml-1" />
           </Button>
         )}
-        {createMatch && (
+        {createMatch && !dismissedCreates.has(createMatch[1]) && (
           <div className="bg-muted border border-border rounded-lg p-3 mt-1">
             <p className="text-xs mb-2 font-medium text-foreground">New dashboard: {createMatch[1]}. Add to sidebar?</p>
             <div className="flex gap-2">
-              <Button size="sm" className="flex-1 text-xs">Yes</Button>
-              <Button size="sm" variant="outline" className="flex-1 text-xs">No</Button>
+              <Button size="sm" className="flex-1 text-xs" onClick={() => {
+                const entry = addSidebarEntry(createMatch[1]);
+                setDismissedCreates(prev => new Set(prev).add(createMatch[1]));
+                setLocation(entry.route);
+              }}>Yes</Button>
+              <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => {
+                setDismissedCreates(prev => new Set(prev).add(createMatch[1]));
+              }}>No</Button>
             </div>
           </div>
         )}

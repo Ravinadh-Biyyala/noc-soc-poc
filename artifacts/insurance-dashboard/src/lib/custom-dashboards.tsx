@@ -12,11 +12,21 @@ export interface CustomChart {
   addedAt: number;
 }
 
+export interface CustomSidebarEntry {
+  id: string;
+  title: string;
+  route: string;
+  addedAt: number;
+}
+
 interface CustomDashboardsContextType {
   charts: CustomChart[];
   addChart: (chart: Omit<CustomChart, "id" | "addedAt">) => void;
   removeChart: (id: string) => void;
   getChartsForSection: (section: string) => CustomChart[];
+  sidebarEntries: CustomSidebarEntry[];
+  addSidebarEntry: (title: string) => CustomSidebarEntry;
+  removeSidebarEntry: (id: string) => void;
 }
 
 const CustomDashboardsContext = createContext<CustomDashboardsContextType>({
@@ -24,9 +34,13 @@ const CustomDashboardsContext = createContext<CustomDashboardsContextType>({
   addChart: () => {},
   removeChart: () => {},
   getChartsForSection: () => [],
+  sidebarEntries: [],
+  addSidebarEntry: () => ({ id: "", title: "", route: "", addedAt: 0 }),
+  removeSidebarEntry: () => {},
 });
 
 const STORAGE_KEY = "invex-custom-dashboards";
+const SIDEBAR_STORAGE_KEY = "invex-custom-sidebar";
 
 const SECTION_KEYWORDS: Record<string, string[]> = {
   "/": ["premium", "gwp", "written", "commission", "state", "states", "geographic", "growth", "yoy", "book", "overview", "executive", "total", "performance", "yearly"],
@@ -68,6 +82,10 @@ export function classifyChart(chartData: { title: string; data: any[] }): { sect
   return { section: bestSection, sectionLabel: SECTION_LABELS[bestSection] };
 }
 
+function slugify(title: string): string {
+  return "/custom/" + title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
 export function CustomDashboardsProvider({ children }: { children: React.ReactNode }) {
   const [charts, setCharts] = useState<CustomChart[]>(() => {
     try {
@@ -78,9 +96,22 @@ export function CustomDashboardsProvider({ children }: { children: React.ReactNo
     }
   });
 
+  const [sidebarEntries, setSidebarEntries] = useState<CustomSidebarEntry[]>(() => {
+    try {
+      const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(charts));
   }, [charts]);
+
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(sidebarEntries));
+  }, [sidebarEntries]);
 
   const addChart = useCallback((chart: Omit<CustomChart, "id" | "addedAt">) => {
     const newChart: CustomChart = {
@@ -99,8 +130,33 @@ export function CustomDashboardsProvider({ children }: { children: React.ReactNo
     return charts.filter(c => c.section === section);
   }, [charts]);
 
+  const addSidebarEntry = useCallback((title: string) => {
+    const route = slugify(title);
+    const entry: CustomSidebarEntry = {
+      id: `sidebar-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      title,
+      route,
+      addedAt: Date.now(),
+    };
+    setSidebarEntries(prev => {
+      if (prev.some(e => e.route === route)) return prev;
+      return [...prev, entry];
+    });
+    return entry;
+  }, []);
+
+  const removeSidebarEntry = useCallback((id: string) => {
+    setSidebarEntries(prev => {
+      const entry = prev.find(e => e.id === id);
+      if (entry) {
+        setCharts(c => c.filter(ch => ch.section !== entry.route));
+      }
+      return prev.filter(e => e.id !== id);
+    });
+  }, []);
+
   return (
-    <CustomDashboardsContext.Provider value={{ charts, addChart, removeChart, getChartsForSection }}>
+    <CustomDashboardsContext.Provider value={{ charts, addChart, removeChart, getChartsForSection, sidebarEntries, addSidebarEntry, removeSidebarEntry }}>
       {children}
     </CustomDashboardsContext.Provider>
   );
