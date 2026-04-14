@@ -34,6 +34,13 @@ import {
   Layers,
   Receipt,
   Building,
+  MinusCircle,
+  UserPlus,
+  Heart,
+  Smartphone,
+  ThumbsUp,
+  Lock,
+  Droplet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -71,6 +78,13 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Layers,
   Receipt,
   Building,
+  MinusCircle,
+  UserPlus,
+  Heart,
+  Smartphone,
+  ThumbsUp,
+  Lock,
+  Droplet,
 };
 
 export function resolveIcon(name: string): LucideIcon {
