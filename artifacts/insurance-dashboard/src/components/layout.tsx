@@ -57,7 +57,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <div className="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center">
               <ShieldAlert className="w-4 h-4 text-sidebar-primary" />
             </div>
-            INVEX USA
+            Gen-BI Asset
           </div>
         </div>
         <nav className="flex-1 py-4 px-2.5 space-y-0.5 overflow-y-auto">
@@ -84,7 +84,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <div className="p-3 border-t border-sidebar-border text-[10px] text-sidebar-foreground/40">
-          INVEX Insurance USA 2026
+          Gen-BI Asset 2026
         </div>
       </aside>
 

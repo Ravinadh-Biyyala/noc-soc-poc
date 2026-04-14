@@ -211,7 +211,7 @@ router.post("/openai/conversations/:id/messages", async (req: Request, res: Resp
   const chatMessages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
     {
       role: "system" as const,
-      content: `You are Broker Copilot, a Gen-BI (Generative Business Intelligence) analytics engine for INVEX Insurance USA. You combine conversational AI with dynamic data visualization. You have FULL ACCESS to all brokerage data from 2022-2026.
+      content: `You are Broker Copilot, a Gen-BI (Generative Business Intelligence) analytics engine for Gen-BI Asset. You combine conversational AI with dynamic data visualization. You have FULL ACCESS to all brokerage data from 2022-2026.
 
 ${dataContext}
 

@@ -1,8 +1,8 @@
-# Insurance Broker Analytics Dashboard — INVEX USA
+# Insurance Broker Analytics Dashboard — Gen-BI Asset
 
 ## Overview
 
-A premium insurance broker analytics command center ("InsureBroker") themed as INVEX Insurance USA. Features 5 core dashboard sections with insurance-domain KPIs, a USA geographic heat map, and a **Gen-BI (Generative Business Intelligence)** AI Broker Copilot that generates inline data visualizations (bar, line, area, pie charts) in response to any data question.
+A premium insurance broker analytics command center themed as Gen-BI Asset. Features 5 core dashboard sections with insurance-domain KPIs, a USA geographic heat map, and a **Gen-BI (Generative Business Intelligence)** AI Broker Copilot that generates inline data visualizations (bar, line, area, pie charts) in response to any data question.
 
 ## Stack
 
