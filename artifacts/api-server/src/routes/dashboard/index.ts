@@ -10,7 +10,7 @@ router.get("/config", (_req: Request, res: Response) => {
   res.json(getClientConfig());
 });
 
-router.get("/dashboard/:sectionId", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/dashboard/:sectionId", async (req: Request<{ sectionId: string }>, res: Response, next: NextFunction) => {
   const { sectionId } = req.params;
   if (legacySectionIds.has(sectionId)) {
     next();
