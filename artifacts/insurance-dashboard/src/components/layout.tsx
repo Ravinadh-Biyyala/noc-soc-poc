@@ -8,10 +8,14 @@ import {
   ChevronRight,
   BrainCircuit,
   Loader2,
+  Upload,
+  FileSpreadsheet,
+  X,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useCopilot } from "@/lib/copilot-context";
 import { useTenantConfig, resolveIcon } from "@/lib/tenant-config";
+import { useGeneratedDashboards } from "@/lib/generated-dashboards";
 import {
   useListOpenaiConversations,
   useCreateOpenaiConversation,
@@ -34,6 +38,8 @@ import {
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { config } = useTenantConfig();
+  const { dashboards, removeDashboard } = useGeneratedDashboards();
+
   const navItems = (config?.sections || []).map((s) => ({
     href: s.route,
     label: s.label,
@@ -76,6 +82,54 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+
+          {dashboards.length > 0 && (
+            <>
+              <div className="text-[10px] font-semibold text-sidebar-foreground/50 uppercase tracking-[0.1em] mt-5 mb-3 px-2.5">
+                Your Data
+              </div>
+              {dashboards.map((db) => {
+                const isActive = location === db.route;
+                return (
+                  <div key={db.id} className="group relative">
+                    <Link href={db.route}>
+                      <div
+                        className={cn(
+                          "flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] transition-all cursor-pointer",
+                          isActive
+                            ? "bg-sidebar-accent text-white font-medium"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-white"
+                        )}
+                      >
+                        <FileSpreadsheet className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/50")} />
+                        <span className="truncate">{db.title}</span>
+                      </div>
+                    </Link>
+                    <button
+                      onClick={() => removeDashboard(db.id)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-white/10"
+                    >
+                      <X className="w-3 h-3 text-sidebar-foreground/50 hover:text-white" />
+                    </button>
+                  </div>
+                );
+              })}
+            </>
+          )}
+
+          <div className="mt-4 px-1">
+            <Link href="/upload">
+              <div className={cn(
+                "flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-[12px] font-medium transition-all cursor-pointer border border-dashed",
+                location === "/upload"
+                  ? "border-sidebar-primary bg-sidebar-accent/50 text-white"
+                  : "border-sidebar-foreground/20 text-sidebar-foreground/60 hover:border-sidebar-primary/50 hover:text-white hover:bg-sidebar-accent/30"
+              )}>
+                <Upload className="w-4 h-4" />
+                Upload Data
+              </div>
+            </Link>
+          </div>
         </nav>
         <div className="p-3 border-t border-sidebar-border text-[10px] text-sidebar-foreground/40">
           {brandName} {new Date().getFullYear()}
@@ -85,7 +139,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="h-14 flex items-center justify-between px-6 border-b border-border bg-white z-10 sticky top-0">
           <h1 className="text-base font-semibold text-foreground">
-            {navItems.find((i) => i.href === location)?.label || "Dashboard"}
+            {navItems.find((i) => i.href === location)?.label
+              || dashboards.find((d) => d.route === location)?.title
+              || (location === "/upload" ? "Upload Data" : "Dashboard")}
           </h1>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">

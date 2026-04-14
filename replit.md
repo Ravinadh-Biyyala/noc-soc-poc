@@ -109,6 +109,16 @@ An enterprise-grade, **configuration-driven** analytics dashboard platform. Feat
 4. **Risk & Compliance** (`/risk`) — NPL by Segment, Capital Trends, Charge-Off Rate
 5. **Branch Performance** (`/branches`) — 124 branches, Digital Transactions (68.2%), Performance by Region
 
+## Data Ingestion & Auto-Dashboard Generation
+- **Upload page** (`/upload`): Drag-and-drop CSV/XLSX/XLS files
+- **Backend parsing** (`POST /api/upload`): multer + xlsx, multi-sheet support, extracts column names/types/samples
+- **AI dashboard generation** (`POST /api/generate-dashboard`): gpt-4.1-mini with `json_object` response_format
+- **10+ visualization types**: area, bar, horizontal-bar, line, pie, donut, scatter, bubble, radar, treemap, stacked-area, stacked-bar, gauge, waterfall, heatmap, progress-bar
+- **GeneratedDashboardProvider** (`src/lib/generated-dashboards.tsx`): persists generated dashboards in localStorage (`genbi-generated-dashboards`), provides `useGeneratedDashboards` hook
+- **Dynamic routing**: generated dashboards get unique routes (`/generated/<slug>-<id>`) and appear in sidebar under "Your Data" section
+- **Sidebar integration**: "Upload Data" button + generated dashboard links with delete option
+- Key files: `UploadPage.tsx`, `GeneratedDashboard.tsx`, `generated-dashboards.tsx`, `api-server/src/routes/upload/index.ts`
+
 ## Gen-BI Copilot Features
 - **Generative BI**: Every data question generates an inline chart visualization
 - Chart types: bar (comparisons), line/area (trends), pie (composition)
