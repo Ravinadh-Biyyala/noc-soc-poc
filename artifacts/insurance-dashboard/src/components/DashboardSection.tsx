@@ -25,6 +25,8 @@ import {
 } from "recharts";
 import USAMap from "@/components/USAMap";
 
+const FUNNEL_COLORS = ["#c7d2fe", "#93a7f8", "#6480f0", "#3b5de7", "#1a3fd0"];
+
 const CHART_COLORS = [
   "hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))",
   "hsl(var(--chart-4))", "hsl(var(--chart-5))", "#6366f1", "#8b5cf6",
@@ -353,6 +355,103 @@ function ConfigTable({
   );
 }
 
+function FunnelWidget({ title, data }: { title: string; data: unknown[] }) {
+  if (!data || !Array.isArray(data) || data.length === 0) return null;
+  return (
+    <Card className="shadow-sm">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+        <CardDescription className="text-xs">Lead to Bind conversion</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[280px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
+              <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
+              <YAxis dataKey="stage" type="category" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} width={65} />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#fff', borderColor: 'hsl(var(--border))', borderRadius: '8px', fontSize: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                formatter={(value: number) => [formatNumber(value), 'Count']}
+              />
+              <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                {data.map((_: unknown, index: number) => (
+                  <Cell key={index} fill={FUNNEL_COLORS[index % FUNNEL_COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RecentItemsWidget({ title, data }: { title: string; data: unknown[] }) {
+  const { askCopilot } = useCopilot();
+  if (!data || !Array.isArray(data) || data.length === 0) return null;
+
+  const items = data as Array<Record<string, unknown>>;
+  const keys = Object.keys(items[0] || {});
+
+  return (
+    <Card className="shadow-sm">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+        <CardDescription className="text-xs">Latest activity</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="rounded-lg border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                {keys.map((key) => (
+                  <TableHead key={key} className="text-xs font-medium text-muted-foreground">
+                    {key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((item, i) => (
+                <TableRow
+                  key={i}
+                  className={`${i % 2 === 1 ? 'bg-muted/20' : ''} cursor-pointer hover:bg-primary/5`}
+                  onClick={() => askCopilot(`Tell me about ${String(item[keys[0]] || '')} — ${keys.slice(1).map(k => `${k}: ${String(item[k] || '')}`).join(', ')}`)}
+                >
+                  {keys.map((key) => {
+                    const val = item[key];
+                    const isStatus = key.toLowerCase() === 'status';
+                    const isId = key.toLowerCase().includes('id');
+                    const isMoney = typeof val === 'number' && val > 1000;
+                    return (
+                      <TableCell key={key} className={`text-sm ${isId ? 'font-mono text-xs text-primary font-medium' : ''} ${isMoney ? 'text-right font-mono font-medium' : ''}`}>
+                        {isStatus ? (
+                          <Badge variant="outline" className={`text-[10px] ${
+                            val === 'Open' ? 'text-amber-600 border-amber-200 bg-amber-50' :
+                            val === 'Under Review' ? 'text-blue-600 border-blue-200 bg-blue-50' :
+                            'text-emerald-600 border-emerald-200 bg-emerald-50'
+                          }`}>
+                            {String(val)}
+                          </Badge>
+                        ) : isMoney ? (
+                          formatCurrency(val as number)
+                        ) : (
+                          String(val ?? '')
+                        )}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function DashboardSection({ sectionId }: { sectionId: string }) {
   const { config } = useTenantConfig();
   const section = config?.sections.find((s) => s.id === sectionId);
@@ -383,6 +482,8 @@ export default function DashboardSection({ sectionId }: { sectionId: string }) {
   const secondaryKpis = section.kpis.slice(4);
 
   const hasUsaMap = section.widgets.some((w) => w.type === "usa-map");
+  const funnelWidget = section.widgets.find((w) => w.type === "funnel");
+  const recentItemsWidget = section.widgets.find((w) => w.type === "recent-items");
 
   const chartsWithoutMap = section.charts;
   const chartCount = chartsWithoutMap.length;
@@ -422,7 +523,30 @@ export default function DashboardSection({ sectionId }: { sectionId: string }) {
         </div>
       )}
 
-      {chartCount > 0 && (
+      {funnelWidget ? (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <FunnelWidget
+              title={funnelWidget.title}
+              data={sectionData[funnelWidget.dataKey] as unknown[]}
+            />
+            {chartCount > 0 && (
+              <div className="lg:col-span-2">
+                <ConfigChart chart={chartsWithoutMap[0]} data={sectionData[chartsWithoutMap[0].dataKey] as unknown[]} />
+              </div>
+            )}
+          </div>
+          {chartCount > 1 && (
+            <div className={`grid grid-cols-1 ${chartCount > 2 ? "xl:grid-cols-2" : ""} gap-5`}>
+              {chartsWithoutMap.slice(1).map((chart) => (
+                <div key={chart.id}>
+                  <ConfigChart chart={chart} data={sectionData[chart.dataKey] as unknown[]} />
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      ) : chartCount > 0 ? (
         <div className={`grid grid-cols-1 ${chartCount >= 2 ? 'xl:grid-cols-3' : ''} gap-5`}>
           {chartsWithoutMap.map((chart, idx) => {
             const chartData = sectionData[chart.dataKey];
@@ -434,7 +558,7 @@ export default function DashboardSection({ sectionId }: { sectionId: string }) {
             );
           })}
         </div>
-      )}
+      ) : null}
 
       {hasUsaMap && (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
@@ -480,6 +604,13 @@ export default function DashboardSection({ sectionId }: { sectionId: string }) {
             />
           ))}
         </div>
+      )}
+
+      {recentItemsWidget && (
+        <RecentItemsWidget
+          title={recentItemsWidget.title}
+          data={sectionData[recentItemsWidget.dataKey] as unknown[]}
+        />
       )}
 
       <CustomChartsSection section={section.route} />

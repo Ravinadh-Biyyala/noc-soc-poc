@@ -30,6 +30,10 @@ import {
   CreditCard,
   PieChart,
   Activity,
+  XCircle,
+  Layers,
+  Receipt,
+  Building,
   type LucideIcon,
 } from "lucide-react";
 
@@ -63,6 +67,10 @@ const ICON_MAP: Record<string, LucideIcon> = {
   CreditCard,
   PieChart,
   Activity,
+  XCircle,
+  Layers,
+  Receipt,
+  Building,
 };
 
 export function resolveIcon(name: string): LucideIcon {
