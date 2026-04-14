@@ -2,11 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  LayoutDashboard,
-  TrendingUp,
-  Package,
-  RefreshCw,
-  ShieldAlert,
   Plus,
   Bot,
   Send,
@@ -19,6 +14,7 @@ import {
 import { cn, formatCurrency } from "@/lib/utils";
 import { useCustomDashboards, classifyChart } from "@/lib/custom-dashboards";
 import { useCopilot } from "@/lib/copilot-context";
+import { useTenantConfig, resolveIcon } from "@/lib/tenant-config";
 import {
   useListOpenaiConversations,
   useCreateOpenaiConversation,
@@ -40,14 +36,16 @@ import {
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  
-  const navItems = [
-    { href: "/", label: "Executive Summary", icon: LayoutDashboard },
-    { href: "/sales", label: "Sales Performance", icon: TrendingUp },
-    { href: "/products", label: "Product Analytics", icon: Package },
-    { href: "/renewals", label: "Renewals & Retention", icon: RefreshCw },
-    { href: "/claims", label: "Claims & Risk", icon: ShieldAlert },
-  ];
+  const { config } = useTenantConfig();
+
+  const navItems = (config?.sections || []).map((s) => ({
+    href: s.route,
+    label: s.label,
+    icon: resolveIcon(s.icon),
+  }));
+
+  const brandName = config?.branding?.name || "Gen-BI Asset";
+  const FirstIcon = navItems[0]?.icon || resolveIcon("LayoutDashboard");
 
   return (
     <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
@@ -55,9 +53,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="h-14 flex items-center px-5 border-b border-sidebar-border">
           <div className="flex items-center gap-2.5 text-white font-bold text-base tracking-tight">
             <div className="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center">
-              <ShieldAlert className="w-4 h-4 text-sidebar-primary" />
+              <FirstIcon className="w-4 h-4 text-sidebar-primary" />
             </div>
-            Gen-BI Asset
+            {brandName}
           </div>
         </div>
         <nav className="flex-1 py-4 px-2.5 space-y-0.5 overflow-y-auto">
@@ -84,7 +82,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <div className="p-3 border-t border-sidebar-border text-[10px] text-sidebar-foreground/40">
-          Gen-BI Asset 2026
+          {brandName} {new Date().getFullYear()}
         </div>
       </aside>
 
@@ -273,6 +271,14 @@ function ChatPanel() {
   const queryClient = useQueryClient();
   const { registerHandler } = useCopilot();
   const pendingQuestionRef = useRef<string | null>(null);
+  const { config } = useTenantConfig();
+
+  const copilotName = config?.branding?.copilotName || "Broker Copilot";
+  const suggestedPrompts = config?.suggestedPrompts?.slice(0, 3) || [
+    "Compare top 5 states by premium",
+    "Show premium trend 2022-2026",
+    "What's the policy mix breakdown?",
+  ];
 
   const { data: conversations } = useListOpenaiConversations();
   const createConv = useCreateOpenaiConversation();
@@ -388,13 +394,11 @@ function ChatPanel() {
     
     const navMatch = text.match(/\[NAVIGATE:(.*?)\]/);
     if (navMatch) {
-      const route = navMatch[1];
       processed = processed.replace(/\[NAVIGATE:.*?\]/g, '');
     }
     
     const createMatch = text.match(/\[CREATE_DASHBOARD:(.*?)\]/);
     if (createMatch) {
-      const title = createMatch[1];
       processed = processed.replace(/\[CREATE_DASHBOARD:.*?\]/g, '');
     }
 
@@ -447,7 +451,7 @@ function ChatPanel() {
       <div className="h-14 flex items-center justify-between px-4 border-b border-border">
         <div className="flex items-center gap-2 font-semibold text-foreground text-sm">
           <BrainCircuit className="w-4 h-4 text-primary" />
-          Broker Copilot
+          {copilotName}
           <span className="text-[9px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">Gen-BI</span>
         </div>
         <Button variant="ghost" size="icon" onClick={handleNewChat} className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors">
@@ -463,10 +467,10 @@ function ChatPanel() {
             </div>
             <div>
               <p className="font-semibold text-foreground mb-0.5 text-sm">Generative BI</p>
-              <p className="text-xs text-muted-foreground leading-relaxed max-w-[240px]">Ask any data question and get instant visualizations. Try "Compare top states" or "Show cyber premium trend".</p>
+              <p className="text-xs text-muted-foreground leading-relaxed max-w-[240px]">Ask any data question and get instant visualizations.</p>
             </div>
             <div className="grid grid-cols-1 gap-1.5 w-full max-w-[260px] mt-2">
-              {["Compare top 5 states by premium", "Show premium trend 2022-2026", "What's the policy mix breakdown?"].map((q) => (
+              {suggestedPrompts.map((q) => (
                 <button
                   key={q}
                   className="text-left text-[11px] px-3 py-2 rounded-md border border-border bg-white hover:bg-primary/5 hover:border-primary/30 text-muted-foreground hover:text-foreground transition-all"

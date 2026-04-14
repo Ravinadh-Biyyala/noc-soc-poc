@@ -4,13 +4,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CustomDashboardsProvider } from "@/lib/custom-dashboards";
 import { CopilotProvider } from "@/lib/copilot-context";
+import { TenantConfigProvider, useTenantConfig } from "@/lib/tenant-config";
 import NotFound from "@/pages/not-found";
 import Layout from "@/components/layout";
-import Dashboard from "@/pages/dashboard";
-import SalesPerformance from "@/pages/sales";
-import ProductAnalytics from "@/pages/products";
-import RenewalsRetention from "@/pages/renewals";
-import ClaimsRisk from "@/pages/claims";
+import DashboardSection from "@/components/DashboardSection";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,17 +19,38 @@ const queryClient = new QueryClient({
   }
 });
 
+function ConfigDrivenRoutes() {
+  const { config, isLoading } = useTenantConfig();
+
+  if (isLoading || !config) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
+        </div>
+        <Skeleton className="h-[400px] rounded-xl" />
+      </div>
+    );
+  }
+
+  return (
+    <Switch>
+      {config.sections.map((section) => (
+        <Route
+          key={section.id}
+          path={section.route}
+          component={() => <DashboardSection sectionId={section.id} />}
+        />
+      ))}
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
 function Router() {
   return (
     <Layout>
-      <Switch>
-        <Route path="/" component={Dashboard} />
-        <Route path="/sales" component={SalesPerformance} />
-        <Route path="/products" component={ProductAnalytics} />
-        <Route path="/renewals" component={RenewalsRetention} />
-        <Route path="/claims" component={ClaimsRisk} />
-        <Route component={NotFound} />
-      </Switch>
+      <ConfigDrivenRoutes />
     </Layout>
   );
 }
@@ -39,16 +58,18 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <CopilotProvider>
-        <CustomDashboardsProvider>
-          <TooltipProvider>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <Router />
-            </WouterRouter>
-            <Toaster />
-          </TooltipProvider>
-        </CustomDashboardsProvider>
-      </CopilotProvider>
+      <TenantConfigProvider>
+        <CopilotProvider>
+          <CustomDashboardsProvider>
+            <TooltipProvider>
+              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                <Router />
+              </WouterRouter>
+              <Toaster />
+            </TooltipProvider>
+          </CustomDashboardsProvider>
+        </CopilotProvider>
+      </TenantConfigProvider>
     </QueryClientProvider>
   );
 }

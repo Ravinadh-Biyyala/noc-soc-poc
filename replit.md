@@ -35,6 +35,7 @@ An enterprise-grade, **configuration-driven** analytics dashboard platform. Feat
 ### Configuration-Driven Tenant System
 - **Config schema**: `artifacts/api-server/src/config/types.ts` — TypeScript types for `TenantConfig`
 - **Config loader**: `artifacts/api-server/src/config/index.ts` — reads `TENANT` env var (default: `insurance`)
+- **Data adapter**: `artifacts/api-server/src/config/data-adapter.ts` — `DataAdapter` interface + `StaticDataAdapter` implementation
 - **Tenant configs**:
   - `artifacts/api-server/src/config/tenants/insurance.ts` — full insurance brokerage config with data adapters
   - `artifacts/api-server/src/config/tenants/banking.ts` — commercial banking config with sample data
@@ -44,32 +45,40 @@ An enterprise-grade, **configuration-driven** analytics dashboard platform. Feat
 ### What Each Tenant Config Defines
 - **Branding**: name, copilot name, industry, currency, date range
 - **Sections**: id, label, route, icon, KPIs, charts, tables, widgets
-- **KPIs**: label, data key, format (currency/number/percent), icon, copilot question
+- **KPIs**: label, data key, format (currency/number/percent), icon, copilot question, changeKey for YoY
 - **Charts**: type (bar/line/area/pie), data key, x/y keys, multi-series support
 - **Tables**: columns with format, copilot question templates for click-to-ask
 - **Widgets**: conditional rendering (USA map, funnel, recent items)
 - **Prompt config**: persona template, domain terminology, few-shot examples, suggested prompts
-- **Data sources**: static data adapters per section
+- **Data sources**: static data adapters per section via `DataAdapter` interface
 
 ### API Endpoints
 - `GET /api/config` — serves active tenant config to frontend (sections, branding, prompts)
-- `GET /api/dashboard/section/:sectionId` — generic config-driven data endpoint
+- `GET /api/dashboard/:sectionId` — unified config-driven data endpoint
 - `GET /api/dashboard/executive|sales|products|renewals|claims|geography` — backward-compatible legacy endpoints
 - OpenAI chat endpoints with SSE streaming (system prompt built from config)
 
-### Frontend (artifacts/insurance-dashboard)
+### Frontend (artifacts/insurance-dashboard) — Config-Driven
 - React + Vite app with light corporate theme
-- 5 dashboard views (currently hardcoded — Task #2 will make config-driven)
-- USAMap component — SVG grid-based US state heat map with premium data
-- **Gen-BI Copilot** chatbot panel with inline chart rendering
-- Uses generated API hooks from @workspace/api-client-react
+- **TenantConfigProvider** (`src/lib/tenant-config.tsx`) — fetches `/api/config` on load, provides config via React context
+- **Icon resolver** — maps icon name strings from config to Lucide icon components
+- **DashboardSection** (`src/components/DashboardSection.tsx`) — single generic page component that reads section config and renders KPIs, charts, tables, and widgets dynamically
+  - `ConfigKPICard` — renders primary (with YoY change) or secondary KPI cards from config
+  - `ConfigChart` — renders area/bar/line/pie charts from config (supports stacked multi-series)
+  - `ConfigTable` — renders data tables with click-to-ask copilot integration
+- **Config-driven routing** — `App.tsx` generates `<Route>` components from config sections array
+- **Config-driven navigation** — sidebar nav items rendered from config sections (labels, icons, routes)
+- **Config-driven Copilot** — copilot name, suggested prompts, and click-to-ask templates from config
+- USAMap component conditionally rendered only when config declares a `usa-map` widget
+- Old hardcoded page files (dashboard.tsx, sales.tsx, etc.) removed — single DashboardSection replaces all
+- Uses generated API hooks from @workspace/api-client-react (`useGetTenantConfig`, `useGetDashboardSection`)
 - **CopilotContext** + `useCopilot` hook for click-to-ask on KPIs, tables, charts
 - **CustomDashboardsProvider** for pinning AI-generated charts to dashboard pages
 
 ### Backend (artifacts/api-server)
 - Express 5 REST API with config-driven architecture
 - **Prompt template engine**: composable blocks (persona, data context, chart rules, response rules, few-shot examples) interpolated from tenant config
-- **Data adapter pattern**: `getDataForSection(sectionId)` and `buildDataContext()` per tenant
+- **DataAdapter interface**: async `getDataForSection(sectionId)` and `getFullDataContext()` per tenant
 - PostgreSQL for conversation/message persistence
 
 ### Database Tables
