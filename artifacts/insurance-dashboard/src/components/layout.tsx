@@ -8,13 +8,8 @@ import {
   ChevronRight,
   BrainCircuit,
   Loader2,
-  PlusCircle,
-  Check,
-  LayoutDashboard,
-  X
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
-import { useCustomDashboards, classifyChart, type CustomSidebarEntry } from "@/lib/custom-dashboards";
 import { useCopilot } from "@/lib/copilot-context";
 import { useTenantConfig, resolveIcon } from "@/lib/tenant-config";
 import {
@@ -37,10 +32,8 @@ import {
 } from "recharts";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const [location, setLocation] = useLocation();
+  const [location] = useLocation();
   const { config } = useTenantConfig();
-  const { sidebarEntries, removeSidebarEntry } = useCustomDashboards();
-
   const navItems = (config?.sections || []).map((s) => ({
     href: s.route,
     label: s.label,
@@ -83,39 +76,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
-          {sidebarEntries.length > 0 && (
-            <>
-              <div className="text-[10px] font-semibold text-sidebar-foreground/50 uppercase tracking-[0.1em] mt-5 mb-3 px-2.5">
-                Custom
-              </div>
-              {sidebarEntries.map((entry) => {
-                const isActive = location === entry.route;
-                return (
-                  <div key={entry.id} className="group relative">
-                    <Link href={entry.route}>
-                      <div
-                        className={cn(
-                          "flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] transition-all cursor-pointer",
-                          isActive
-                            ? "bg-sidebar-accent text-white font-medium"
-                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-white"
-                        )}
-                      >
-                        <LayoutDashboard className={cn("w-4 h-4", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/50")} />
-                        <span className="truncate flex-1">{entry.title}</span>
-                      </div>
-                    </Link>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); removeSidebarEntry(entry.id); if (isActive) setLocation("/"); }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-white/10"
-                    >
-                      <X className="w-3 h-3 text-sidebar-foreground/50 hover:text-white" />
-                    </button>
-                  </div>
-                );
-              })}
-            </>
-          )}
         </nav>
         <div className="p-3 border-t border-sidebar-border text-[10px] text-sidebar-foreground/40">
           {brandName} {new Date().getFullYear()}
@@ -157,25 +117,6 @@ const CHART_COLORS = ["#1565C0", "#0288D1", "#0097A7", "#00838F", "#00695C", "#6
 
 function InlineChart({ chartData }: { chartData: { type: string; title: string; xKey: string; yKey: string; data: any[] } }) {
   const { type, title, xKey, yKey, data } = chartData;
-  const { addChart, charts } = useCustomDashboards();
-  const [added, setAdded] = useState(false);
-  const classification = classifyChart(chartData);
-
-  const alreadyAdded = charts.some(c => c.title === title && c.type === type && c.section === classification.section);
-
-  const handleAdd = () => {
-    if (alreadyAdded || added) return;
-    addChart({
-      type,
-      title,
-      xKey,
-      yKey,
-      data,
-      section: classification.section,
-      sectionLabel: classification.sectionLabel,
-    });
-    setAdded(true);
-  };
 
   const formatValue = (val: number) => {
     if (val >= 1000000) return `$${(val / 1000000).toFixed(1)}M`;
@@ -186,24 +127,8 @@ function InlineChart({ chartData }: { chartData: { type: string; title: string; 
 
   return (
     <div className="mt-2 mb-1 bg-muted/40 rounded-lg border border-border p-3">
-      <div className="flex items-center justify-between mb-2">
+      <div className="mb-2">
         <p className="text-[11px] font-semibold text-foreground">{title}</p>
-        <button
-          onClick={handleAdd}
-          disabled={alreadyAdded || added}
-          className={cn(
-            "flex items-center gap-1 text-[9px] font-medium px-2 py-0.5 rounded-full transition-all",
-            alreadyAdded || added
-              ? "bg-emerald-50 text-emerald-600 cursor-default"
-              : "bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"
-          )}
-        >
-          {alreadyAdded || added ? (
-            <><Check className="w-2.5 h-2.5" /> Added to {classification.sectionLabel}</>
-          ) : (
-            <><PlusCircle className="w-2.5 h-2.5" /> Add to {classification.sectionLabel}</>
-          )}
-        </button>
       </div>
       <div className="h-[180px] w-full">
         <ResponsiveContainer width="100%" height="100%">
@@ -308,8 +233,6 @@ function ChatPanel() {
   const { registerHandler } = useCopilot();
   const pendingQuestionRef = useRef<string | null>(null);
   const { config } = useTenantConfig();
-  const { addSidebarEntry } = useCustomDashboards();
-  const [dismissedCreates, setDismissedCreates] = useState<Set<string>>(new Set());
 
   const copilotName = config?.branding?.copilotName || "Broker Copilot";
   const suggestedPrompts = config?.suggestedPrompts?.slice(0, 3) || [
@@ -435,10 +358,7 @@ function ChatPanel() {
       processed = processed.replace(/\[NAVIGATE:.*?\]/g, '');
     }
     
-    const createMatch = text.match(/\[CREATE_DASHBOARD:(.*?)\]/);
-    if (createMatch) {
-      processed = processed.replace(/\[CREATE_DASHBOARD:.*?\]/g, '');
-    }
+    processed = processed.replace(/\[CREATE_DASHBOARD:.*?\]/g, '');
 
     return (
       <div className="space-y-2">
@@ -455,21 +375,6 @@ function ChatPanel() {
           >
             View Dashboard <ChevronRight className="w-3.5 h-3.5 ml-1" />
           </Button>
-        )}
-        {createMatch && !dismissedCreates.has(createMatch[1]) && (
-          <div className="bg-muted border border-border rounded-lg p-3 mt-1">
-            <p className="text-xs mb-2 font-medium text-foreground">New dashboard: {createMatch[1]}. Add to sidebar?</p>
-            <div className="flex gap-2">
-              <Button size="sm" className="flex-1 text-xs" onClick={() => {
-                const entry = addSidebarEntry(createMatch[1]);
-                setDismissedCreates(prev => new Set(prev).add(createMatch[1]));
-                setLocation(entry.route);
-              }}>Yes</Button>
-              <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => {
-                setDismissedCreates(prev => new Set(prev).add(createMatch[1]));
-              }}>No</Button>
-            </div>
-          </div>
         )}
       </div>
     );

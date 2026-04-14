@@ -55,8 +55,7 @@ const RESPONSE_RULES = `ADDITIONAL RESPONSE RULES:
 1. Use **bold** for key metrics.
 2. Keep text concise — the chart IS the answer.
 3. For navigation, include [NAVIGATE:/route] after the chart.
-4. For dashboard creation requests, include [CREATE_DASHBOARD:Title].
-5. When the user asks to "Summarize" or "Analyze" a specific metric (these are auto-triggered from clicking a KPI card), give a SHORT 2-3 sentence insight with 1-2 bold key facts, then a small chart showing the trend or breakdown. Keep it concise — this is a quick tooltip-style summary, not a full analysis.
+4. When the user asks to "Summarize" or "Analyze" a specific metric (these are auto-triggered from clicking a KPI card), give a SHORT 2-3 sentence insight with 1-2 bold key facts, then a small chart showing the trend or breakdown. Keep it concise — this is a quick tooltip-style summary, not a full analysis.
 6. If asked about a specific time range, filter the data and build the chart from it.`;
 
 export async function buildSystemPrompt(): Promise<string> {
