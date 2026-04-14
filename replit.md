@@ -1,8 +1,8 @@
-# Insurance Broker Analytics Dashboard — Gen-BI Asset
+# Gen-BI Asset — Enterprise Analytics Dashboard
 
 ## Overview
 
-A premium insurance broker analytics command center themed as Gen-BI Asset. Features 5 core dashboard sections with insurance-domain KPIs, a USA geographic heat map, and a **Gen-BI (Generative Business Intelligence)** AI Broker Copilot that generates inline data visualizations (bar, line, area, pie charts) in response to any data question.
+An enterprise-grade, **configuration-driven** analytics dashboard platform. Features a multi-tenant architecture where switching between industries (insurance, banking, utilities) requires only changing a configuration file — not code. Ships with two complete tenant configs: **Insurance Brokerage** (default) and **Commercial Banking** (sample). Includes a Gen-BI AI Copilot that generates inline data visualizations.
 
 ## Stack
 
@@ -30,29 +30,47 @@ A premium insurance broker analytics command center themed as Gen-BI Asset. Feat
 - Positive: Emerald (#10b981) for growth indicators
 - Text: Dark (#1e293b) on white, light on dark sidebar
 
-## Architecture
+## Enterprise Architecture
+
+### Configuration-Driven Tenant System
+- **Config schema**: `artifacts/api-server/src/config/types.ts` — TypeScript types for `TenantConfig`
+- **Config loader**: `artifacts/api-server/src/config/index.ts` — reads `TENANT` env var (default: `insurance`)
+- **Tenant configs**:
+  - `artifacts/api-server/src/config/tenants/insurance.ts` — full insurance brokerage config with data adapters
+  - `artifacts/api-server/src/config/tenants/banking.ts` — commercial banking config with sample data
+- **Prompt builder**: `artifacts/api-server/src/config/prompt-builder.ts` — composable system prompt from config templates
+- Switch tenants: set `TENANT=banking` environment variable
+
+### What Each Tenant Config Defines
+- **Branding**: name, copilot name, industry, currency, date range
+- **Sections**: id, label, route, icon, KPIs, charts, tables, widgets
+- **KPIs**: label, data key, format (currency/number/percent), icon, copilot question
+- **Charts**: type (bar/line/area/pie), data key, x/y keys, multi-series support
+- **Tables**: columns with format, copilot question templates for click-to-ask
+- **Widgets**: conditional rendering (USA map, funnel, recent items)
+- **Prompt config**: persona template, domain terminology, few-shot examples, suggested prompts
+- **Data sources**: static data adapters per section
+
+### API Endpoints
+- `GET /api/config` — serves active tenant config to frontend (sections, branding, prompts)
+- `GET /api/dashboard/section/:sectionId` — generic config-driven data endpoint
+- `GET /api/dashboard/executive|sales|products|renewals|claims|geography` — backward-compatible legacy endpoints
+- OpenAI chat endpoints with SSE streaming (system prompt built from config)
 
 ### Frontend (artifacts/insurance-dashboard)
 - React + Vite app with light corporate theme
-- 5 dashboard views with insurance broker terminology
+- 5 dashboard views (currently hardcoded — Task #2 will make config-driven)
 - USAMap component — SVG grid-based US state heat map with premium data
-- **Gen-BI Broker Copilot** chatbot panel:
-  - Inline chart rendering (Recharts) inside chat bubbles
-  - Supports bar, line, area, pie charts
-  - Custom bracket-based parser for `[CHART:{...}]` blocks
-  - SSE streaming with thinking indicators
-  - Navigation buttons and dashboard creation prompts
-  - Quick-start suggestion buttons
+- **Gen-BI Copilot** chatbot panel with inline chart rendering
 - Uses generated API hooks from @workspace/api-client-react
+- **CopilotContext** + `useCopilot` hook for click-to-ask on KPIs, tables, charts
+- **CustomDashboardsProvider** for pinning AI-generated charts to dashboard pages
 
 ### Backend (artifacts/api-server)
-- Express 5 REST API
-- Dashboard data endpoints: /api/dashboard/executive, /sales, /products, /renewals, /claims, /geography
-- OpenAI chat endpoints with SSE streaming
-- **Rich data context** injected into system prompt: yearly performance, state monthly data, producer monthly data, line monthly data, carrier data, claims, renewals
-- Data covers **2022-2026** (Jan 2022 — Apr 2026)
+- Express 5 REST API with config-driven architecture
+- **Prompt template engine**: composable blocks (persona, data context, chart rules, response rules, few-shot examples) interpolated from tenant config
+- **Data adapter pattern**: `getDataForSection(sectionId)` and `buildDataContext()` per tenant
 - PostgreSQL for conversation/message persistence
-- Data files in src/routes/dashboard/data/ — modular per section
 
 ### Database Tables
 - `conversations` — AI chat conversations
@@ -66,7 +84,7 @@ A premium insurance broker analytics command center themed as Gen-BI Asset. Feat
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 
-## Dashboard Pages
+## Dashboard Pages (Insurance Tenant — Default)
 
 1. **Executive Summary** (`/`) — Written Premium ($267.8M), Commission Revenue ($40.2M), Policies Bound (11,482), Renewal Rate (92.8%), Quote-to-Bind (37.2%), YoY Growth (+10.1%), Premium & Commission Trends (2022-2026), Policy Mix donut, USA Geographic Heat Map, Top States
 2. **Sales Performance** (`/sales`) — Quote Rate (71.2%), Bind Rate (37.2%), Closing Ratio (26.4%), Avg Days to Bind (15.8), Sales Pipeline funnel, Monthly Bind Trend, Producer Leaderboard
@@ -74,32 +92,27 @@ A premium insurance broker analytics command center themed as Gen-BI Asset. Feat
 4. **Renewals & Retention** (`/renewals`) — Renewal Rate (92.8%), Retained Premium ($175.8M), Lost Premium ($9.6M), Premium at Risk, Retention Trend, Churn by Producer
 5. **Claims & Risk** (`/claims`) — Loss Ratio (46.2%), Open Claims (412), Incurred Loss by LOB, Top States by Risk, Recent Claims (2026 dates)
 
-## Gen-BI Broker Copilot Features
+## Banking Tenant (Sample)
+
+1. **Loan Portfolio Overview** (`/`) — Total Assets ($4.25B), NII ($186.5M), Total Loans ($3.12B), NIM (4.38%), ROE (12.45%), NPL Ratio (1.34%), Tier 1 Capital (12.8%)
+2. **Revenue Analytics** (`/revenue`) — Revenue breakdown, RM Leaderboard, Revenue by Segment
+3. **Customer Segments** (`/customers`) — Customer base (248K), Retention (91.2%), Digital Adoption (78.4%), NPS (62)
+4. **Risk & Compliance** (`/risk`) — NPL by Segment, Capital Trends, Charge-Off Rate
+5. **Branch Performance** (`/branches`) — 124 branches, Digital Transactions (68.2%), Performance by Region
+
+## Gen-BI Copilot Features
 - **Generative BI**: Every data question generates an inline chart visualization
 - Chart types: bar (comparisons), line/area (trends), pie (composition)
 - Inline Recharts rendering inside chat bubbles
 - Custom JSON parser for `[CHART:{...}]` format with brace-depth matching
 - Streaming AI responses via Server-Sent Events
 - "Generating insights..." thinking indicator with spinning animation
-- Full data context: 2022-2026 yearly, monthly state/producer/line breakdowns
+- Full data context injected from tenant config
 - Dashboard navigation via `[NAVIGATE:/route]` buttons
-- Dynamic dashboard creation via `[CREATE_DASHBOARD:title]` with Yes/No cards
+- Dynamic dashboard creation via `[CREATE_DASHBOARD:title]`
 - Bold markdown rendering
 - Quick-start suggestion buttons
 - Conversation persistence in PostgreSQL
-
-## Data Context (2025 vs 2024, Data Range: 2022-2026)
-- Written Premium: $267.8M (+10.1% YoY)
-- Commission Revenue: $40.2M
-- Policies Bound: 11,482 (+10.2% YoY)
-- Renewal Rate: 92.8%
-- Quote-to-Bind: 37.2%
-- Retention Ratio: 94.8%
-- Loss Ratio: 46.2%
-- Active in 45 US states
-- Top States: CA ($48.8M), TX ($41.2M), NY ($33.6M), FL ($28.9M), IL ($20.4M)
-- Top Producer: Sarah Mitchell ($46.2M)
-- Fastest Growing Line: Cyber (+34.7%)
-- Top Carrier: Hartford Financial ($60.2M placed)
+- **Config-driven**: persona, terminology, few-shot examples, suggested prompts all from tenant config
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.

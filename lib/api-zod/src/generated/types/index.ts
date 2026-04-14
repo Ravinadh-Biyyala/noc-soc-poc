@@ -7,6 +7,8 @@
  */
 
 export * from "./carrierMetric";
+export * from "./chartConfig";
+export * from "./chartYKey";
 export * from "./claimsRisk";
 export * from "./claimsRiskClaimsByLineItem";
 export * from "./claimsRiskClaimsByStateItem";
@@ -18,7 +20,9 @@ export * from "./executiveSummaryTopStatesByPremiumItem";
 export * from "./geographyData";
 export * from "./geographyDataConcentrationRiskItem";
 export * from "./geographyDataTopGrowthStatesItem";
+export * from "./getDashboardSection200";
 export * from "./healthStatus";
+export * from "./kpiConfig";
 export * from "./lineOfBusiness";
 export * from "./openaiConversation";
 export * from "./openaiConversationWithMessages";
@@ -33,7 +37,15 @@ export * from "./renewalsRetentionChurnByProducerItem";
 export * from "./salesPerformance";
 export * from "./salesPerformanceAccountSizeBucketsItem";
 export * from "./salesPerformanceFunnelStagesItem";
+export * from "./sectionConfig";
 export * from "./sendOpenaiMessageBody";
 export * from "./stateData";
+export * from "./tableColumn";
+export * from "./tableConfig";
+export * from "./tenantBranding";
+export * from "./tenantClientConfig";
+export * from "./tenantClientConfigClickToAskTemplates";
 export * from "./trendPoint";
+export * from "./widgetConfig";
+export * from "./widgetConfigProps";
 export * from "./yoyComparison";

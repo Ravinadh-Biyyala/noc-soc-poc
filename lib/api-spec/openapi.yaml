@@ -12,7 +12,9 @@ tags:
   - name: openai
     description: OpenAI AI chat operations
   - name: dashboard
-    description: Insurance broker dashboard data
+    description: Dashboard data endpoints
+  - name: config
+    description: Tenant configuration
 paths:
   /healthz:
     get:
@@ -213,6 +215,43 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GeographyData"
+  /config:
+    get:
+      operationId: getTenantConfig
+      tags: [config]
+      summary: Get active tenant configuration for the frontend
+      responses:
+        "200":
+          description: Tenant configuration including branding, sections, prompts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenantClientConfig"
+  /dashboard/section/{sectionId}:
+    get:
+      operationId: getDashboardSection
+      tags: [dashboard]
+      summary: Get data for a specific dashboard section by config-driven section ID
+      parameters:
+        - name: sectionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Section data (shape varies by tenant and section)
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "404":
+          description: Section not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
 components:
   schemas:
     HealthStatus:
@@ -849,3 +888,193 @@ components:
         - totalStatesActive
         - topGrowthStates
         - concentrationRisk
+    TenantBranding:
+      type: object
+      properties:
+        name:
+          type: string
+        copilotName:
+          type: string
+        industry:
+          type: string
+        currencySymbol:
+          type: string
+        dateRange:
+          type: string
+      required:
+        - name
+        - copilotName
+        - industry
+        - currencySymbol
+        - dateRange
+    KpiConfig:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        dataKey:
+          type: string
+        format:
+          type: string
+        icon:
+          type: string
+        copilotQuestion:
+          type: string
+        changeKey:
+          type: string
+      required:
+        - id
+        - label
+        - dataKey
+        - format
+        - icon
+        - copilotQuestion
+    ChartYKey:
+      type: object
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        color:
+          type: string
+      required:
+        - key
+        - label
+    ChartConfig:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+        dataKey:
+          type: string
+        xKey:
+          type: string
+        yKeys:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChartYKey"
+        height:
+          type: integer
+      required:
+        - id
+        - title
+        - type
+        - dataKey
+        - xKey
+        - yKeys
+    TableColumn:
+      type: object
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        format:
+          type: string
+      required:
+        - key
+        - label
+    TableConfig:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        dataKey:
+          type: string
+        columns:
+          type: array
+          items:
+            $ref: "#/components/schemas/TableColumn"
+        copilotQuestionTemplate:
+          type: string
+      required:
+        - id
+        - title
+        - dataKey
+        - columns
+    WidgetConfig:
+      type: object
+      properties:
+        type:
+          type: string
+        id:
+          type: string
+        title:
+          type: string
+        dataKey:
+          type: string
+        props:
+          type: object
+          additionalProperties: true
+      required:
+        - type
+        - id
+        - title
+        - dataKey
+    SectionConfig:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        route:
+          type: string
+        icon:
+          type: string
+        kpis:
+          type: array
+          items:
+            $ref: "#/components/schemas/KpiConfig"
+        charts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChartConfig"
+        tables:
+          type: array
+          items:
+            $ref: "#/components/schemas/TableConfig"
+        widgets:
+          type: array
+          items:
+            $ref: "#/components/schemas/WidgetConfig"
+      required:
+        - id
+        - label
+        - route
+        - icon
+        - kpis
+        - charts
+        - tables
+        - widgets
+    TenantClientConfig:
+      type: object
+      properties:
+        branding:
+          $ref: "#/components/schemas/TenantBranding"
+        sections:
+          type: array
+          items:
+            $ref: "#/components/schemas/SectionConfig"
+        suggestedPrompts:
+          type: array
+          items:
+            type: string
+        clickToAskTemplates:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - branding
+        - sections
+        - suggestedPrompts
+        - clickToAskTemplates

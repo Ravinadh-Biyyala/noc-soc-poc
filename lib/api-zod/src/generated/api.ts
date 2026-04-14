@@ -361,3 +361,90 @@ export const GetGeographyDataResponse = zod.object({
     }),
   ),
 });
+
+/**
+ * @summary Get active tenant configuration for the frontend
+ */
+export const GetTenantConfigResponse = zod.object({
+  branding: zod.object({
+    name: zod.string(),
+    copilotName: zod.string(),
+    industry: zod.string(),
+    currencySymbol: zod.string(),
+    dateRange: zod.string(),
+  }),
+  sections: zod.array(
+    zod.object({
+      id: zod.string(),
+      label: zod.string(),
+      route: zod.string(),
+      icon: zod.string(),
+      kpis: zod.array(
+        zod.object({
+          id: zod.string(),
+          label: zod.string(),
+          dataKey: zod.string(),
+          format: zod.string(),
+          icon: zod.string(),
+          copilotQuestion: zod.string(),
+          changeKey: zod.string().optional(),
+        }),
+      ),
+      charts: zod.array(
+        zod.object({
+          id: zod.string(),
+          title: zod.string(),
+          type: zod.string(),
+          dataKey: zod.string(),
+          xKey: zod.string(),
+          yKeys: zod.array(
+            zod.object({
+              key: zod.string(),
+              label: zod.string(),
+              color: zod.string().optional(),
+            }),
+          ),
+          height: zod.number().optional(),
+        }),
+      ),
+      tables: zod.array(
+        zod.object({
+          id: zod.string(),
+          title: zod.string(),
+          dataKey: zod.string(),
+          columns: zod.array(
+            zod.object({
+              key: zod.string(),
+              label: zod.string(),
+              format: zod.string().optional(),
+            }),
+          ),
+          copilotQuestionTemplate: zod.string().optional(),
+        }),
+      ),
+      widgets: zod.array(
+        zod.object({
+          type: zod.string(),
+          id: zod.string(),
+          title: zod.string(),
+          dataKey: zod.string(),
+          props: zod.record(zod.string(), zod.unknown()).optional(),
+        }),
+      ),
+    }),
+  ),
+  suggestedPrompts: zod.array(zod.string()),
+  clickToAskTemplates: zod.record(zod.string(), zod.string()),
+});
+
+/**
+ * @summary Get data for a specific dashboard section by config-driven section ID
+ */
+export const GetDashboardSectionParams = zod.object({
+  sectionId: zod.coerce.string(),
+});
+
+export const GetDashboardSectionResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);

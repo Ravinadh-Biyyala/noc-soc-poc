@@ -21,6 +21,7 @@ import type {
   CreateOpenaiConversationBody,
   ExecutiveSummary,
   GeographyData,
+  GetDashboardSection200,
   HealthStatus,
   OpenaiConversation,
   OpenaiConversationWithMessages,
@@ -30,6 +31,7 @@ import type {
   RenewalsRetention,
   SalesPerformance,
   SendOpenaiMessageBody,
+  TenantClientConfig,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -1070,6 +1072,173 @@ export function useGetGeographyData<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetGeographyDataQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get active tenant configuration for the frontend
+ */
+export const getGetTenantConfigUrl = () => {
+  return `/api/config`;
+};
+
+export const getTenantConfig = async (
+  options?: RequestInit,
+): Promise<TenantClientConfig> => {
+  return customFetch<TenantClientConfig>(getGetTenantConfigUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetTenantConfigQueryKey = () => {
+  return [`/api/config`] as const;
+};
+
+export const getGetTenantConfigQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTenantConfig>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getTenantConfig>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetTenantConfigQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTenantConfig>>> = ({
+    signal,
+  }) => getTenantConfig({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTenantConfig>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTenantConfigQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTenantConfig>>
+>;
+export type GetTenantConfigQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get active tenant configuration for the frontend
+ */
+
+export function useGetTenantConfig<
+  TData = Awaited<ReturnType<typeof getTenantConfig>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getTenantConfig>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTenantConfigQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get data for a specific dashboard section by config-driven section ID
+ */
+export const getGetDashboardSectionUrl = (sectionId: string) => {
+  return `/api/dashboard/section/${sectionId}`;
+};
+
+export const getDashboardSection = async (
+  sectionId: string,
+  options?: RequestInit,
+): Promise<GetDashboardSection200> => {
+  return customFetch<GetDashboardSection200>(
+    getGetDashboardSectionUrl(sectionId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetDashboardSectionQueryKey = (sectionId: string) => {
+  return [`/api/dashboard/section/${sectionId}`] as const;
+};
+
+export const getGetDashboardSectionQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDashboardSection>>,
+  TError = ErrorType<OpenaiError>,
+>(
+  sectionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDashboardSection>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDashboardSectionQueryKey(sectionId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDashboardSection>>
+  > = ({ signal }) =>
+    getDashboardSection(sectionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!sectionId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDashboardSection>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDashboardSectionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDashboardSection>>
+>;
+export type GetDashboardSectionQueryError = ErrorType<OpenaiError>;
+
+/**
+ * @summary Get data for a specific dashboard section by config-driven section ID
+ */
+
+export function useGetDashboardSection<
+  TData = Awaited<ReturnType<typeof getDashboardSection>>,
+  TError = ErrorType<OpenaiError>,
+>(
+  sectionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDashboardSection>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDashboardSectionQueryOptions(sectionId, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

@@ -258,3 +258,83 @@ export interface GeographyData {
   topGrowthStates: GeographyDataTopGrowthStatesItem[];
   concentrationRisk: GeographyDataConcentrationRiskItem[];
 }
+
+export interface TenantBranding {
+  name: string;
+  copilotName: string;
+  industry: string;
+  currencySymbol: string;
+  dateRange: string;
+}
+
+export interface KpiConfig {
+  id: string;
+  label: string;
+  dataKey: string;
+  format: string;
+  icon: string;
+  copilotQuestion: string;
+  changeKey?: string;
+}
+
+export interface ChartYKey {
+  key: string;
+  label: string;
+  color?: string;
+}
+
+export interface ChartConfig {
+  id: string;
+  title: string;
+  type: string;
+  dataKey: string;
+  xKey: string;
+  yKeys: ChartYKey[];
+  height?: number;
+}
+
+export interface TableColumn {
+  key: string;
+  label: string;
+  format?: string;
+}
+
+export interface TableConfig {
+  id: string;
+  title: string;
+  dataKey: string;
+  columns: TableColumn[];
+  copilotQuestionTemplate?: string;
+}
+
+export type WidgetConfigProps = { [key: string]: unknown };
+
+export interface WidgetConfig {
+  type: string;
+  id: string;
+  title: string;
+  dataKey: string;
+  props?: WidgetConfigProps;
+}
+
+export interface SectionConfig {
+  id: string;
+  label: string;
+  route: string;
+  icon: string;
+  kpis: KpiConfig[];
+  charts: ChartConfig[];
+  tables: TableConfig[];
+  widgets: WidgetConfig[];
+}
+
+export type TenantClientConfigClickToAskTemplates = { [key: string]: string };
+
+export interface TenantClientConfig {
+  branding: TenantBranding;
+  sections: SectionConfig[];
+  suggestedPrompts: string[];
+  clickToAskTemplates: TenantClientConfigClickToAskTemplates;
+}
+
+export type GetDashboardSection200 = { [key: string]: unknown };
