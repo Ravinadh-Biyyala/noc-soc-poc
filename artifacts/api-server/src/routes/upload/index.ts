@@ -22,6 +22,7 @@ interface SheetSummary {
   rowCount: number;
   columns: ColumnInfo[];
   sampleRows: Record<string, unknown>[];
+  rows?: Record<string, unknown>[];
 }
 
 interface UploadResult {
@@ -87,6 +88,7 @@ function analyzeSheet(sheet: XLSX.WorkSheet, sheetName: string): SheetSummary {
     rowCount: jsonData.length,
     columns,
     sampleRows: jsonData.slice(0, 8),
+    rows: jsonData,
   };
 }
 
@@ -134,6 +136,8 @@ router.post("/generate-dashboard", async (req: Request, res: Response) => {
       return;
     }
 
+    const MAX_ROWS_IN_PROMPT = 150;
+
     const sheetsContext = sheets.map((sheet) => {
       const colDescriptions = sheet.columns.map((col) => {
         let desc = `  - "${col.name}" (${col.type}, ${col.uniqueCount} unique values)`;
@@ -146,7 +150,15 @@ router.post("/generate-dashboard", async (req: Request, res: Response) => {
         return desc;
       });
 
-      return `Sheet "${sheet.name}" (${sheet.rowCount} rows):\n${colDescriptions.join("\n")}\n\nSample data (first 5 rows):\n${JSON.stringify(sheet.sampleRows.slice(0, 5), null, 1)}`;
+      // Use actual rows if provided (from data prep pipeline), capped for token budget
+      const fullRows = sheet.rows && sheet.rows.length > 0 ? sheet.rows : sheet.sampleRows;
+      const dataForPrompt = fullRows.slice(0, MAX_ROWS_IN_PROMPT);
+      const omitted = fullRows.length - dataForPrompt.length;
+      const dataLabel = omitted > 0
+        ? `Data (${dataForPrompt.length} of ${fullRows.length} rows shown — aggregate/sample as needed):`
+        : `Data (all ${fullRows.length} rows):`;
+
+      return `Sheet "${sheet.name}" (${sheet.rowCount} rows):\n${colDescriptions.join("\n")}\n\n${dataLabel}\n${JSON.stringify(dataForPrompt, null, 1)}`;
     });
 
     const systemPrompt = `You are an expert data visualization designer inspired by Tableau Public and McKinsey dashboards.

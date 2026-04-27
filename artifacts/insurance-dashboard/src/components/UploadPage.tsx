@@ -1,29 +1,48 @@
 import { useState, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
-import { Upload, FileSpreadsheet, Loader2, CheckCircle, AlertCircle, ArrowRight, X } from "lucide-react";
+import { Upload, FileSpreadsheet, Loader2, AlertCircle, X, Plus, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import DataPrep from "@/components/DataPrep";
+import type { Table } from "@/lib/data-operations";
 
 interface SheetSummary {
   name: string;
   rowCount: number;
   columns: { name: string; type: string; uniqueCount: number; sample: unknown[] }[];
   sampleRows: Record<string, unknown>[];
+  rows?: Record<string, unknown>[];
 }
 
 interface UploadResult {
+  uploadId: string;
   fileName: string;
   sheets: SheetSummary[];
 }
 
-type Stage = "upload" | "parsing" | "preview" | "generating" | "done";
+type Stage = "upload" | "parsing" | "prep" | "generating";
+
+let uploadCounter = 0;
+function newUploadId(): string {
+  uploadCounter += 1;
+  return `upload-${Date.now().toString(36)}-${uploadCounter}`;
+}
+
+function tableIdFor(uploadId: string, sheetName: string): string {
+  return `${uploadId}::${sheetName}`.replace(/[^a-zA-Z0-9:_-]/g, "_");
+}
+
+function tableNameFor(fileName: string, sheetName: string, multipleSheets: boolean): string {
+  const base = fileName.replace(/\.[^.]+$/, "");
+  if (!multipleSheets) return base;
+  return `${base}.${sheetName}`;
+}
 
 export default function UploadPage({ onDashboardGenerated }: { onDashboardGenerated: (config: any) => { route: string } }) {
   const [stage, setStage] = useState<Stage>("upload");
   const [dragActive, setDragActive] = useState(false);
-  const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
-  const [selectedSheets, setSelectedSheets] = useState<Set<string>>(new Set());
+  const [uploadedFiles, setUploadedFiles] = useState<UploadResult[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -31,10 +50,20 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
 
   const apiBase = import.meta.env.BASE_URL.replace(/\/$/, "");
 
+  const sourceTables: Table[] = uploadedFiles.flatMap((f) =>
+    f.sheets.map((s) => ({
+      id: tableIdFor(f.uploadId, s.name),
+      name: tableNameFor(f.fileName, s.name, f.sheets.length > 1),
+      rows: s.rows || s.sampleRows || [],
+      columns: s.columns.map((c) => ({ name: c.name, type: c.type })),
+      sourceFile: f.fileName,
+    }))
+  );
+
   const handleFile = useCallback(async (file: File) => {
     setError(null);
     setStage("parsing");
-    setProgress("Parsing your data...");
+    setProgress(`Parsing ${file.name}...`);
 
     try {
       const formData = new FormData();
@@ -46,15 +75,15 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
         throw new Error(err.error || "Upload failed");
       }
 
-      const result: UploadResult = await res.json();
-      setUploadResult(result);
-      setSelectedSheets(new Set(result.sheets.map((s) => s.name)));
-      setStage("preview");
+      const parsed = await res.json();
+      const result: UploadResult = { ...parsed, uploadId: newUploadId() };
+      setUploadedFiles((prev) => [...prev, result]);
+      setStage("prep");
     } catch (err: any) {
       setError(err.message || "Failed to parse file");
-      setStage("upload");
+      setStage(uploadedFiles.length > 0 ? "prep" : "upload");
     }
-  }, [apiBase]);
+  }, [apiBase, uploadedFiles.length]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -63,17 +92,42 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
     if (file) handleFile(file);
   }, [handleFile]);
 
-  const handleGenerate = async () => {
-    if (!uploadResult) return;
+  const handleAddMoreFiles = () => {
+    fileInputRef.current?.click();
+  };
+
+  const removeFile = (uploadId: string) => {
+    setUploadedFiles((prev) => {
+      const next = prev.filter((f) => f.uploadId !== uploadId);
+      if (next.length === 0) setStage("upload");
+      return next;
+    });
+  };
+
+  const handleGenerate = async (finalTable: Table) => {
     setStage("generating");
     setProgress("AI is analyzing your data and designing visualizations...");
+    setError(null);
 
     try {
-      const sheetsToSend = uploadResult.sheets.filter((s) => selectedSheets.has(s.name));
+      const sheetForBackend = {
+        name: finalTable.name,
+        rowCount: finalTable.rows.length,
+        columns: finalTable.columns.map((c) => ({
+          name: c.name,
+          type: c.type,
+          uniqueCount: new Set(finalTable.rows.map((r) => String(r[c.name]))).size,
+          sample: finalTable.rows.slice(0, 5).map((r) => r[c.name]),
+          nullCount: finalTable.rows.filter((r) => r[c.name] === null || r[c.name] === undefined || r[c.name] === "").length,
+        })),
+        sampleRows: finalTable.rows.slice(0, 8),
+        rows: finalTable.rows,
+      };
+
       const res = await fetch(`${apiBase}/api/generate-dashboard`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sheets: sheetsToSend, fileName: uploadResult.fileName }),
+        body: JSON.stringify({ sheets: [sheetForBackend], fileName: finalTable.name }),
       });
 
       if (!res.ok) {
@@ -82,23 +136,65 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
       }
 
       const dashboardConfig = await res.json();
-      setStage("done");
       const entry = onDashboardGenerated(dashboardConfig);
       setLocation(entry.route);
     } catch (err: any) {
       setError(err.message || "Failed to generate dashboard");
-      setStage("preview");
+      setStage("prep");
     }
   };
 
-  const toggleSheet = (name: string) => {
-    setSelectedSheets((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
-  };
+  // Hidden file input always present for "Add File" button
+  const hiddenInput = (
+    <input
+      ref={fileInputRef}
+      type="file"
+      accept=".csv,.xlsx,.xls"
+      className="hidden"
+      onChange={(e) => {
+        const file = e.target.files?.[0];
+        if (file) handleFile(file);
+        e.target.value = "";
+      }}
+    />
+  );
+
+  if ((stage === "prep" || stage === "generating") && sourceTables.length > 0) {
+    return (
+      <div className="h-[calc(100vh-3.5rem)] -m-6 flex flex-col">
+        <div className="px-6 py-3 border-b border-border bg-white flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            {uploadedFiles.map((f) => (
+              <div key={f.uploadId} className="group inline-flex items-center gap-1.5 px-2.5 py-1 bg-muted/40 rounded-md text-[11px]">
+                <FileSpreadsheet className="w-3 h-3 text-muted-foreground" />
+                <span className="font-medium">{f.fileName}</span>
+                <button
+                  onClick={() => removeFile(f.uploadId)}
+                  className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+          {error && (
+            <div className="flex items-center gap-1.5 text-destructive text-[11px]">
+              <AlertCircle className="w-3.5 h-3.5" /> {error}
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-h-0 bg-muted/5">
+          <DataPrep
+            sourceTables={sourceTables}
+            onAddMoreFiles={handleAddMoreFiles}
+            onGenerateDashboard={handleGenerate}
+            isGenerating={stage === "generating"}
+          />
+        </div>
+        {hiddenInput}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full flex items-center justify-center p-6">
@@ -108,7 +204,7 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
             <div className="text-center space-y-2">
               <h1 className="text-2xl font-bold text-foreground tracking-tight">Upload Your Data</h1>
               <p className="text-sm text-muted-foreground">
-                Drop a CSV or Excel file and we'll generate a beautiful dashboard automatically
+                Drop CSV or Excel files. Combine multiple files with joins, filters, and aggregations — then auto-generate a dashboard.
               </p>
             </div>
 
@@ -138,16 +234,12 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
                   <p className="text-xs text-muted-foreground mt-1">or click to browse — CSV, XLSX, XLS supported</p>
                 </div>
               </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleFile(file);
-                }}
-              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 pt-2">
+              <FeatureCard icon="🔗" title="Multi-file Joins" description="Combine related datasets" />
+              <FeatureCard icon="🎯" title="Filters & Aggregates" description="Shape your data" />
+              <FeatureCard icon="✨" title="AI Dashboards" description="Auto-generated visuals" />
             </div>
 
             {error && (
@@ -179,97 +271,20 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
             )}
           </div>
         )}
-
-        {stage === "preview" && uploadResult && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-foreground">{uploadResult.fileName}</h2>
-                <p className="text-xs text-muted-foreground">
-                  {uploadResult.sheets.length} sheet{uploadResult.sheets.length > 1 ? "s" : ""} detected
-                </p>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => { setStage("upload"); setUploadResult(null); }}>
-                <X className="w-4 h-4 mr-1" /> Change File
-              </Button>
-            </div>
-
-            <div className="space-y-3">
-              {uploadResult.sheets.map((sheet) => (
-                <Card
-                  key={sheet.name}
-                  className={cn(
-                    "cursor-pointer transition-all border-2",
-                    selectedSheets.has(sheet.name)
-                      ? "border-primary bg-primary/5 shadow-sm"
-                      : "border-transparent hover:border-border"
-                  )}
-                  onClick={() => toggleSheet(sheet.name)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "w-10 h-10 rounded-lg flex items-center justify-center",
-                          selectedSheets.has(sheet.name) ? "bg-primary/10" : "bg-muted"
-                        )}>
-                          {selectedSheets.has(sheet.name) ? (
-                            <CheckCircle className="w-5 h-5 text-primary" />
-                          ) : (
-                            <FileSpreadsheet className="w-5 h-5 text-muted-foreground" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">{sheet.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {sheet.rowCount.toLocaleString()} rows · {sheet.columns.length} columns
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {sheet.columns.slice(0, 8).map((col) => (
-                        <span
-                          key={col.name}
-                          className={cn(
-                            "text-[10px] px-2 py-0.5 rounded-full",
-                            col.type === "number" ? "bg-blue-50 text-blue-700" :
-                            col.type === "date" ? "bg-amber-50 text-amber-700" :
-                            "bg-gray-100 text-gray-600"
-                          )}
-                        >
-                          {col.name}
-                        </span>
-                      ))}
-                      {sheet.columns.length > 8 && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
-                          +{sheet.columns.length - 8} more
-                        </span>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {error && (
-              <div className="flex items-center gap-2 text-destructive text-sm bg-destructive/10 p-3 rounded-lg">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                {error}
-              </div>
-            )}
-
-            <Button
-              size="lg"
-              className="w-full gap-2"
-              disabled={selectedSheets.size === 0}
-              onClick={handleGenerate}
-            >
-              Generate Dashboard <ArrowRight className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
       </div>
+      {hiddenInput}
     </div>
+  );
+}
+
+function FeatureCard({ icon, title, description }: { icon: string; title: string; description: string }) {
+  return (
+    <Card className="border-border/60 hover:border-primary/30 transition-colors">
+      <CardContent className="p-3 text-center space-y-1">
+        <div className="text-xl">{icon}</div>
+        <div className="text-[11px] font-semibold text-foreground">{title}</div>
+        <div className="text-[10px] text-muted-foreground">{description}</div>
+      </CardContent>
+    </Card>
   );
 }

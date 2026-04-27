@@ -110,14 +110,28 @@ An enterprise-grade, **configuration-driven** analytics dashboard platform. Feat
 5. **Branch Performance** (`/branches`) — 124 branches, Digital Transactions (68.2%), Performance by Region
 
 ## Data Ingestion & Auto-Dashboard Generation
-- **Upload page** (`/upload`): Drag-and-drop CSV/XLSX/XLS files
-- **Backend parsing** (`POST /api/upload`): multer + xlsx, multi-sheet support, extracts column names/types/samples
-- **AI dashboard generation** (`POST /api/generate-dashboard`): gpt-4.1-mini with `json_object` response_format
+- **Upload page** (`/upload`): Drag-and-drop CSV/XLSX/XLS files; supports adding multiple files
+- **Backend parsing** (`POST /api/upload`): multer + xlsx, multi-sheet support, returns full row data + column metadata
+- **AI dashboard generation** (`POST /api/generate-dashboard`): gpt-4.1-mini with `json_object` response_format; uses up to 150 rows of actual prepared data in prompt
 - **10+ visualization types**: area, bar, horizontal-bar, line, pie, donut, scatter, bubble, radar, treemap, stacked-area, stacked-bar, gauge, waterfall, heatmap, progress-bar
+
+### Tableau-like Data Prep (`components/DataPrep.tsx`)
+- **Multi-file workflow**: upload several CSV/XLSX files, each becomes a "source table"
+- **Operations pipeline** (all client-side via `lib/data-operations.ts`):
+  - **Joins**: inner / left / right / outer on selected key columns; safe key handling for nulls/types/delimiters
+  - **Filters**: equals, not equals, >, <, ≥, ≤, contains, not contains, in (csv list), is null, is not null
+  - **Aggregations**: group by multiple columns + sum/avg/count/count_distinct/min/max/first
+  - **Calculated columns**: JavaScript expressions over column names (e.g. `Revenue - Cost`)
+- **Cascade delete**: removing an upstream operation also removes downstream ops referencing it
+- **Live preview**: data grid updates in real time as ops are added; shows row/column counts per stage
+- **Tables panel**: tree view of source tables and derived tables with column type indicators
+- After preparing, "Generate Dashboard" sends the final transformed table to AI for visualization
+
+### Generated Dashboard Persistence
 - **GeneratedDashboardProvider** (`src/lib/generated-dashboards.tsx`): persists generated dashboards in localStorage (`genbi-generated-dashboards`), provides `useGeneratedDashboards` hook
 - **Dynamic routing**: generated dashboards get unique routes (`/generated/<slug>-<id>`) and appear in sidebar under "Your Data" section
 - **Sidebar integration**: "Upload Data" button + generated dashboard links with delete option
-- Key files: `UploadPage.tsx`, `GeneratedDashboard.tsx`, `generated-dashboards.tsx`, `api-server/src/routes/upload/index.ts`
+- Key files: `UploadPage.tsx`, `DataPrep.tsx`, `data-operations.ts`, `GeneratedDashboard.tsx`, `generated-dashboards.tsx`, `api-server/src/routes/upload/index.ts`
 
 ## Gen-BI Copilot Features
 - **Generative BI**: Every data question generates an inline chart visualization
