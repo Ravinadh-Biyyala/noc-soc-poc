@@ -1,0 +1,5 @@
+ProductID,ProductName,Category,UnitPrice,LaunchYear
+P101,Pro Plan Annual,Software,1200.00,2021
+P102,Analytics Add-on,Software,890.50,2022
+P103,Training Hour,Services,95.00,2020
+P104,Premium Support,Services,999.00,2023

@@ -125,6 +125,8 @@ An enterprise-grade, **configuration-driven** analytics dashboard platform. Feat
 - **Cascade delete**: removing an upstream operation also removes downstream ops referencing it
 - **Live preview**: data grid updates in real time as ops are added; shows row/column counts per stage
 - **Tables panel**: tree view of source tables and derived tables with column type indicators
+- **Suggested joins** (heuristic, no AI): `suggestJoins()` in `data-operations.ts` scores cross-table column pairs by name similarity (normalized Jaccard + suffix-id match) plus value overlap (300-row sample), surfacing top suggestions in an amber banner above the pipeline. One-click "Apply" creates an inner join; "Customize" pre-fills the Join modal via the `seedJoin` prop. Suggestions are filtered by exact key tuple (table+column on both sides) so alternate joins remain visible. Dismiss state resets when source tables change.
+- **Sample dataset**: `public/samples/{orders,customers,products}.csv` ships with the app. Empty upload page shows a "No data handy?" card with per-file Load + Download buttons and a "Load all 3" button — designed to demo joins on CustomerID and ProductID.
 - After preparing, "Generate Dashboard" sends the final transformed table to AI for visualization
 
 ### Generated Dashboard Persistence

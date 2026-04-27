@@ -1,0 +1,6 @@
+CustomerID,CustomerName,Region,Segment,SignupDate,IsActive
+C001,Acme Corporation,North,Enterprise,2022-03-12,true
+C002,Globex Industries,South,Mid-Market,2022-07-28,true
+C003,Initech LLC,East,Enterprise,2023-01-15,true
+C004,Umbrella Group,West,SMB,2023-05-04,true
+C005,Hooli Tech,North,Mid-Market,2023-09-22,true

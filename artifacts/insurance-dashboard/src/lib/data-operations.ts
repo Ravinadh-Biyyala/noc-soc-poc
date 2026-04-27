@@ -577,3 +577,124 @@ export function getOperationInputs(op: Operation): string[] {
   if (op.type === "join") return [op.leftTableId, op.rightTableId];
   return [op.inputTableId];
 }
+
+// ============================================================================
+// Join suggestions (heuristic, runs locally — no AI call needed)
+// ============================================================================
+
+export interface JoinSuggestion {
+  leftTableId: string;
+  leftTableName: string;
+  rightTableId: string;
+  rightTableName: string;
+  leftKey: string;
+  rightKey: string;
+  /** 0..1 confidence score combining name + value overlap */
+  score: number;
+  /** percent of right values that appear in left */
+  overlap: number;
+  /** plain-English explanation of why this join makes sense */
+  reason: string;
+}
+
+function normalizeName(s: string): string {
+  return s.toLowerCase().replace(/[_\s\-]/g, "");
+}
+
+function nameSimilarity(a: string, b: string): number {
+  const na = normalizeName(a);
+  const nb = normalizeName(b);
+  if (na === nb) return 1.0;
+  if (na.length >= 2 && nb.length >= 2 && (na.includes(nb) || nb.includes(na))) return 0.75;
+  // Suffix-id heuristic: customerid ↔ id, productid ↔ id, etc.
+  const stripId = (x: string) => x.endsWith("id") ? x.slice(0, -2) : x;
+  if (stripId(na) && stripId(na) === stripId(nb)) return 0.7;
+  // Char overlap (Jaccard on bigrams)
+  const bigrams = (s: string) => {
+    const set = new Set<string>();
+    for (let i = 0; i < s.length - 1; i++) set.add(s.slice(i, i + 2));
+    return set;
+  };
+  const ba = bigrams(na), bb = bigrams(nb);
+  if (ba.size === 0 || bb.size === 0) return 0;
+  let inter = 0;
+  for (const g of ba) if (bb.has(g)) inter++;
+  const jacc = inter / (ba.size + bb.size - inter);
+  return jacc >= 0.5 ? jacc : 0;
+}
+
+function valueOverlap(left: Table, right: Table, lk: string, rk: string): { overlap: number; matched: number; rightDistinct: number } {
+  const SAMPLE = 300;
+  const leftKeys = new Set<string>();
+  for (const r of left.rows.slice(0, SAMPLE)) {
+    const k = makeKey(r[lk]);
+    if (k !== null) leftKeys.add(k);
+  }
+  const rightDistinct = new Set<string>();
+  let matched = 0;
+  for (const r of right.rows.slice(0, SAMPLE)) {
+    const k = makeKey(r[rk]);
+    if (k === null || rightDistinct.has(k)) continue;
+    rightDistinct.add(k);
+    if (leftKeys.has(k)) matched++;
+  }
+  return {
+    overlap: rightDistinct.size === 0 ? 0 : matched / rightDistinct.size,
+    matched,
+    rightDistinct: rightDistinct.size,
+  };
+}
+
+function buildReason(leftTable: string, rightTable: string, leftKey: string, rightKey: string, overlap: number, matched: number): string {
+  const pct = Math.round(overlap * 100);
+  const sameName = normalizeName(leftKey) === normalizeName(rightKey);
+  if (sameName) {
+    return `Both tables share a "${leftKey}" column and ${pct}% of values match (${matched} keys overlap). Looks like a key column.`;
+  }
+  return `"${leftTable}.${leftKey}" matches "${rightTable}.${rightKey}" with ${pct}% value overlap (${matched} keys).`;
+}
+
+export function suggestJoins(tables: Table[]): JoinSuggestion[] {
+  if (tables.length < 2) return [];
+  const candidates: JoinSuggestion[] = [];
+
+  for (let i = 0; i < tables.length; i++) {
+    for (let j = i + 1; j < tables.length; j++) {
+      const left = tables[i];
+      const right = tables[j];
+
+      let best: JoinSuggestion | null = null;
+      for (const lc of left.columns) {
+        for (const rc of right.columns) {
+          const ns = nameSimilarity(lc.name, rc.name);
+          if (ns < 0.5) continue;
+
+          // Test in both orientations and use the better overlap
+          const fwd = valueOverlap(left, right, lc.name, rc.name);
+          const rev = valueOverlap(right, left, rc.name, lc.name);
+          const overlap = Math.max(fwd.overlap, rev.overlap);
+          const matched = Math.max(fwd.matched, rev.matched);
+          if (overlap < 0.15) continue;
+
+          const score = ns * 0.4 + overlap * 0.6;
+          if (!best || score > best.score) {
+            best = {
+              leftTableId: left.id,
+              leftTableName: left.name,
+              rightTableId: right.id,
+              rightTableName: right.name,
+              leftKey: lc.name,
+              rightKey: rc.name,
+              score,
+              overlap,
+              reason: buildReason(left.name, right.name, lc.name, rc.name, overlap, matched),
+            };
+          }
+        }
+      }
+      if (best) candidates.push(best);
+    }
+  }
+
+  return candidates.sort((a, b) => b.score - a.score).slice(0, 5);
+}

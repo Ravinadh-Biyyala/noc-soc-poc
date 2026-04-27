@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
-import { Upload, FileSpreadsheet, Loader2, AlertCircle, X, Plus, ArrowRight } from "lucide-react";
+import { Upload, FileSpreadsheet, Loader2, AlertCircle, X, Plus, ArrowRight, Download, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -45,6 +45,7 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
   const [uploadedFiles, setUploadedFiles] = useState<UploadResult[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState("");
+  const [loadingSamples, setLoadingSamples] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [_, setLocation] = useLocation();
 
@@ -81,9 +82,13 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
       setStage("prep");
     } catch (err: any) {
       setError(err.message || "Failed to parse file");
-      setStage(uploadedFiles.length > 0 ? "prep" : "upload");
+      // Use functional setState pattern to avoid stale closure on uploadedFiles.length
+      setUploadedFiles((prev) => {
+        setStage(prev.length > 0 ? "prep" : "upload");
+        return prev;
+      });
     }
-  }, [apiBase, uploadedFiles.length]);
+  }, [apiBase]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -95,6 +100,36 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
   const handleAddMoreFiles = () => {
     fileInputRef.current?.click();
   };
+
+  const loadSample = useCallback(async (filename: string) => {
+    setError(null);
+    setStage("parsing");
+    setProgress(`Loading ${filename}...`);
+    try {
+      const samplePath = `${apiBase}/samples/${filename}`;
+      const r = await fetch(samplePath);
+      if (!r.ok) throw new Error(`Could not load sample: ${filename}`);
+      const blob = await r.blob();
+      const file = new File([blob], filename, { type: "text/csv" });
+      await handleFile(file);
+    } catch (err: any) {
+      setError(err.message || "Failed to load sample");
+      // Don't override stage here — handleFile already manages it correctly
+      // based on what's in uploadedFiles after the attempted load.
+    }
+  }, [apiBase, handleFile]);
+
+  const loadAllSamples = useCallback(async () => {
+    if (loadingSamples) return;
+    setLoadingSamples(true);
+    try {
+      for (const f of ["orders.csv", "customers.csv", "products.csv"]) {
+        await loadSample(f);
+      }
+    } finally {
+      setLoadingSamples(false);
+    }
+  }, [loadSample, loadingSamples]);
 
   const removeFile = (uploadId: string) => {
     setUploadedFiles((prev) => {
@@ -242,6 +277,41 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
               <FeatureCard icon="✨" title="AI Dashboards" description="Auto-generated visuals" />
             </div>
 
+            {/* Sample data section */}
+            <div className="border border-border/60 rounded-xl p-4 bg-gradient-to-br from-blue-50/40 to-purple-50/40">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-white border border-border/50 flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <h3 className="text-sm font-semibold text-foreground">No data handy? Try the sample dataset</h3>
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={loadAllSamples}
+                      disabled={loadingSamples}
+                      className="text-xs h-7 gap-1.5 flex-shrink-0"
+                    >
+                      {loadingSamples ? (
+                        <><Loader2 className="w-3 h-3 animate-spin" /> Loading...</>
+                      ) : (
+                        <><Sparkles className="w-3 h-3" /> Load all 3</>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mb-3">
+                    A small e-commerce dataset designed to demonstrate joins. Orders link to customers and products.
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <SampleFileChip name="orders.csv" desc="20 transactions" disabled={loadingSamples} onLoad={() => loadSample("orders.csv")} />
+                    <SampleFileChip name="customers.csv" desc="5 customers" disabled={loadingSamples} onLoad={() => loadSample("customers.csv")} />
+                    <SampleFileChip name="products.csv" desc="4 products" disabled={loadingSamples} onLoad={() => loadSample("products.csv")} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {error && (
               <div className="flex items-center gap-2 text-destructive text-sm bg-destructive/10 p-3 rounded-lg">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -286,5 +356,46 @@ function FeatureCard({ icon, title, description }: { icon: string; title: string
         <div className="text-[10px] text-muted-foreground">{description}</div>
       </CardContent>
     </Card>
+  );
+}
+
+function SampleFileChip({
+  name,
+  desc,
+  disabled = false,
+  onLoad,
+}: {
+  name: string;
+  desc: string;
+  disabled?: boolean;
+  onLoad: () => void;
+}) {
+  const apiBase = import.meta.env.BASE_URL.replace(/\/$/, "");
+  return (
+    <div className="group bg-white border border-border/60 rounded-md p-2 hover:border-primary/40 transition-colors">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <FileSpreadsheet className="w-3 h-3 text-muted-foreground" />
+        <span className="text-[10px] font-semibold text-foreground truncate flex-1">{name}</span>
+      </div>
+      <div className="text-[9px] text-muted-foreground mb-2">{desc}</div>
+      <div className="flex gap-1">
+        <button
+          onClick={onLoad}
+          disabled={disabled}
+          className="flex-1 text-[10px] py-1 px-1.5 rounded bg-primary/10 hover:bg-primary/20 text-primary font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Load
+        </button>
+        <a
+          href={`${apiBase}/samples/${name}`}
+          download={name}
+          className="px-1.5 py-1 rounded border border-border/60 hover:border-primary/40 hover:text-primary transition-colors"
+          title={`Download ${name}`}
+          aria-label={`Download ${name}`}
+        >
+          <Download className="w-2.5 h-2.5" />
+        </a>
+      </div>
+    </div>
   );
 }
