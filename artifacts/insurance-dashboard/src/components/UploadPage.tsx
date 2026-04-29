@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Upload, FileSpreadsheet, Loader2, AlertCircle, X, ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ interface SheetSummary {
   columns: { name: string; type: string; uniqueCount: number; sample: unknown[] }[];
   sampleRows: Record<string, unknown>[];
   rows?: Record<string, unknown>[];
+  truncated?: boolean;
+  returnedRowCount?: number;
 }
 
 interface UploadResult {
@@ -50,14 +52,19 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
 
   const apiBase = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-  const sourceTables: Table[] = uploadedFiles.flatMap((f) =>
-    f.sheets.map((s) => ({
-      id: tableIdFor(f.uploadId, s.name),
-      name: tableNameFor(f.fileName, s.name, f.sheets.length > 1),
-      rows: s.rows || s.sampleRows || [],
-      columns: s.columns.map((c) => ({ name: c.name, type: c.type })),
-      sourceFile: f.fileName,
-    }))
+  // Memoize so heavy row arrays aren't re-flatMapped on every keystroke / re-render.
+  const sourceTables: Table[] = useMemo(
+    () =>
+      uploadedFiles.flatMap((f) =>
+        f.sheets.map((s) => ({
+          id: tableIdFor(f.uploadId, s.name),
+          name: tableNameFor(f.fileName, s.name, f.sheets.length > 1),
+          rows: s.rows || s.sampleRows || [],
+          columns: s.columns.map((c) => ({ name: c.name, type: c.type })),
+          sourceFile: f.fileName,
+        }))
+      ),
+    [uploadedFiles]
   );
 
   const handleFile = useCallback(async (file: File) => {
@@ -178,17 +185,40 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
         sampledRows = [...head, ...middle, ...tail];
       }
 
-      // Compute column stats over the FULL table (not the sample) so the AI sees true cardinality
+      // Compute column stats over the FULL table in a SINGLE pass so the AI sees
+      // true cardinality without freezing the UI thread on hundreds of thousands of rows.
+      // Previous impl ran 3 separate full-table scans per column -> O(rows × cols × 3).
+      const colStats = new Map<string, { unique: Set<string>; nullCount: number; sample: unknown[] }>();
+      for (const c of finalTable.columns) {
+        colStats.set(c.name, { unique: new Set<string>(), nullCount: 0, sample: [] });
+      }
+      for (let i = 0; i < finalTable.rows.length; i++) {
+        const row = finalTable.rows[i];
+        for (const c of finalTable.columns) {
+          const stat = colStats.get(c.name)!;
+          const v = row[c.name];
+          if (v === null || v === undefined || v === "") {
+            stat.nullCount++;
+          } else {
+            stat.unique.add(String(v));
+            if (i < 5) stat.sample.push(v);
+          }
+        }
+      }
+
       const sheetForBackend = {
         name: finalTable.name,
         rowCount: totalRows,
-        columns: finalTable.columns.map((c) => ({
-          name: c.name,
-          type: c.type,
-          uniqueCount: new Set(finalTable.rows.map((r) => String(r[c.name]))).size,
-          sample: finalTable.rows.slice(0, 5).map((r) => r[c.name]),
-          nullCount: finalTable.rows.filter((r) => r[c.name] === null || r[c.name] === undefined || r[c.name] === "").length,
-        })),
+        columns: finalTable.columns.map((c) => {
+          const s = colStats.get(c.name)!;
+          return {
+            name: c.name,
+            type: c.type,
+            uniqueCount: s.unique.size,
+            sample: s.sample,
+            nullCount: s.nullCount,
+          };
+        }),
         sampleRows: sampledRows.slice(0, 8),
         rows: sampledRows,
       };
@@ -228,6 +258,13 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
     />
   );
 
+  // Surface a friendly notice when the backend trimmed any sheet to keep the UI fast.
+  const truncatedSheets = uploadedFiles.flatMap((f) =>
+    f.sheets
+      .filter((s) => s.truncated)
+      .map((s) => ({ file: f.fileName, sheet: s.name, total: s.rowCount, returned: s.returnedRowCount ?? 0 }))
+  );
+
   if ((stage === "prep" || stage === "generating") && sourceTables.length > 0) {
     return (
       <div className="h-[calc(100vh-3.5rem)] -m-6 flex flex-col">
@@ -252,6 +289,21 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
             </div>
           )}
         </div>
+        {truncatedSheets.length > 0 && (
+          <div className="px-6 py-2 bg-amber-50 border-b border-amber-200 text-[11px] text-amber-900 flex items-start gap-2 flex-shrink-0">
+            <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+            <div>
+              <span className="font-semibold">Large dataset — using a fast sample.</span>{" "}
+              {truncatedSheets.map((t, i) => (
+                <span key={`${t.file}::${t.sheet}`}>
+                  {i > 0 && "; "}
+                  <span className="font-medium">{t.file}</span> ({t.sheet}): showing {t.returned.toLocaleString()} of {t.total.toLocaleString()} rows
+                </span>
+              ))}
+              . Stats and AI insights still use the full row counts.
+            </div>
+          </div>
+        )}
         <div className="flex-1 min-h-0 bg-muted/5">
           <DataPrep
             sourceTables={sourceTables}

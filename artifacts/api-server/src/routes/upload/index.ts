@@ -41,6 +41,8 @@ interface SheetSummary {
   columns: ColumnInfo[];
   sampleRows: Record<string, unknown>[];
   rows?: Record<string, unknown>[];
+  truncated?: boolean;
+  returnedRowCount?: number;
 }
 
 interface UploadResult {
@@ -123,6 +125,14 @@ function analyzeSheet(sheet: XLSX.WorkSheet, sheetName: string): SheetSummary {
   };
 }
 
+// Cap rows returned to the browser. Larger files are still accepted (we keep the
+// real rowCount and column stats from the full sheet), but the row payload is
+// truncated so that:
+//   - the response body stays under ~50 MB
+//   - JSON parsing and React rendering on the client don't freeze the main thread
+//   - downstream joins/filters/aggs run in milliseconds, not seconds
+const MAX_ROWS_PER_SHEET = 100_000;
+
 router.post("/upload", handleUpload, async (req: Request, res: Response) => {
   try {
     if (!req.file) {
@@ -131,7 +141,7 @@ router.post("/upload", handleUpload, async (req: Request, res: Response) => {
     }
 
     const workbook = XLSX.read(req.file.buffer, { type: "buffer", cellDates: true });
-    const sheets: SheetSummary[] = workbook.SheetNames.map((name) =>
+    const sheets = workbook.SheetNames.map((name) =>
       analyzeSheet(workbook.Sheets[name], name)
     ).filter((s) => s.rowCount > 0);
 
@@ -140,14 +150,26 @@ router.post("/upload", handleUpload, async (req: Request, res: Response) => {
       return;
     }
 
+    // Truncate per-sheet rows to keep the wire payload small, but preserve the
+    // true rowCount and the column stats (computed over the full sheet earlier).
+    const trimmedSheets = sheets.map((s) => {
+      if (!s.rows || s.rows.length <= MAX_ROWS_PER_SHEET) return { ...s, truncated: false };
+      return {
+        ...s,
+        rows: s.rows.slice(0, MAX_ROWS_PER_SHEET),
+        truncated: true,
+        returnedRowCount: MAX_ROWS_PER_SHEET,
+      };
+    });
+
     const result: UploadResult = {
       fileName: req.file.originalname,
-      sheets,
+      sheets: trimmedSheets,
     };
 
     res.json(result);
   } catch (error: any) {
-    console.error("Upload error:", error);
+    req.log.error({ err: error }, "Upload error");
     res.status(500).json({ error: "Failed to parse file: " + (error.message || "Unknown error") });
   }
 });
