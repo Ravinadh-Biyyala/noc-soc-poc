@@ -4,7 +4,7 @@ import * as XLSX from "xlsx";
 import { openai } from "@workspace/integrations-openai-ai-server";
 
 const router = Router();
-const MAX_UPLOAD_BYTES = 200 * 1024 * 1024; // 200 MB
+const MAX_UPLOAD_BYTES = 60 * 1024 * 1024; // 60 MB
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_UPLOAD_BYTES } });
 
 // Custom multer error handler — translate raw multer errors into friendly JSON

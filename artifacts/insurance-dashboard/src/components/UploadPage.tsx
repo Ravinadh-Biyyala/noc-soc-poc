@@ -64,9 +64,9 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
     setError(null);
 
     // Client-side guards
-    const MAX_BYTES = 200 * 1024 * 1024; // keep in sync with backend
+    const MAX_BYTES = 60 * 1024 * 1024; // keep in sync with backend
     if (file.size > MAX_BYTES) {
-      setError(`"${file.name}" is ${formatBytes(file.size)} — max upload is 200 MB.`);
+      setError(`"${file.name}" is ${formatBytes(file.size)} — max upload is 60 MB.`);
       return;
     }
     const ext = file.name.toLowerCase().split(".").pop();
@@ -302,7 +302,7 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
                     {dragActive ? "Drop to upload" : "Drag & drop, or click to browse"}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
-                    CSV · XLSX · XLS &nbsp;·&nbsp; up to 200 MB
+                    CSV · XLSX · XLS &nbsp;·&nbsp; up to 60 MB
                   </p>
                 </div>
               </div>

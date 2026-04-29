@@ -110,8 +110,8 @@ An enterprise-grade, **configuration-driven** analytics dashboard platform. Feat
 5. **Branch Performance** (`/branches`) — 124 branches, Digital Transactions (68.2%), Performance by Region
 
 ## Data Ingestion & Auto-Dashboard Generation
-- **Upload page** (`/upload`): Drag-and-drop CSV/XLSX/XLS files up to 200 MB; supports adding multiple files. Empty state is a single focused dropzone with a compact one-line "E-commerce demo" sample selector below (orders / customers / products + "Load all").
-- **Backend parsing** (`POST /api/upload`): multer (200 MB limit, friendly 413 JSON on overflow) + xlsx, multi-sheet support, returns full row data + column metadata. Numeric column stats use a single-pass loop (no `Math.min(...nums)` spread) to avoid call-stack overflows on >64k-row columns.
+- **Upload page** (`/upload`): Drag-and-drop CSV/XLSX/XLS files up to 60 MB; supports adding multiple files. Empty state is a single focused dropzone with a compact one-line "E-commerce demo" sample selector below (orders / customers / products + "Load all").
+- **Backend parsing** (`POST /api/upload`): multer (60 MB limit, friendly 413 JSON on overflow) + xlsx, multi-sheet support, returns full row data + column metadata. Numeric column stats use a single-pass loop (no `Math.min(...nums)` spread) to avoid call-stack overflows on >64k-row columns.
 - **Body-size scoping** (`api-server/src/app.ts`): default JSON limit is 1 MB; only `/api/generate-dashboard` is bumped to 25 MB to accept the sampled preview. Keeps the global memory/DoS surface tight.
 - **AI dashboard generation** (`POST /api/generate-dashboard`): gpt-4.1-mini with `json_object` response_format; uses up to 150 rows of actual prepared data in prompt. Frontend stratified-samples to ≤1000 rows (200 head + 600 evenly-spaced middle + 200 tail) before posting, so very large prepared tables don't bloat the request.
 - **10+ visualization types**: area, bar, horizontal-bar, line, pie, donut, scatter, bubble, radar, treemap, stacked-area, stacked-bar, gauge, waterfall, heatmap, progress-bar
