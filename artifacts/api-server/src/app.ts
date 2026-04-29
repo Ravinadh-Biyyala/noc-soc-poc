@@ -26,8 +26,12 @@ app.use(
   }),
 );
 app.use(cors());
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+// Heavy JSON body only for the dashboard-generation route, which receives a sampled
+// (≤1000 rows) data preview from the client. Mounted before the global parser so it wins.
+app.use("/api/generate-dashboard", express.json({ limit: "25mb" }));
+// Default body limits for everything else stay tight to limit memory/DoS surface.
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 app.use("/api", router);
 

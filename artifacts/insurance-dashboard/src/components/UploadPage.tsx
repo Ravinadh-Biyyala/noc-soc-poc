@@ -1,8 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
-import { Upload, FileSpreadsheet, Loader2, AlertCircle, X, Plus, ArrowRight, Download, Sparkles } from "lucide-react";
+import { Upload, FileSpreadsheet, Loader2, AlertCircle, X, ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import DataPrep from "@/components/DataPrep";
 import type { Table } from "@/lib/data-operations";
@@ -63,8 +62,21 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
 
   const handleFile = useCallback(async (file: File) => {
     setError(null);
+
+    // Client-side guards
+    const MAX_BYTES = 200 * 1024 * 1024; // keep in sync with backend
+    if (file.size > MAX_BYTES) {
+      setError(`"${file.name}" is ${formatBytes(file.size)} — max upload is 200 MB.`);
+      return;
+    }
+    const ext = file.name.toLowerCase().split(".").pop();
+    if (!ext || !["csv", "xlsx", "xls"].includes(ext)) {
+      setError(`Unsupported file type. Please upload CSV, XLSX, or XLS.`);
+      return;
+    }
+
     setStage("parsing");
-    setProgress(`Parsing ${file.name}...`);
+    setProgress(`Parsing ${file.name} (${formatBytes(file.size)})...`);
 
     try {
       const formData = new FormData();
@@ -72,7 +84,7 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
 
       const res = await fetch(`${apiBase}/api/upload`, { method: "POST", body: formData });
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({ error: `Server returned ${res.status} (${res.statusText})` }));
         throw new Error(err.error || "Upload failed");
       }
 
@@ -81,7 +93,10 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
       setUploadedFiles((prev) => [...prev, result]);
       setStage("prep");
     } catch (err: any) {
-      setError(err.message || "Failed to parse file");
+      const msg = err?.name === "TypeError"
+        ? "Network error — the file may be too large or the server is unreachable."
+        : (err?.message || "Failed to parse file");
+      setError(msg);
       // Use functional setState pattern to avoid stale closure on uploadedFiles.length
       setUploadedFiles((prev) => {
         setStage(prev.length > 0 ? "prep" : "upload");
@@ -145,9 +160,28 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
     setError(null);
 
     try {
+      // Cap rows sent over the wire — AI only uses ~150 anyway, but a buffer
+      // helps backend produce stratified samples. Prevents huge POST bodies
+      // for large datasets (50MB CSV → could easily be hundreds of MB of JSON).
+      const MAX_WIRE_ROWS = 1000;
+      const totalRows = finalTable.rows.length;
+      let sampledRows = finalTable.rows;
+      if (totalRows > MAX_WIRE_ROWS) {
+        // Stratified sample: first 200 + last 200 + evenly-spaced middle 600
+        const head = finalTable.rows.slice(0, 200);
+        const tail = finalTable.rows.slice(-200);
+        const middle: typeof finalTable.rows = [];
+        const step = Math.max(1, Math.floor((totalRows - 400) / 600));
+        for (let i = 200; i < totalRows - 200 && middle.length < 600; i += step) {
+          middle.push(finalTable.rows[i]);
+        }
+        sampledRows = [...head, ...middle, ...tail];
+      }
+
+      // Compute column stats over the FULL table (not the sample) so the AI sees true cardinality
       const sheetForBackend = {
         name: finalTable.name,
-        rowCount: finalTable.rows.length,
+        rowCount: totalRows,
         columns: finalTable.columns.map((c) => ({
           name: c.name,
           type: c.type,
@@ -155,8 +189,8 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
           sample: finalTable.rows.slice(0, 5).map((r) => r[c.name]),
           nullCount: finalTable.rows.filter((r) => r[c.name] === null || r[c.name] === undefined || r[c.name] === "").length,
         })),
-        sampleRows: finalTable.rows.slice(0, 8),
-        rows: finalTable.rows,
+        sampleRows: sampledRows.slice(0, 8),
+        rows: sampledRows,
       };
 
       const res = await fetch(`${apiBase}/api/generate-dashboard`, {
@@ -166,7 +200,7 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
       });
 
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({ error: `Server returned ${res.status}` }));
         throw new Error(err.error || "Generation failed");
       }
 
@@ -233,91 +267,90 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
 
   return (
     <div className="min-h-full flex items-center justify-center p-6">
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-xl">
         {stage === "upload" && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="text-center space-y-2">
-              <h1 className="text-2xl font-bold text-foreground tracking-tight">Upload Your Data</h1>
+          <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="text-center space-y-1.5">
+              <h1 className="text-2xl font-bold text-foreground tracking-tight">Upload your data</h1>
               <p className="text-sm text-muted-foreground">
-                Drop CSV or Excel files. Combine multiple files with joins, filters, and aggregations — then auto-generate a dashboard.
+                Drop a CSV or Excel file to auto-generate a dashboard.
               </p>
             </div>
 
+            {/* Primary dropzone */}
             <div
               onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
               onDragLeave={() => setDragActive(false)}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
               className={cn(
-                "border-2 border-dashed rounded-xl p-16 text-center cursor-pointer transition-all duration-300",
+                "border-2 border-dashed rounded-xl px-6 py-12 text-center cursor-pointer transition-all duration-300",
                 dragActive
-                  ? "border-primary bg-primary/5 scale-[1.02]"
+                  ? "border-primary bg-primary/5 scale-[1.01]"
                   : "border-border hover:border-primary/50 hover:bg-muted/30"
               )}
             >
-              <div className="flex flex-col items-center gap-4">
+              <div className="flex flex-col items-center gap-3">
                 <div className={cn(
-                  "w-16 h-16 rounded-2xl flex items-center justify-center transition-colors",
+                  "w-14 h-14 rounded-2xl flex items-center justify-center transition-colors",
                   dragActive ? "bg-primary/10" : "bg-muted"
                 )}>
-                  <Upload className={cn("w-7 h-7", dragActive ? "text-primary" : "text-muted-foreground")} />
+                  <Upload className={cn("w-6 h-6", dragActive ? "text-primary" : "text-muted-foreground")} />
                 </div>
-                <div>
+                <div className="space-y-0.5">
                   <p className="text-sm font-medium text-foreground">
-                    {dragActive ? "Drop your file here" : "Drag & drop your file here"}
+                    {dragActive ? "Drop to upload" : "Drag & drop, or click to browse"}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">or click to browse — CSV, XLSX, XLS supported</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3 pt-2">
-              <FeatureCard icon="🔗" title="Multi-file Joins" description="Combine related datasets" />
-              <FeatureCard icon="🎯" title="Filters & Aggregates" description="Shape your data" />
-              <FeatureCard icon="✨" title="AI Dashboards" description="Auto-generated visuals" />
-            </div>
-
-            {/* Sample data section */}
-            <div className="border border-border/60 rounded-xl p-4 bg-gradient-to-br from-blue-50/40 to-purple-50/40">
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-lg bg-white border border-border/50 flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <h3 className="text-sm font-semibold text-foreground">No data handy? Try the sample dataset</h3>
-                    <Button
-                      size="sm"
-                      variant="default"
-                      onClick={loadAllSamples}
-                      disabled={loadingSamples}
-                      className="text-xs h-7 gap-1.5 flex-shrink-0"
-                    >
-                      {loadingSamples ? (
-                        <><Loader2 className="w-3 h-3 animate-spin" /> Loading...</>
-                      ) : (
-                        <><Sparkles className="w-3 h-3" /> Load all 3</>
-                      )}
-                    </Button>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mb-3">
-                    A small e-commerce dataset designed to demonstrate joins. Orders link to customers and products.
+                  <p className="text-[11px] text-muted-foreground">
+                    CSV · XLSX · XLS &nbsp;·&nbsp; up to 200 MB
                   </p>
-                  <div className="grid grid-cols-3 gap-2">
-                    <SampleFileChip name="orders.csv" desc="20 transactions" disabled={loadingSamples} onLoad={() => loadSample("orders.csv")} />
-                    <SampleFileChip name="customers.csv" desc="5 customers" disabled={loadingSamples} onLoad={() => loadSample("customers.csv")} />
-                    <SampleFileChip name="products.csv" desc="4 products" disabled={loadingSamples} onLoad={() => loadSample("products.csv")} />
-                  </div>
                 </div>
               </div>
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 text-destructive text-sm bg-destructive/10 p-3 rounded-lg">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                {error}
+              <div className="flex items-start gap-2 text-destructive text-sm bg-destructive/10 border border-destructive/20 p-3 rounded-lg">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span className="leading-snug">{error}</span>
               </div>
             )}
+
+            {/* Subtle separator */}
+            <div className="flex items-center gap-3 text-[10px] uppercase tracking-wider text-muted-foreground">
+              <div className="flex-1 h-px bg-border" />
+              <span>or try a sample</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
+            {/* Sample data — compact one-liner */}
+            <div className="flex items-center justify-between gap-3 bg-muted/30 border border-border/60 rounded-lg px-3 py-2.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-xs font-medium text-foreground">E-commerce demo</div>
+                  <div className="text-[10px] text-muted-foreground truncate">
+                    3 linked tables · orders, customers, products
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <SampleQuickLink name="orders.csv" disabled={loadingSamples} onLoad={() => loadSample("orders.csv")} />
+                <SampleQuickLink name="customers.csv" disabled={loadingSamples} onLoad={() => loadSample("customers.csv")} />
+                <SampleQuickLink name="products.csv" disabled={loadingSamples} onLoad={() => loadSample("products.csv")} />
+                <Button
+                  size="sm"
+                  onClick={loadAllSamples}
+                  disabled={loadingSamples}
+                  className="text-[11px] h-7 gap-1 px-2.5"
+                >
+                  {loadingSamples ? (
+                    <><Loader2 className="w-3 h-3 animate-spin" /> Loading…</>
+                  ) : (
+                    <>Load all <ArrowRight className="w-3 h-3" /></>
+                  )}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -347,55 +380,31 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
   );
 }
 
-function FeatureCard({ icon, title, description }: { icon: string; title: string; description: string }) {
-  return (
-    <Card className="border-border/60 hover:border-primary/30 transition-colors">
-      <CardContent className="p-3 text-center space-y-1">
-        <div className="text-xl">{icon}</div>
-        <div className="text-[11px] font-semibold text-foreground">{title}</div>
-        <div className="text-[10px] text-muted-foreground">{description}</div>
-      </CardContent>
-    </Card>
-  );
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
-function SampleFileChip({
+function SampleQuickLink({
   name,
-  desc,
   disabled = false,
   onLoad,
 }: {
   name: string;
-  desc: string;
   disabled?: boolean;
   onLoad: () => void;
 }) {
-  const apiBase = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const label = name.replace(/\.csv$/i, "");
   return (
-    <div className="group bg-white border border-border/60 rounded-md p-2 hover:border-primary/40 transition-colors">
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <FileSpreadsheet className="w-3 h-3 text-muted-foreground" />
-        <span className="text-[10px] font-semibold text-foreground truncate flex-1">{name}</span>
-      </div>
-      <div className="text-[9px] text-muted-foreground mb-2">{desc}</div>
-      <div className="flex gap-1">
-        <button
-          onClick={onLoad}
-          disabled={disabled}
-          className="flex-1 text-[10px] py-1 px-1.5 rounded bg-primary/10 hover:bg-primary/20 text-primary font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Load
-        </button>
-        <a
-          href={`${apiBase}/samples/${name}`}
-          download={name}
-          className="px-1.5 py-1 rounded border border-border/60 hover:border-primary/40 hover:text-primary transition-colors"
-          title={`Download ${name}`}
-          aria-label={`Download ${name}`}
-        >
-          <Download className="w-2.5 h-2.5" />
-        </a>
-      </div>
-    </div>
+    <button
+      onClick={onLoad}
+      disabled={disabled}
+      title={`Load ${name}`}
+      className="hidden sm:inline-flex text-[11px] py-1 px-2 rounded border border-border/60 bg-white hover:border-primary/40 hover:text-primary text-muted-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {label}
+    </button>
   );
 }

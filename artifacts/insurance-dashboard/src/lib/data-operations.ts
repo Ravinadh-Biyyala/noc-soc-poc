@@ -154,8 +154,16 @@ const SAFE_FUNCS: Record<string, (...args: any[]) => any> = {
   ROUND: (x, d = 0) => { const m = Math.pow(10, Number(d)); return Math.round(Number(x) * m) / m; },
   FLOOR: (x) => Math.floor(Number(x)),
   CEIL: (x) => Math.ceil(Number(x)),
-  MIN: (...a) => Math.min(...a.map(Number)),
-  MAX: (...a) => Math.max(...a.map(Number)),
+  MIN: (...a) => {
+    let m = Infinity;
+    for (const v of a) { const n = Number(v); if (!isNaN(n) && n < m) m = n; }
+    return m === Infinity ? NaN : m;
+  },
+  MAX: (...a) => {
+    let m = -Infinity;
+    for (const v of a) { const n = Number(v); if (!isNaN(n) && n > m) m = n; }
+    return m === -Infinity ? NaN : m;
+  },
   IF: (c, a, b) => (c ? a : b),
   COALESCE: (...a) => a.find((v) => v !== null && v !== undefined && v !== "") ?? null,
   UPPER: (x) => String(x ?? "").toUpperCase(),
@@ -478,15 +486,33 @@ export function performAggregate(input: Table, op: AggregateOperation): Table {
     for (const agg of aggregations) {
       const alias = agg.alias || `${agg.func}_${agg.column}`;
       const values = groupRows.map((r) => r[agg.column]);
-      const nums = values.map(Number).filter((n) => !isNaN(n));
 
-      if (agg.func === "count") out[alias] = groupRows.length;
-      else if (agg.func === "count_distinct") out[alias] = new Set(values.map(String)).size;
-      else if (agg.func === "sum") out[alias] = nums.reduce((a, b) => a + b, 0);
-      else if (agg.func === "avg") out[alias] = nums.length > 0 ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
-      else if (agg.func === "min") out[alias] = nums.length > 0 ? Math.min(...nums) : null;
-      else if (agg.func === "max") out[alias] = nums.length > 0 ? Math.max(...nums) : null;
-      else if (agg.func === "first") out[alias] = values[0];
+      if (agg.func === "count") {
+        out[alias] = groupRows.length;
+      } else if (agg.func === "count_distinct") {
+        out[alias] = new Set(values.map(String)).size;
+      } else if (agg.func === "first") {
+        out[alias] = values[0];
+      } else {
+        // Single pass over values to avoid Math.min(...nums)/spread call-stack overflow on large groups.
+        let sum = 0;
+        let count = 0;
+        let min = Infinity;
+        let max = -Infinity;
+        for (const v of values) {
+          const n = Number(v);
+          if (!isNaN(n)) {
+            sum += n;
+            count++;
+            if (n < min) min = n;
+            if (n > max) max = n;
+          }
+        }
+        if (agg.func === "sum") out[alias] = sum;
+        else if (agg.func === "avg") out[alias] = count > 0 ? sum / count : 0;
+        else if (agg.func === "min") out[alias] = count > 0 ? min : null;
+        else if (agg.func === "max") out[alias] = count > 0 ? max : null;
+      }
     }
     rows.push(out);
   }

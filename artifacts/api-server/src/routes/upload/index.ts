@@ -1,10 +1,28 @@
-import { Router, type Request, type Response } from "express";
+import { Router, type Request, type Response, type NextFunction } from "express";
 import multer from "multer";
 import * as XLSX from "xlsx";
 import { openai } from "@workspace/integrations-openai-ai-server";
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
+const MAX_UPLOAD_BYTES = 200 * 1024 * 1024; // 200 MB
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_UPLOAD_BYTES } });
+
+// Custom multer error handler — translate raw multer errors into friendly JSON
+function handleUpload(req: Request, res: Response, next: NextFunction): void {
+  upload.single("file")(req, res, (err: any) => {
+    if (err) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        res.status(413).json({
+          error: `File too large. Maximum size is ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)} MB.`,
+        });
+        return;
+      }
+      res.status(400).json({ error: err.message || "Upload failed" });
+      return;
+    }
+    next();
+  });
+}
 
 interface ColumnInfo {
   name: string;
@@ -72,11 +90,24 @@ function analyzeSheet(sheet: XLSX.WorkSheet, sheetName: string): SheetSummary {
     };
 
     if (type === "number") {
-      const nums = nonNull.map(Number).filter((n) => !isNaN(n));
-      if (nums.length > 0) {
-        info.min = Math.min(...nums);
-        info.max = Math.max(...nums);
-        info.mean = nums.reduce((a, b) => a + b, 0) / nums.length;
+      // Avoid Math.min(...nums) — spread blows the call stack past ~64k args.
+      let min = Infinity;
+      let max = -Infinity;
+      let sum = 0;
+      let count = 0;
+      for (const v of nonNull) {
+        const n = Number(v);
+        if (!isNaN(n)) {
+          if (n < min) min = n;
+          if (n > max) max = n;
+          sum += n;
+          count++;
+        }
+      }
+      if (count > 0) {
+        info.min = min;
+        info.max = max;
+        info.mean = sum / count;
       }
     }
 
@@ -92,7 +123,7 @@ function analyzeSheet(sheet: XLSX.WorkSheet, sheetName: string): SheetSummary {
   };
 }
 
-router.post("/upload", upload.single("file"), async (req: Request, res: Response) => {
+router.post("/upload", handleUpload, async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       res.status(400).json({ error: "No file uploaded" });
