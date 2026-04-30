@@ -19,8 +19,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import FilesTab from "@/components/workspace/FilesTab";
+import JoinStudio from "@/components/workspace/JoinStudio";
+import MetricBuilder from "@/components/workspace/MetricBuilder";
 
-const TABS = ["overview", "files", "prepared", "dashboards", "insights", "reports", "governance"] as const;
+const TABS = ["overview", "files", "prepared", "metrics", "dashboards", "insights", "reports", "governance"] as const;
 type TabKey = (typeof TABS)[number];
 
 function PlaceholderTab({ icon: Icon, title, body }: { icon: React.ComponentType<{ className?: string }>; title: string; body: string }) {
@@ -133,6 +135,7 @@ export default function WorkspaceDetail() {
           <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
           <TabsTrigger value="files" data-testid="tab-files">Files</TabsTrigger>
           <TabsTrigger value="prepared" data-testid="tab-prepared">Prepared Data</TabsTrigger>
+          <TabsTrigger value="metrics" data-testid="tab-metrics">Metrics</TabsTrigger>
           <TabsTrigger value="dashboards" data-testid="tab-dashboards">Dashboards</TabsTrigger>
           <TabsTrigger value="insights" data-testid="tab-insights">Insights</TabsTrigger>
           <TabsTrigger value="reports" data-testid="tab-reports">Reports</TabsTrigger>
@@ -184,7 +187,10 @@ export default function WorkspaceDetail() {
           <FilesTab workspaceId={id} />
         </TabsContent>
         <TabsContent value="prepared" className="mt-4">
-          <PlaceholderTab icon={Sparkles} title="Prepared data appears here" body="Joined and cleaned datasets surface on this tab once the data journey is complete." />
+          <JoinStudio workspaceId={id} />
+        </TabsContent>
+        <TabsContent value="metrics" className="mt-4">
+          <MetricBuilder workspaceId={id} />
         </TabsContent>
         <TabsContent value="dashboards" className="mt-4">
           <PlaceholderTab icon={LayoutDashboard} title="No dashboards in this workspace" body="Generated dashboards from your uploads will be linked here. (Today they live globally on Home.)" />

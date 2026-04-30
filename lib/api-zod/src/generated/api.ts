@@ -826,6 +826,340 @@ export const UpdateDatasetIssueResponse = zod.object({
 });
 
 /**
+ * @summary Suggested joins for the datasets in a workspace
+ */
+export const ListJoinSuggestionsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListJoinSuggestionsResponse = zod.object({
+  suggestions: zod.array(
+    zod.object({
+      leftDatasetId: zod.number(),
+      leftDatasetName: zod.string(),
+      rightDatasetId: zod.number(),
+      rightDatasetName: zod.string(),
+      leftColumn: zod.string(),
+      rightColumn: zod.string(),
+      confidence: zod.number(),
+      matchRate: zod.number(),
+      unmatchedCount: zod.number(),
+      recommendedJoinType: zod.enum(["inner", "left", "right", "outer"]),
+      reason: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary List saved joins for a workspace
+ */
+export const ListJoinsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListJoinsResponseItem = zod.object({
+  id: zod.number(),
+  workspaceId: zod.number(),
+  leftDatasetId: zod.number(),
+  rightDatasetId: zod.number(),
+  leftColumn: zod.string(),
+  rightColumn: zod.string(),
+  joinType: zod.enum(["inner", "left", "right", "outer"]),
+  status: zod.enum(["suggested", "accepted", "rejected"]),
+  confidence: zod.number(),
+  matchRate: zod.number(),
+  unmatchedCount: zod.number(),
+  source: zod.enum(["ai", "user"]),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListJoinsResponse = zod.array(ListJoinsResponseItem);
+
+/**
+ * @summary Persist a join (typically when the user accepts a suggestion)
+ */
+export const CreateJoinParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateJoinBody = zod.object({
+  leftDatasetId: zod.number(),
+  rightDatasetId: zod.number(),
+  leftColumn: zod.string(),
+  rightColumn: zod.string(),
+  joinType: zod.enum(["inner", "left", "right", "outer"]),
+  status: zod.enum(["suggested", "accepted", "rejected"]).optional(),
+  confidence: zod.number().optional(),
+  matchRate: zod.number().optional(),
+  unmatchedCount: zod.number().optional(),
+  source: zod.enum(["ai", "user"]).optional(),
+});
+
+/**
+ * @summary Compute a sample of the joined output without saving
+ */
+export const PreviewJoinParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const PreviewJoinBody = zod.object({
+  leftDatasetId: zod.number(),
+  rightDatasetId: zod.number(),
+  leftColumn: zod.string(),
+  rightColumn: zod.string(),
+  joinType: zod.enum(["inner", "left", "right", "outer"]),
+});
+
+export const PreviewJoinResponse = zod.object({
+  columns: zod.array(zod.string()),
+  rows: zod.array(zod.record(zod.string(), zod.unknown())),
+  totalRows: zod.number(),
+});
+
+/**
+ * @summary Update an existing join (status, type, columns)
+ */
+export const UpdateJoinParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateJoinBody = zod.object({
+  joinType: zod.enum(["inner", "left", "right", "outer"]).optional(),
+  status: zod.enum(["suggested", "accepted", "rejected"]).optional(),
+  leftColumn: zod.string().optional(),
+  rightColumn: zod.string().optional(),
+});
+
+export const UpdateJoinResponse = zod.object({
+  id: zod.number(),
+  workspaceId: zod.number(),
+  leftDatasetId: zod.number(),
+  rightDatasetId: zod.number(),
+  leftColumn: zod.string(),
+  rightColumn: zod.string(),
+  joinType: zod.enum(["inner", "left", "right", "outer"]),
+  status: zod.enum(["suggested", "accepted", "rejected"]),
+  confidence: zod.number(),
+  matchRate: zod.number(),
+  unmatchedCount: zod.number(),
+  source: zod.enum(["ai", "user"]),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete a join
+ */
+export const DeleteJoinParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List prepared (joined) datasets for a workspace
+ */
+export const ListPreparedDatasetsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListPreparedDatasetsResponseItem = zod.object({
+  id: zod.number(),
+  workspaceId: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  baseDatasetId: zod.number(),
+  joinIds: zod.array(zod.number()),
+  status: zod.string(),
+  columns: zod.array(zod.string()),
+  sampleRows: zod.array(zod.record(zod.string(), zod.unknown())),
+  rowCount: zod.number(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+  lineage: zod.object({
+    baseFile: zod.string(),
+    steps: zod.array(
+      zod.object({
+        joinId: zod.number(),
+        leftFile: zod.string(),
+        rightFile: zod.string(),
+        leftColumn: zod.string(),
+        rightColumn: zod.string(),
+        joinType: zod.string(),
+      }),
+    ),
+  }),
+});
+export const ListPreparedDatasetsResponse = zod.array(
+  ListPreparedDatasetsResponseItem,
+);
+
+/**
+ * @summary Materialize a prepared dataset from base + accepted joins
+ */
+export const CreatePreparedDatasetParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreatePreparedDatasetBody = zod.object({
+  name: zod.string(),
+  description: zod.string().nullish(),
+  baseDatasetId: zod.number(),
+  joinIds: zod.array(zod.number()).optional(),
+});
+
+/**
+ * @summary Get a prepared dataset by id (incl. lineage)
+ */
+export const GetPreparedDatasetParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetPreparedDatasetResponse = zod.object({
+  id: zod.number(),
+  workspaceId: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  baseDatasetId: zod.number(),
+  joinIds: zod.array(zod.number()),
+  status: zod.string(),
+  columns: zod.array(zod.string()),
+  sampleRows: zod.array(zod.record(zod.string(), zod.unknown())),
+  rowCount: zod.number(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+  lineage: zod.object({
+    baseFile: zod.string(),
+    steps: zod.array(
+      zod.object({
+        joinId: zod.number(),
+        leftFile: zod.string(),
+        rightFile: zod.string(),
+        leftColumn: zod.string(),
+        rightColumn: zod.string(),
+        joinType: zod.string(),
+      }),
+    ),
+  }),
+});
+
+/**
+ * @summary Delete a prepared dataset
+ */
+export const DeletePreparedDatasetParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List metrics for a workspace
+ */
+export const ListMetricsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListMetricsResponseItem = zod.object({
+  id: zod.number(),
+  workspaceId: zod.number(),
+  preparedDatasetId: zod.number().nullish(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  formula: zod.string(),
+  format: zod.enum(["number", "currency", "percent"]),
+  status: zod.enum(["ai_suggested", "user_approved", "certified", "rejected"]),
+  owner: zod.string(),
+  source: zod.enum(["ai", "user"]),
+  auditLog: zod.array(
+    zod.object({
+      at: zod.coerce.date(),
+      action: zod.string(),
+      by: zod.string(),
+      note: zod.string().optional(),
+    }),
+  ),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListMetricsResponse = zod.array(ListMetricsResponseItem);
+
+/**
+ * @summary Create a metric (manual)
+ */
+export const CreateMetricParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateMetricBody = zod.object({
+  name: zod.string(),
+  description: zod.string().nullish(),
+  formula: zod.string(),
+  format: zod.enum(["number", "currency", "percent"]).optional(),
+  status: zod
+    .enum(["ai_suggested", "user_approved", "certified", "rejected"])
+    .optional(),
+  owner: zod.string().optional(),
+  source: zod.enum(["ai", "user"]).optional(),
+  preparedDatasetId: zod.number().nullish(),
+});
+
+/**
+ * @summary Ask the AI to propose KPIs for a prepared dataset
+ */
+export const SuggestMetricsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const SuggestMetricsBody = zod.object({
+  preparedDatasetId: zod.number(),
+});
+
+/**
+ * @summary Edit / approve / certify / reject a metric (appends audit)
+ */
+export const UpdateMetricParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateMetricBody = zod.object({
+  name: zod.string().optional(),
+  description: zod.string().nullish(),
+  formula: zod.string().optional(),
+  format: zod.enum(["number", "currency", "percent"]).optional(),
+  status: zod
+    .enum(["ai_suggested", "user_approved", "certified", "rejected"])
+    .optional(),
+  owner: zod.string().optional(),
+  note: zod.string().optional(),
+});
+
+export const UpdateMetricResponse = zod.object({
+  id: zod.number(),
+  workspaceId: zod.number(),
+  preparedDatasetId: zod.number().nullish(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  formula: zod.string(),
+  format: zod.enum(["number", "currency", "percent"]),
+  status: zod.enum(["ai_suggested", "user_approved", "certified", "rejected"]),
+  owner: zod.string(),
+  source: zod.enum(["ai", "user"]),
+  auditLog: zod.array(
+    zod.object({
+      at: zod.coerce.date(),
+      action: zod.string(),
+      by: zod.string(),
+      note: zod.string().optional(),
+    }),
+  ),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete a metric
+ */
+export const DeleteMetricParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
  * @summary Get data for a specific dashboard section by config-driven section ID
  */
 export const GetDashboardSectionParams = zod.object({

@@ -522,6 +522,327 @@ export interface UpdateDatasetIssueBody {
   status: UpdateDatasetIssueBodyStatus;
 }
 
+export type JoinSuggestionRecommendedJoinType =
+  (typeof JoinSuggestionRecommendedJoinType)[keyof typeof JoinSuggestionRecommendedJoinType];
+
+export const JoinSuggestionRecommendedJoinType = {
+  inner: "inner",
+  left: "left",
+  right: "right",
+  outer: "outer",
+} as const;
+
+export interface JoinSuggestion {
+  leftDatasetId: number;
+  leftDatasetName: string;
+  rightDatasetId: number;
+  rightDatasetName: string;
+  leftColumn: string;
+  rightColumn: string;
+  confidence: number;
+  matchRate: number;
+  unmatchedCount: number;
+  recommendedJoinType: JoinSuggestionRecommendedJoinType;
+  reason: string;
+}
+
+export type JoinJoinType = (typeof JoinJoinType)[keyof typeof JoinJoinType];
+
+export const JoinJoinType = {
+  inner: "inner",
+  left: "left",
+  right: "right",
+  outer: "outer",
+} as const;
+
+export type JoinStatus = (typeof JoinStatus)[keyof typeof JoinStatus];
+
+export const JoinStatus = {
+  suggested: "suggested",
+  accepted: "accepted",
+  rejected: "rejected",
+} as const;
+
+export type JoinSource = (typeof JoinSource)[keyof typeof JoinSource];
+
+export const JoinSource = {
+  ai: "ai",
+  user: "user",
+} as const;
+
+export interface Join {
+  id: number;
+  workspaceId: number;
+  leftDatasetId: number;
+  rightDatasetId: number;
+  leftColumn: string;
+  rightColumn: string;
+  joinType: JoinJoinType;
+  status: JoinStatus;
+  confidence: number;
+  matchRate: number;
+  unmatchedCount: number;
+  source: JoinSource;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateJoinBodyJoinType =
+  (typeof CreateJoinBodyJoinType)[keyof typeof CreateJoinBodyJoinType];
+
+export const CreateJoinBodyJoinType = {
+  inner: "inner",
+  left: "left",
+  right: "right",
+  outer: "outer",
+} as const;
+
+export type CreateJoinBodyStatus =
+  (typeof CreateJoinBodyStatus)[keyof typeof CreateJoinBodyStatus];
+
+export const CreateJoinBodyStatus = {
+  suggested: "suggested",
+  accepted: "accepted",
+  rejected: "rejected",
+} as const;
+
+export type CreateJoinBodySource =
+  (typeof CreateJoinBodySource)[keyof typeof CreateJoinBodySource];
+
+export const CreateJoinBodySource = {
+  ai: "ai",
+  user: "user",
+} as const;
+
+export interface CreateJoinBody {
+  leftDatasetId: number;
+  rightDatasetId: number;
+  leftColumn: string;
+  rightColumn: string;
+  joinType: CreateJoinBodyJoinType;
+  status?: CreateJoinBodyStatus;
+  confidence?: number;
+  matchRate?: number;
+  unmatchedCount?: number;
+  source?: CreateJoinBodySource;
+}
+
+export type UpdateJoinBodyJoinType =
+  (typeof UpdateJoinBodyJoinType)[keyof typeof UpdateJoinBodyJoinType];
+
+export const UpdateJoinBodyJoinType = {
+  inner: "inner",
+  left: "left",
+  right: "right",
+  outer: "outer",
+} as const;
+
+export type UpdateJoinBodyStatus =
+  (typeof UpdateJoinBodyStatus)[keyof typeof UpdateJoinBodyStatus];
+
+export const UpdateJoinBodyStatus = {
+  suggested: "suggested",
+  accepted: "accepted",
+  rejected: "rejected",
+} as const;
+
+export interface UpdateJoinBody {
+  joinType?: UpdateJoinBodyJoinType;
+  status?: UpdateJoinBodyStatus;
+  leftColumn?: string;
+  rightColumn?: string;
+}
+
+export type PreviewJoinBodyJoinType =
+  (typeof PreviewJoinBodyJoinType)[keyof typeof PreviewJoinBodyJoinType];
+
+export const PreviewJoinBodyJoinType = {
+  inner: "inner",
+  left: "left",
+  right: "right",
+  outer: "outer",
+} as const;
+
+export interface PreviewJoinBody {
+  leftDatasetId: number;
+  rightDatasetId: number;
+  leftColumn: string;
+  rightColumn: string;
+  joinType: PreviewJoinBodyJoinType;
+}
+
+export type JoinPreviewRowsItem = { [key: string]: unknown };
+
+export interface JoinPreview {
+  columns: string[];
+  rows: JoinPreviewRowsItem[];
+  totalRows: number;
+}
+
+export interface PreparedDatasetLineageStep {
+  joinId: number;
+  leftFile: string;
+  rightFile: string;
+  leftColumn: string;
+  rightColumn: string;
+  joinType: string;
+}
+
+export interface PreparedDatasetLineage {
+  baseFile: string;
+  steps: PreparedDatasetLineageStep[];
+}
+
+export type PreparedDatasetSampleRowsItem = { [key: string]: unknown };
+
+export interface PreparedDataset {
+  id: number;
+  workspaceId: number;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  baseDatasetId: number;
+  joinIds: number[];
+  status: string;
+  columns: string[];
+  sampleRows: PreparedDatasetSampleRowsItem[];
+  rowCount: number;
+  createdAt: string;
+  updatedAt: string;
+  lineage: PreparedDatasetLineage;
+}
+
+export interface CreatePreparedDatasetBody {
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  baseDatasetId: number;
+  joinIds?: number[];
+}
+
+export interface MetricAuditEntry {
+  at: string;
+  action: string;
+  by: string;
+  note?: string;
+}
+
+export type MetricFormat = (typeof MetricFormat)[keyof typeof MetricFormat];
+
+export const MetricFormat = {
+  number: "number",
+  currency: "currency",
+  percent: "percent",
+} as const;
+
+export type MetricStatus = (typeof MetricStatus)[keyof typeof MetricStatus];
+
+export const MetricStatus = {
+  ai_suggested: "ai_suggested",
+  user_approved: "user_approved",
+  certified: "certified",
+  rejected: "rejected",
+} as const;
+
+export type MetricSource = (typeof MetricSource)[keyof typeof MetricSource];
+
+export const MetricSource = {
+  ai: "ai",
+  user: "user",
+} as const;
+
+export interface Metric {
+  id: number;
+  workspaceId: number;
+  /** @nullable */
+  preparedDatasetId?: number | null;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  formula: string;
+  format: MetricFormat;
+  status: MetricStatus;
+  owner: string;
+  source: MetricSource;
+  auditLog: MetricAuditEntry[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateMetricBodyFormat =
+  (typeof CreateMetricBodyFormat)[keyof typeof CreateMetricBodyFormat];
+
+export const CreateMetricBodyFormat = {
+  number: "number",
+  currency: "currency",
+  percent: "percent",
+} as const;
+
+export type CreateMetricBodyStatus =
+  (typeof CreateMetricBodyStatus)[keyof typeof CreateMetricBodyStatus];
+
+export const CreateMetricBodyStatus = {
+  ai_suggested: "ai_suggested",
+  user_approved: "user_approved",
+  certified: "certified",
+  rejected: "rejected",
+} as const;
+
+export type CreateMetricBodySource =
+  (typeof CreateMetricBodySource)[keyof typeof CreateMetricBodySource];
+
+export const CreateMetricBodySource = {
+  ai: "ai",
+  user: "user",
+} as const;
+
+export interface CreateMetricBody {
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  formula: string;
+  format?: CreateMetricBodyFormat;
+  status?: CreateMetricBodyStatus;
+  owner?: string;
+  source?: CreateMetricBodySource;
+  /** @nullable */
+  preparedDatasetId?: number | null;
+}
+
+export type UpdateMetricBodyFormat =
+  (typeof UpdateMetricBodyFormat)[keyof typeof UpdateMetricBodyFormat];
+
+export const UpdateMetricBodyFormat = {
+  number: "number",
+  currency: "currency",
+  percent: "percent",
+} as const;
+
+export type UpdateMetricBodyStatus =
+  (typeof UpdateMetricBodyStatus)[keyof typeof UpdateMetricBodyStatus];
+
+export const UpdateMetricBodyStatus = {
+  ai_suggested: "ai_suggested",
+  user_approved: "user_approved",
+  certified: "certified",
+  rejected: "rejected",
+} as const;
+
+export interface UpdateMetricBody {
+  name?: string;
+  /** @nullable */
+  description?: string | null;
+  formula?: string;
+  format?: UpdateMetricBodyFormat;
+  status?: UpdateMetricBodyStatus;
+  owner?: string;
+  note?: string;
+}
+
+export interface SuggestMetricsBody {
+  preparedDatasetId: number;
+}
+
 export type UpdateSettingsBodyTheme =
   (typeof UpdateSettingsBodyTheme)[keyof typeof UpdateSettingsBodyTheme];
 
@@ -563,6 +884,14 @@ export interface UpdateSettingsBody {
 
 export type UploadWorkspaceDatasetBody = {
   file: Blob;
+};
+
+export type ListJoinSuggestions200 = {
+  suggestions: JoinSuggestion[];
+};
+
+export type SuggestMetrics201 = {
+  metrics: Metric[];
 };
 
 export type GetDashboardSection200 = { [key: string]: unknown };

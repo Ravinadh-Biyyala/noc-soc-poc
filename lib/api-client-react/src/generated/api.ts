@@ -18,7 +18,10 @@ import type {
 
 import type {
   ClaimsRisk,
+  CreateJoinBody,
+  CreateMetricBody,
   CreateOpenaiConversationBody,
+  CreatePreparedDatasetBody,
   CreateWorkspaceBody,
   Dataset,
   DatasetDetail,
@@ -26,18 +29,28 @@ import type {
   GeographyData,
   GetDashboardSection200,
   HealthStatus,
+  Join,
+  JoinPreview,
+  ListJoinSuggestions200,
+  Metric,
   OpenaiConversation,
   OpenaiConversationWithMessages,
   OpenaiError,
   OpenaiMessage,
+  PreparedDataset,
+  PreviewJoinBody,
   ProductAnalytics,
   RenewalsRetention,
   SalesPerformance,
   SendOpenaiMessageBody,
   Settings,
+  SuggestMetrics201,
+  SuggestMetricsBody,
   TenantClientConfig,
   UpdateDatasetColumnBody,
   UpdateDatasetIssueBody,
+  UpdateJoinBody,
+  UpdateMetricBody,
   UpdateSettingsBody,
   UploadDatasetResponse,
   UploadWorkspaceDatasetBody,
@@ -2147,6 +2160,1302 @@ export const useUpdateDatasetIssue = <
   TContext
 > => {
   return useMutation(getUpdateDatasetIssueMutationOptions(options));
+};
+
+/**
+ * @summary Suggested joins for the datasets in a workspace
+ */
+export const getListJoinSuggestionsUrl = (id: number) => {
+  return `/api/workspaces/${id}/joins/suggestions`;
+};
+
+export const listJoinSuggestions = async (
+  id: number,
+  options?: RequestInit,
+): Promise<ListJoinSuggestions200> => {
+  return customFetch<ListJoinSuggestions200>(getListJoinSuggestionsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListJoinSuggestionsQueryKey = (id: number) => {
+  return [`/api/workspaces/${id}/joins/suggestions`] as const;
+};
+
+export const getListJoinSuggestionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listJoinSuggestions>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listJoinSuggestions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListJoinSuggestionsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listJoinSuggestions>>
+  > = ({ signal }) => listJoinSuggestions(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listJoinSuggestions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListJoinSuggestionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listJoinSuggestions>>
+>;
+export type ListJoinSuggestionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Suggested joins for the datasets in a workspace
+ */
+
+export function useListJoinSuggestions<
+  TData = Awaited<ReturnType<typeof listJoinSuggestions>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listJoinSuggestions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListJoinSuggestionsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List saved joins for a workspace
+ */
+export const getListJoinsUrl = (id: number) => {
+  return `/api/workspaces/${id}/joins`;
+};
+
+export const listJoins = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Join[]> => {
+  return customFetch<Join[]>(getListJoinsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListJoinsQueryKey = (id: number) => {
+  return [`/api/workspaces/${id}/joins`] as const;
+};
+
+export const getListJoinsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listJoins>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listJoins>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListJoinsQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listJoins>>> = ({
+    signal,
+  }) => listJoins(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listJoins>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
+
+export type ListJoinsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listJoins>>
+>;
+export type ListJoinsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List saved joins for a workspace
+ */
+
+export function useListJoins<
+  TData = Awaited<ReturnType<typeof listJoins>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listJoins>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListJoinsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Persist a join (typically when the user accepts a suggestion)
+ */
+export const getCreateJoinUrl = (id: number) => {
+  return `/api/workspaces/${id}/joins`;
+};
+
+export const createJoin = async (
+  id: number,
+  createJoinBody: CreateJoinBody,
+  options?: RequestInit,
+): Promise<Join> => {
+  return customFetch<Join>(getCreateJoinUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createJoinBody),
+  });
+};
+
+export const getCreateJoinMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createJoin>>,
+    TError,
+    { id: number; data: BodyType<CreateJoinBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createJoin>>,
+  TError,
+  { id: number; data: BodyType<CreateJoinBody> },
+  TContext
+> => {
+  const mutationKey = ["createJoin"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createJoin>>,
+    { id: number; data: BodyType<CreateJoinBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createJoin(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateJoinMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createJoin>>
+>;
+export type CreateJoinMutationBody = BodyType<CreateJoinBody>;
+export type CreateJoinMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Persist a join (typically when the user accepts a suggestion)
+ */
+export const useCreateJoin = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createJoin>>,
+    TError,
+    { id: number; data: BodyType<CreateJoinBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createJoin>>,
+  TError,
+  { id: number; data: BodyType<CreateJoinBody> },
+  TContext
+> => {
+  return useMutation(getCreateJoinMutationOptions(options));
+};
+
+/**
+ * @summary Compute a sample of the joined output without saving
+ */
+export const getPreviewJoinUrl = (id: number) => {
+  return `/api/workspaces/${id}/joins/preview`;
+};
+
+export const previewJoin = async (
+  id: number,
+  previewJoinBody: PreviewJoinBody,
+  options?: RequestInit,
+): Promise<JoinPreview> => {
+  return customFetch<JoinPreview>(getPreviewJoinUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(previewJoinBody),
+  });
+};
+
+export const getPreviewJoinMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof previewJoin>>,
+    TError,
+    { id: number; data: BodyType<PreviewJoinBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof previewJoin>>,
+  TError,
+  { id: number; data: BodyType<PreviewJoinBody> },
+  TContext
+> => {
+  const mutationKey = ["previewJoin"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof previewJoin>>,
+    { id: number; data: BodyType<PreviewJoinBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return previewJoin(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PreviewJoinMutationResult = NonNullable<
+  Awaited<ReturnType<typeof previewJoin>>
+>;
+export type PreviewJoinMutationBody = BodyType<PreviewJoinBody>;
+export type PreviewJoinMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Compute a sample of the joined output without saving
+ */
+export const usePreviewJoin = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof previewJoin>>,
+    TError,
+    { id: number; data: BodyType<PreviewJoinBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof previewJoin>>,
+  TError,
+  { id: number; data: BodyType<PreviewJoinBody> },
+  TContext
+> => {
+  return useMutation(getPreviewJoinMutationOptions(options));
+};
+
+/**
+ * @summary Update an existing join (status, type, columns)
+ */
+export const getUpdateJoinUrl = (id: number) => {
+  return `/api/joins/${id}`;
+};
+
+export const updateJoin = async (
+  id: number,
+  updateJoinBody: UpdateJoinBody,
+  options?: RequestInit,
+): Promise<Join> => {
+  return customFetch<Join>(getUpdateJoinUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateJoinBody),
+  });
+};
+
+export const getUpdateJoinMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateJoin>>,
+    TError,
+    { id: number; data: BodyType<UpdateJoinBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateJoin>>,
+  TError,
+  { id: number; data: BodyType<UpdateJoinBody> },
+  TContext
+> => {
+  const mutationKey = ["updateJoin"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateJoin>>,
+    { id: number; data: BodyType<UpdateJoinBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateJoin(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateJoinMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateJoin>>
+>;
+export type UpdateJoinMutationBody = BodyType<UpdateJoinBody>;
+export type UpdateJoinMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update an existing join (status, type, columns)
+ */
+export const useUpdateJoin = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateJoin>>,
+    TError,
+    { id: number; data: BodyType<UpdateJoinBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateJoin>>,
+  TError,
+  { id: number; data: BodyType<UpdateJoinBody> },
+  TContext
+> => {
+  return useMutation(getUpdateJoinMutationOptions(options));
+};
+
+/**
+ * @summary Delete a join
+ */
+export const getDeleteJoinUrl = (id: number) => {
+  return `/api/joins/${id}`;
+};
+
+export const deleteJoin = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteJoinUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteJoinMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteJoin>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteJoin>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteJoin"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteJoin>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteJoin(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteJoinMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteJoin>>
+>;
+
+export type DeleteJoinMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a join
+ */
+export const useDeleteJoin = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteJoin>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteJoin>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteJoinMutationOptions(options));
+};
+
+/**
+ * @summary List prepared (joined) datasets for a workspace
+ */
+export const getListPreparedDatasetsUrl = (id: number) => {
+  return `/api/workspaces/${id}/prepared-datasets`;
+};
+
+export const listPreparedDatasets = async (
+  id: number,
+  options?: RequestInit,
+): Promise<PreparedDataset[]> => {
+  return customFetch<PreparedDataset[]>(getListPreparedDatasetsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListPreparedDatasetsQueryKey = (id: number) => {
+  return [`/api/workspaces/${id}/prepared-datasets`] as const;
+};
+
+export const getListPreparedDatasetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPreparedDatasets>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listPreparedDatasets>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListPreparedDatasetsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listPreparedDatasets>>
+  > = ({ signal }) => listPreparedDatasets(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listPreparedDatasets>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListPreparedDatasetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPreparedDatasets>>
+>;
+export type ListPreparedDatasetsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List prepared (joined) datasets for a workspace
+ */
+
+export function useListPreparedDatasets<
+  TData = Awaited<ReturnType<typeof listPreparedDatasets>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listPreparedDatasets>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListPreparedDatasetsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Materialize a prepared dataset from base + accepted joins
+ */
+export const getCreatePreparedDatasetUrl = (id: number) => {
+  return `/api/workspaces/${id}/prepared-datasets`;
+};
+
+export const createPreparedDataset = async (
+  id: number,
+  createPreparedDatasetBody: CreatePreparedDatasetBody,
+  options?: RequestInit,
+): Promise<PreparedDataset> => {
+  return customFetch<PreparedDataset>(getCreatePreparedDatasetUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createPreparedDatasetBody),
+  });
+};
+
+export const getCreatePreparedDatasetMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPreparedDataset>>,
+    TError,
+    { id: number; data: BodyType<CreatePreparedDatasetBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createPreparedDataset>>,
+  TError,
+  { id: number; data: BodyType<CreatePreparedDatasetBody> },
+  TContext
+> => {
+  const mutationKey = ["createPreparedDataset"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createPreparedDataset>>,
+    { id: number; data: BodyType<CreatePreparedDatasetBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createPreparedDataset(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreatePreparedDatasetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createPreparedDataset>>
+>;
+export type CreatePreparedDatasetMutationBody =
+  BodyType<CreatePreparedDatasetBody>;
+export type CreatePreparedDatasetMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Materialize a prepared dataset from base + accepted joins
+ */
+export const useCreatePreparedDataset = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPreparedDataset>>,
+    TError,
+    { id: number; data: BodyType<CreatePreparedDatasetBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createPreparedDataset>>,
+  TError,
+  { id: number; data: BodyType<CreatePreparedDatasetBody> },
+  TContext
+> => {
+  return useMutation(getCreatePreparedDatasetMutationOptions(options));
+};
+
+/**
+ * @summary Get a prepared dataset by id (incl. lineage)
+ */
+export const getGetPreparedDatasetUrl = (id: number) => {
+  return `/api/prepared-datasets/${id}`;
+};
+
+export const getPreparedDataset = async (
+  id: number,
+  options?: RequestInit,
+): Promise<PreparedDataset> => {
+  return customFetch<PreparedDataset>(getGetPreparedDatasetUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPreparedDatasetQueryKey = (id: number) => {
+  return [`/api/prepared-datasets/${id}`] as const;
+};
+
+export const getGetPreparedDatasetQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPreparedDataset>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPreparedDataset>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPreparedDatasetQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPreparedDataset>>
+  > = ({ signal }) => getPreparedDataset(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPreparedDataset>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPreparedDatasetQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPreparedDataset>>
+>;
+export type GetPreparedDatasetQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get a prepared dataset by id (incl. lineage)
+ */
+
+export function useGetPreparedDataset<
+  TData = Awaited<ReturnType<typeof getPreparedDataset>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPreparedDataset>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPreparedDatasetQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Delete a prepared dataset
+ */
+export const getDeletePreparedDatasetUrl = (id: number) => {
+  return `/api/prepared-datasets/${id}`;
+};
+
+export const deletePreparedDataset = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeletePreparedDatasetUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeletePreparedDatasetMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deletePreparedDataset>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deletePreparedDataset>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deletePreparedDataset"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deletePreparedDataset>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deletePreparedDataset(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeletePreparedDatasetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deletePreparedDataset>>
+>;
+
+export type DeletePreparedDatasetMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a prepared dataset
+ */
+export const useDeletePreparedDataset = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deletePreparedDataset>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deletePreparedDataset>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeletePreparedDatasetMutationOptions(options));
+};
+
+/**
+ * @summary List metrics for a workspace
+ */
+export const getListMetricsUrl = (id: number) => {
+  return `/api/workspaces/${id}/metrics`;
+};
+
+export const listMetrics = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Metric[]> => {
+  return customFetch<Metric[]>(getListMetricsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListMetricsQueryKey = (id: number) => {
+  return [`/api/workspaces/${id}/metrics`] as const;
+};
+
+export const getListMetricsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMetrics>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listMetrics>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListMetricsQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listMetrics>>> = ({
+    signal,
+  }) => listMetrics(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMetrics>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListMetricsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listMetrics>>
+>;
+export type ListMetricsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List metrics for a workspace
+ */
+
+export function useListMetrics<
+  TData = Awaited<ReturnType<typeof listMetrics>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listMetrics>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListMetricsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a metric (manual)
+ */
+export const getCreateMetricUrl = (id: number) => {
+  return `/api/workspaces/${id}/metrics`;
+};
+
+export const createMetric = async (
+  id: number,
+  createMetricBody: CreateMetricBody,
+  options?: RequestInit,
+): Promise<Metric> => {
+  return customFetch<Metric>(getCreateMetricUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createMetricBody),
+  });
+};
+
+export const getCreateMetricMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createMetric>>,
+    TError,
+    { id: number; data: BodyType<CreateMetricBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createMetric>>,
+  TError,
+  { id: number; data: BodyType<CreateMetricBody> },
+  TContext
+> => {
+  const mutationKey = ["createMetric"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createMetric>>,
+    { id: number; data: BodyType<CreateMetricBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createMetric(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateMetricMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createMetric>>
+>;
+export type CreateMetricMutationBody = BodyType<CreateMetricBody>;
+export type CreateMetricMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a metric (manual)
+ */
+export const useCreateMetric = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createMetric>>,
+    TError,
+    { id: number; data: BodyType<CreateMetricBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createMetric>>,
+  TError,
+  { id: number; data: BodyType<CreateMetricBody> },
+  TContext
+> => {
+  return useMutation(getCreateMetricMutationOptions(options));
+};
+
+/**
+ * @summary Ask the AI to propose KPIs for a prepared dataset
+ */
+export const getSuggestMetricsUrl = (id: number) => {
+  return `/api/workspaces/${id}/metrics/suggest`;
+};
+
+export const suggestMetrics = async (
+  id: number,
+  suggestMetricsBody: SuggestMetricsBody,
+  options?: RequestInit,
+): Promise<SuggestMetrics201> => {
+  return customFetch<SuggestMetrics201>(getSuggestMetricsUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(suggestMetricsBody),
+  });
+};
+
+export const getSuggestMetricsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof suggestMetrics>>,
+    TError,
+    { id: number; data: BodyType<SuggestMetricsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof suggestMetrics>>,
+  TError,
+  { id: number; data: BodyType<SuggestMetricsBody> },
+  TContext
+> => {
+  const mutationKey = ["suggestMetrics"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof suggestMetrics>>,
+    { id: number; data: BodyType<SuggestMetricsBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return suggestMetrics(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SuggestMetricsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof suggestMetrics>>
+>;
+export type SuggestMetricsMutationBody = BodyType<SuggestMetricsBody>;
+export type SuggestMetricsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Ask the AI to propose KPIs for a prepared dataset
+ */
+export const useSuggestMetrics = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof suggestMetrics>>,
+    TError,
+    { id: number; data: BodyType<SuggestMetricsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof suggestMetrics>>,
+  TError,
+  { id: number; data: BodyType<SuggestMetricsBody> },
+  TContext
+> => {
+  return useMutation(getSuggestMetricsMutationOptions(options));
+};
+
+/**
+ * @summary Edit / approve / certify / reject a metric (appends audit)
+ */
+export const getUpdateMetricUrl = (id: number) => {
+  return `/api/metrics/${id}`;
+};
+
+export const updateMetric = async (
+  id: number,
+  updateMetricBody: UpdateMetricBody,
+  options?: RequestInit,
+): Promise<Metric> => {
+  return customFetch<Metric>(getUpdateMetricUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateMetricBody),
+  });
+};
+
+export const getUpdateMetricMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateMetric>>,
+    TError,
+    { id: number; data: BodyType<UpdateMetricBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateMetric>>,
+  TError,
+  { id: number; data: BodyType<UpdateMetricBody> },
+  TContext
+> => {
+  const mutationKey = ["updateMetric"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateMetric>>,
+    { id: number; data: BodyType<UpdateMetricBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateMetric(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateMetricMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateMetric>>
+>;
+export type UpdateMetricMutationBody = BodyType<UpdateMetricBody>;
+export type UpdateMetricMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Edit / approve / certify / reject a metric (appends audit)
+ */
+export const useUpdateMetric = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateMetric>>,
+    TError,
+    { id: number; data: BodyType<UpdateMetricBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateMetric>>,
+  TError,
+  { id: number; data: BodyType<UpdateMetricBody> },
+  TContext
+> => {
+  return useMutation(getUpdateMetricMutationOptions(options));
+};
+
+/**
+ * @summary Delete a metric
+ */
+export const getDeleteMetricUrl = (id: number) => {
+  return `/api/metrics/${id}`;
+};
+
+export const deleteMetric = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteMetricUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteMetricMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteMetric>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteMetric>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteMetric"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteMetric>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteMetric(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteMetricMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteMetric>>
+>;
+
+export type DeleteMetricMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a metric
+ */
+export const useDeleteMetric = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteMetric>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteMetric>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteMetricMutationOptions(options));
 };
 
 /**
