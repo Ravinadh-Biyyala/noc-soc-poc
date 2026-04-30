@@ -1,7 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { useCreateWorkspace, getListWorkspacesQueryKey } from "@workspace/api-client-react";
+import {
+  useCreateWorkspace,
+  getListWorkspacesQueryKey,
+  useGetSettings,
+} from "@workspace/api-client-react";
 import { DOMAIN_PACKS, type DomainPack } from "@/lib/domain-packs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,11 +28,31 @@ interface Props {
 }
 
 export function CreateWorkspaceDialog({ open, onOpenChange, defaultPackId }: Props) {
-  const initialPack = defaultPackId ?? DOMAIN_PACKS[0].id;
+  // Resolve the initial pack with this priority:
+  //   1. explicit `defaultPackId` prop (e.g. Home "Try a sample pack")
+  //   2. organization-wide `settings.defaultPackId`
+  //   3. first available pack as a final fallback
+  const { data: settings } = useGetSettings();
+  const knownPackIds = new Set(DOMAIN_PACKS.map((p) => p.id));
+  const settingsPack =
+    settings?.defaultPackId && knownPackIds.has(settings.defaultPackId)
+      ? settings.defaultPackId
+      : undefined;
+  const resolvedDefault = defaultPackId ?? settingsPack ?? DOMAIN_PACKS[0].id;
+
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [packId, setPackId] = useState<string>(initialPack);
+  const [packId, setPackId] = useState<string>(resolvedDefault);
   const [error, setError] = useState<string | null>(null);
+
+  // If the dialog is closed and the resolved default later changes (settings
+  // load after mount, or the user navigates between sample-pack/regular flows),
+  // make sure the next open reflects the freshest default.
+  useEffect(() => {
+    if (!open) {
+      setPackId(resolvedDefault);
+    }
+  }, [open, resolvedDefault]);
 
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
@@ -37,7 +61,7 @@ export function CreateWorkspaceDialog({ open, onOpenChange, defaultPackId }: Pro
   const reset = () => {
     setName("");
     setDescription("");
-    setPackId(defaultPackId ?? DOMAIN_PACKS[0].id);
+    setPackId(resolvedDefault);
     setError(null);
   };
 
