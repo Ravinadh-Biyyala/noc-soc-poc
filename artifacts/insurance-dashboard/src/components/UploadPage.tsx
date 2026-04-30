@@ -1,6 +1,9 @@
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Upload, FileSpreadsheet, Loader2, AlertCircle, X, ArrowRight, Sparkles } from "lucide-react";
+import {
+  Upload, FileSpreadsheet, Loader2, AlertCircle, X, ArrowRight, Sparkles,
+  Database, Brain, BarChart3, Wand2, CheckCircle2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import DataPrep from "@/components/DataPrep";
@@ -266,8 +269,11 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
   );
 
   if ((stage === "prep" || stage === "generating") && sourceTables.length > 0) {
+    // Keep DataPrep mounted across the prep -> generating transition so the
+    // user's pipeline state survives an API failure. The cinematic loader
+    // overlays the prep view instead of replacing it.
     return (
-      <div className="h-[calc(100vh-3.5rem)] -m-6 flex flex-col">
+      <div className="relative h-[calc(100vh-3.5rem)] -m-6 flex flex-col">
         <div className="px-6 py-3 border-b border-border bg-white flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2 flex-wrap">
             {uploadedFiles.map((f) => (
@@ -277,6 +283,7 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
                 <button
                   onClick={() => removeFile(f.uploadId)}
                   className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
+                  disabled={stage === "generating"}
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -312,6 +319,17 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
             isGenerating={stage === "generating"}
           />
         </div>
+        {stage === "generating" && (
+          <div
+            className="absolute inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 backdrop-blur-sm px-4 py-10 animate-in fade-in duration-300"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="w-full max-w-md">
+              <GenerationLoader progress={progress} />
+            </div>
+          </div>
+        )}
         {hiddenInput}
       </div>
     );
@@ -406,24 +424,24 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
           </div>
         )}
 
-        {(stage === "parsing" || stage === "generating") && (
+        {stage === "parsing" && (
           <div className="flex flex-col items-center gap-6 py-16 animate-in fade-in duration-500">
             <div className="relative">
-              <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-2xl bg-primary/20 animate-ping" />
+              <div className="relative w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center">
                 <Loader2 className="w-8 h-8 text-primary animate-spin" />
               </div>
             </div>
             <div className="text-center space-y-2">
-              <p className="text-lg font-semibold text-foreground">
-                {stage === "parsing" ? "Reading Your Data" : "Generating Dashboard"}
-              </p>
+              <p className="text-lg font-semibold text-foreground">Reading Your Data</p>
               <p className="text-sm text-muted-foreground">{progress}</p>
             </div>
-            {stage === "generating" && (
-              <div className="w-64 h-1.5 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-primary rounded-full animate-pulse" style={{ width: "70%" }} />
-              </div>
-            )}
+          </div>
+        )}
+
+        {stage === "generating" && (
+          <div className="w-full max-w-md mx-auto">
+            <GenerationLoader progress={progress} />
           </div>
         )}
       </div>
@@ -437,6 +455,124 @@ function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+/**
+ * Cinematic multi-step loader shown while the AI generates a dashboard.
+ * Cycles through narrated stages and renders shimmering chart placeholders so
+ * the wait feels purposeful rather than blank. Pure presentation — does not
+ * gate the actual API call, which finishes whenever it finishes.
+ */
+function GenerationLoader({ progress }: { progress: string }) {
+  const steps = useMemo(
+    () => [
+      { icon: Database, label: "Profiling your dataset", detail: "Detecting columns, types and outliers" },
+      { icon: Brain, label: "Identifying patterns", detail: "Surfacing trends, segments and correlations" },
+      { icon: BarChart3, label: "Choosing visualizations", detail: "Matching chart types to each insight" },
+      { icon: Wand2, label: "Composing your dashboard", detail: "Laying out KPIs, charts and tables" },
+    ],
+    []
+  );
+
+  const [activeStep, setActiveStep] = useState(0);
+
+  useEffect(() => {
+    // Advance through narrated steps but never tick past the last one — the
+    // final step stays "in progress" until the real API call finishes and the
+    // page navigates away.
+    const interval = setInterval(() => {
+      setActiveStep((s) => (s < steps.length - 1 ? s + 1 : s));
+    }, 1800);
+    return () => clearInterval(interval);
+  }, [steps.length]);
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500 py-2">
+      <div className="text-center space-y-1.5">
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-wider">
+          <Sparkles className="w-3 h-3 animate-pulse" />
+          AI at work
+        </div>
+        <h2 className="text-xl font-bold text-foreground tracking-tight">Generating your dashboard</h2>
+        <p className="text-sm text-muted-foreground">{progress || "This usually takes 10–20 seconds."}</p>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="px-4 py-3 border-b border-border bg-muted/20">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="font-semibold text-muted-foreground uppercase tracking-wider">Pipeline</span>
+            <span className="text-muted-foreground tabular-nums">
+              {Math.min(activeStep + 1, steps.length)} / {steps.length}
+            </span>
+          </div>
+        </div>
+        <ul className="divide-y divide-border">
+          {steps.map((step, i) => {
+            const isDone = i < activeStep;
+            const isActive = i === activeStep;
+            const Icon = step.icon;
+            return (
+              <li key={step.label} className="flex items-start gap-3 px-4 py-3">
+                <div
+                  className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300",
+                    isDone && "bg-emerald-50 text-emerald-600",
+                    isActive && "bg-primary/10 text-primary",
+                    !isDone && !isActive && "bg-muted text-muted-foreground/60"
+                  )}
+                >
+                  {isDone ? (
+                    <CheckCircle2 className="w-4 h-4" />
+                  ) : isActive ? (
+                    <Icon className="w-4 h-4 animate-pulse" />
+                  ) : (
+                    <Icon className="w-4 h-4" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0 pt-0.5">
+                  <p
+                    className={cn(
+                      "text-sm font-medium transition-colors",
+                      isDone && "text-foreground",
+                      isActive && "text-foreground",
+                      !isDone && !isActive && "text-muted-foreground/70"
+                    )}
+                  >
+                    {step.label}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{step.detail}</p>
+                </div>
+                {isActive && (
+                  <Loader2 className="w-3.5 h-3.5 text-primary animate-spin mt-1.5 flex-shrink-0" />
+                )}
+              </li>
+            );
+          })}
+        </ul>
+        <div className="h-1 bg-muted relative overflow-hidden">
+          <div
+            className="absolute inset-y-0 left-0 bg-primary transition-all duration-700 ease-out"
+            style={{ width: `${((activeStep + 1) / steps.length) * 100}%` }}
+          />
+          <div className="absolute inset-y-0 w-24 bg-gradient-to-r from-transparent via-white/40 to-transparent shimmer-slide" />
+        </div>
+      </div>
+
+      {/* Skeleton dashboard preview — hints at what's coming */}
+      <div className="grid grid-cols-3 gap-2 opacity-60">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="rounded-lg border border-border bg-card p-3 space-y-1.5">
+            <div className="h-1.5 w-12 bg-muted rounded shimmer-bg" />
+            <div className="h-4 w-16 bg-muted rounded shimmer-bg" style={{ animationDelay: `${i * 100}ms` }} />
+          </div>
+        ))}
+      </div>
+      <div className="rounded-lg border border-border bg-card p-3 opacity-60">
+        <div className="h-1.5 w-20 bg-muted rounded mb-2 shimmer-bg" />
+        <div className="h-20 bg-muted rounded shimmer-bg" />
+      </div>
+    </div>
+  );
 }
 
 function SampleQuickLink({

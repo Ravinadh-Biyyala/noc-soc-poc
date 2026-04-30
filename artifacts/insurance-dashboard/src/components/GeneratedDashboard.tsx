@@ -1,5 +1,7 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { AnimatedNumber } from "@/lib/animated-number";
+import { Sparkles } from "lucide-react";
 import {
   ResponsiveContainer,
   AreaChart, Area,
@@ -40,10 +42,13 @@ function formatValue(val: unknown, format?: string): string {
   const num = typeof val === "number" ? val : Number(val);
   if (isNaN(num)) return String(val);
   if (format === "currency") {
-    if (Math.abs(num) >= 1e9) return `$${(num / 1e9).toFixed(1)}B`;
-    if (Math.abs(num) >= 1e6) return `$${(num / 1e6).toFixed(1)}M`;
-    if (Math.abs(num) >= 1e3) return `$${(num / 1e3).toFixed(1)}K`;
-    return `$${num.toLocaleString()}`;
+    // Sign goes outside the $ so negatives read as "-$1.2M", not "$-1.2M".
+    const sign = num < 0 ? "-" : "";
+    const abs = Math.abs(num);
+    if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(1)}B`;
+    if (abs >= 1e6) return `${sign}$${(abs / 1e6).toFixed(1)}M`;
+    if (abs >= 1e3) return `${sign}$${(abs / 1e3).toFixed(1)}K`;
+    return `${sign}$${abs.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
   }
   if (format === "percent") return `${num.toFixed(1)}%`;
   if (Math.abs(num) >= 1e6) return `${(num / 1e6).toFixed(1)}M`;
@@ -51,16 +56,29 @@ function formatValue(val: unknown, format?: string): string {
   return num.toLocaleString();
 }
 
-function KPICard({ kpi }: { kpi: any }) {
+function KPICard({ kpi, index = 0 }: { kpi: any; index?: number }) {
   const Icon = getIcon(kpi.icon);
   const isPositive = kpi.trend && (kpi.trend.startsWith("+") || kpi.trend.includes("increase"));
+  const numericValue = typeof kpi.value === "number" ? kpi.value : Number(kpi.value);
+  const isNumeric = !isNaN(numericValue) && Number.isFinite(numericValue);
+  const animStyle = { animationDelay: `${index * 70}ms`, animationFillMode: "both" as const };
+
   return (
-    <Card className="shadow-sm hover:shadow-md transition-shadow">
+    <Card
+      className="shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 animate-in fade-in slide-in-from-bottom-3 duration-500"
+      style={animStyle}
+    >
       <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{kpi.label}</p>
-            <p className="text-2xl font-bold text-foreground tracking-tight">{formatValue(kpi.value, kpi.format)}</p>
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-1 min-w-0">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider truncate">{kpi.label}</p>
+            <p className="text-2xl font-bold text-foreground tracking-tight tabular-nums truncate">
+              {isNumeric ? (
+                <AnimatedNumber value={numericValue} format={(n) => formatValue(n, kpi.format)} />
+              ) : (
+                formatValue(kpi.value, kpi.format)
+              )}
+            </p>
             {kpi.trend && (
               <div className={cn("flex items-center gap-1 text-[11px] font-medium", isPositive ? "text-emerald-600" : "text-red-500")}>
                 {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -68,7 +86,7 @@ function KPICard({ kpi }: { kpi: any }) {
               </div>
             )}
           </div>
-          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
             <Icon className="w-4.5 h-4.5 text-primary" />
           </div>
         </div>
@@ -499,31 +517,55 @@ export default function GeneratedDashboard({ config }: { config: any }) {
   const charts = config.charts || [];
   const tables = config.tables || [];
 
+  // Stagger chart cards in after the KPIs land for a polished entrance.
+  const kpiStaggerEnd = kpis.length * 70;
+
   return (
-    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div>
-        <h1 className="text-xl font-bold text-foreground tracking-tight">{config.title || "Generated Dashboard"}</h1>
-        {config.subtitle && <p className="text-sm text-muted-foreground mt-0.5">{config.subtitle}</p>}
+    <div className="space-y-5">
+      <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-br from-primary/5 via-background to-background p-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div className="absolute -top-12 -right-12 w-40 h-40 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-wider mb-2">
+              <Sparkles className="w-3 h-3" />
+              AI Generated
+            </div>
+            <h1 className="text-xl font-bold text-foreground tracking-tight">{config.title || "Generated Dashboard"}</h1>
+            {config.subtitle && <p className="text-sm text-muted-foreground mt-0.5">{config.subtitle}</p>}
+          </div>
+        </div>
       </div>
 
       {kpis.length > 0 && (
         <div className={cn("grid gap-4", kpis.length <= 3 ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-4")}>
           {kpis.map((kpi: any, i: number) => (
-            <KPICard key={i} kpi={kpi} />
+            <KPICard key={i} kpi={kpi} index={i} />
           ))}
         </div>
       )}
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        {charts.map((chart: any) => (
-          <ChartCard key={chart.id} chart={chart} />
+        {charts.map((chart: any, i: number) => (
+          <div
+            key={chart.id}
+            className="animate-in fade-in slide-in-from-bottom-3 duration-500"
+            style={{ animationDelay: `${kpiStaggerEnd + i * 80}ms`, animationFillMode: "both" }}
+          >
+            <ChartCard chart={chart} />
+          </div>
         ))}
       </div>
 
       {tables.length > 0 && (
         <div className={cn("grid gap-5", tables.length >= 2 ? "grid-cols-1 xl:grid-cols-2" : "grid-cols-1")}>
           {tables.map((table: any, i: number) => (
-            <DataTable key={i} table={table} />
+            <div
+              key={i}
+              className="animate-in fade-in slide-in-from-bottom-3 duration-500"
+              style={{ animationDelay: `${kpiStaggerEnd + (charts.length + i) * 80}ms`, animationFillMode: "both" }}
+            >
+              <DataTable table={table} />
+            </div>
           ))}
         </div>
       )}

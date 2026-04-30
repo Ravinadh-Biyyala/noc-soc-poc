@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatPercent, formatNumber } from "@/lib/utils";
+import { AnimatedNumber } from "@/lib/animated-number";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import {
   Table,
@@ -46,35 +47,66 @@ function formatValue(value: unknown, format: string): string {
   const num = Number(value);
   if (isNaN(num)) return String(value);
   switch (format) {
-    case "currency": return formatCurrency(num);
+    case "currency": return formatCurrencyCompact(num);
     case "percent": return formatPercent(num);
-    case "number": return formatNumber(num);
+    case "number": return formatNumberCompact(num);
     default: return String(value);
   }
 }
 
+// Abbreviate large currency so KPI cards never clip.
+// $267,800,000 -> "$267.8M", $1,250,000,000 -> "$1.25B".
+// Smaller values keep full precision since they fit comfortably.
+function formatCurrencyCompact(num: number): string {
+  const abs = Math.abs(num);
+  const sign = num < 0 ? "-" : "";
+  if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(2)}B`;
+  if (abs >= 1e6) return `${sign}$${(abs / 1e6).toFixed(1)}M`;
+  if (abs >= 1e5) return `${sign}$${(abs / 1e3).toFixed(0)}K`;
+  return formatCurrency(num);
+}
+
+function formatNumberCompact(num: number): string {
+  const abs = Math.abs(num);
+  const sign = num < 0 ? "-" : "";
+  if (abs >= 1e9) return `${sign}${(abs / 1e9).toFixed(2)}B`;
+  if (abs >= 1e6) return `${sign}${(abs / 1e6).toFixed(1)}M`;
+  return formatNumber(num);
+}
+
 function ConfigKPICard({
-  label, value, format, icon, changeValue, copilotQuestion, variant,
+  label, value, format, icon, changeValue, copilotQuestion, variant, index = 0,
 }: {
   label: string; value: unknown; format: string; icon: string;
   changeValue?: number; copilotQuestion: string; variant: "primary" | "secondary";
+  index?: number;
 }) {
   const { askCopilot } = useCopilot();
   const Icon = resolveIcon(icon);
   const formatted = formatValue(value, format);
+  const isNumeric = typeof value === "number" && !isNaN(value);
+  const numericValue = isNumeric ? (value as number) : 0;
   const isPositive = changeValue !== undefined && changeValue > 0;
+  // Stagger entrance — each card animates in 70ms after the previous one.
+  const animStyle = { animationDelay: `${index * 70}ms`, animationFillMode: "both" as const };
 
   if (variant === "secondary") {
     const isAlert = format === "percent" && typeof value === "number" && label.toLowerCase().includes("loss") && value > 0.5;
     return (
-      <Card className="shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => askCopilot(copilotQuestion)}>
+      <Card
+        className="shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 duration-500"
+        style={animStyle}
+        onClick={() => askCopilot(copilotQuestion)}
+      >
         <CardContent className="p-3 flex items-center gap-2.5">
           <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${isAlert ? 'bg-red-50 text-red-500' : 'bg-primary/8 text-primary'}`}>
             <Icon className="w-3.5 h-3.5" />
           </div>
-          <div>
-            <p className="text-[10px] text-muted-foreground">{label}</p>
-            <p className={`text-sm font-bold ${isAlert ? 'text-red-500' : changeValue && changeValue > 0 ? 'text-emerald-600' : 'text-foreground'}`}>{formatted}</p>
+          <div className="min-w-0">
+            <p className="text-[10px] text-muted-foreground truncate">{label}</p>
+            <p className={`text-sm font-bold tabular-nums ${isAlert ? 'text-red-500' : changeValue && changeValue > 0 ? 'text-emerald-600' : 'text-foreground'}`}>
+              {isNumeric ? <AnimatedNumber value={numericValue} format={(n) => formatValue(n, format)} /> : formatted}
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -82,15 +114,21 @@ function ConfigKPICard({
   }
 
   return (
-    <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer group" onClick={() => askCopilot(copilotQuestion)}>
+    <Card
+      className="shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group animate-in fade-in slide-in-from-bottom-3 duration-500"
+      style={animStyle}
+      onClick={() => askCopilot(copilotQuestion)}
+    >
       <CardContent className="p-4 relative overflow-hidden">
-        <div className="flex justify-between items-start mb-2">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</p>
-          <div className="w-7 h-7 rounded-md bg-primary/8 flex items-center justify-center">
+        <div className="flex justify-between items-start mb-2 gap-2">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider truncate">{label}</p>
+          <div className="w-7 h-7 rounded-md bg-primary/8 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/15 transition-colors">
             <Icon className="w-3.5 h-3.5 text-primary" />
           </div>
         </div>
-        <p className="text-xl font-bold text-foreground mb-0.5">{formatted}</p>
+        <p className="text-xl font-bold text-foreground mb-0.5 tabular-nums truncate">
+          {isNumeric ? <AnimatedNumber value={numericValue} format={(n) => formatValue(n, format)} /> : formatted}
+        </p>
         {changeValue !== undefined && (
           <div className={`flex items-center gap-1 text-[10px] font-medium ${isPositive ? 'text-emerald-600' : 'text-red-500'}`}>
             {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -492,9 +530,10 @@ export default function DashboardSection({ sectionId }: { sectionId: string }) {
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {primaryKpis.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {primaryKpis.map((kpi) => (
+          {primaryKpis.map((kpi, i) => (
             <ConfigKPICard
               key={kpi.id}
+              index={i}
               label={kpi.label}
               value={getNestedValue(sectionData, kpi.dataKey)}
               format={kpi.format}
@@ -509,9 +548,10 @@ export default function DashboardSection({ sectionId }: { sectionId: string }) {
 
       {secondaryKpis.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {secondaryKpis.map((kpi) => (
+          {secondaryKpis.map((kpi, i) => (
             <ConfigKPICard
               key={kpi.id}
+              index={primaryKpis.length + i}
               label={kpi.label}
               value={getNestedValue(sectionData, kpi.dataKey)}
               format={kpi.format}
