@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import Layout from "@/components/layout";
 import DashboardSection from "@/components/DashboardSection";
 import UploadPage from "@/components/UploadPage";
+import UploadRedirect from "@/components/UploadRedirect";
 import GeneratedDashboard from "@/components/GeneratedDashboard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GeneratedDashboardProvider, useGeneratedDashboards } from "@/lib/generated-dashboards";
@@ -65,7 +66,10 @@ function ConfigDrivenRoutes() {
       <Route path="/workspaces/:id" component={WorkspaceDetail} />
       <Route path="/settings" component={Settings} />
       <Route path="/governance" component={GovernancePlaceholder} />
-      <Route path="/upload" component={() => <UploadPage onDashboardGenerated={addDashboard} />} />
+      <Route path="/upload" component={UploadRedirect} />
+      {/* Legacy direct-generate page kept available under /upload/legacy for parity
+          with the dashboard generator until Join Studio supersedes it. */}
+      <Route path="/upload/legacy" component={() => <UploadPage onDashboardGenerated={addDashboard} />} />
       {/* Legacy tenant section routes still work; they are reachable from the
           Workspace Dashboards tab once we link them in. */}
       {config.sections.map((section) => (

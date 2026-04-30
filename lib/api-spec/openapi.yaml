@@ -19,6 +19,8 @@ tags:
     description: Analytics workspaces (one per business question / dataset bundle)
   - name: settings
     description: Per-user settings
+  - name: datasets
+    description: Workspace-scoped datasets (uploaded files, classification, quality)
 paths:
   /healthz:
     get:
@@ -315,6 +317,145 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Settings"
+  /workspaces/{id}/datasets:
+    get:
+      operationId: listWorkspaceDatasets
+      tags: [datasets]
+      summary: List datasets for a workspace
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dataset summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Dataset"
+    post:
+      operationId: uploadWorkspaceDataset
+      tags: [datasets]
+      summary: Upload a workbook (CSV / XLSX) to a workspace
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+                - file
+      responses:
+        "201":
+          description: Datasets created (one per non-empty sheet)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadDatasetResponse"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+        "404":
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+  /datasets/{datasetId}:
+    get:
+      operationId: getDataset
+      tags: [datasets]
+      summary: Get a dataset including columns, sample rows, score, and issues
+      parameters:
+        - name: datasetId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dataset detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DatasetDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+    delete:
+      operationId: deleteDataset
+      tags: [datasets]
+      summary: Delete a dataset
+      parameters:
+        - name: datasetId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+  /datasets/{datasetId}/columns/{columnId}:
+    patch:
+      operationId: updateDatasetColumn
+      tags: [datasets]
+      summary: Override a column's semantic type or business meaning
+      parameters:
+        - name: datasetId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: columnId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDatasetColumnBody"
+      responses:
+        "200":
+          description: Updated dataset detail (with recomputed score)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DatasetDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
   /dashboard/{sectionId}:
     get:
       operationId: getDashboardSection
@@ -1260,6 +1401,201 @@ components:
         - aiTone
         - aiModel
         - updatedAt
+    Dataset:
+      type: object
+      properties:
+        id:
+          type: integer
+        workspaceId:
+          type: integer
+        fileName:
+          type: string
+        sheetName:
+          type: string
+        byteSize:
+          type: integer
+        rowCount:
+          type: integer
+        returnedRowCount:
+          type: integer
+        truncated:
+          type: boolean
+        readinessScore:
+          type: integer
+        issueCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - workspaceId
+        - fileName
+        - sheetName
+        - byteSize
+        - rowCount
+        - returnedRowCount
+        - truncated
+        - readinessScore
+        - issueCount
+        - createdAt
+        - updatedAt
+    DatasetColumnStats:
+      type: object
+      properties:
+        min:
+          type: number
+        max:
+          type: number
+        mean:
+          type: number
+    DatasetColumn:
+      type: object
+      properties:
+        id:
+          type: integer
+        datasetId:
+          type: integer
+        ordinal:
+          type: integer
+        name:
+          type: string
+        rawType:
+          type: string
+        semanticType:
+          type: string
+        businessMeaning:
+          type: ["string", "null"]
+        uniqueCount:
+          type: integer
+        nullCount:
+          type: integer
+        sample:
+          type: array
+          items: {}
+        stats:
+          oneOf:
+            - $ref: "#/components/schemas/DatasetColumnStats"
+            - type: "null"
+        overriddenSemantic:
+          type: boolean
+        overriddenMeaning:
+          type: boolean
+      required:
+        - id
+        - datasetId
+        - ordinal
+        - name
+        - rawType
+        - semanticType
+        - uniqueCount
+        - nullCount
+        - sample
+        - overriddenSemantic
+        - overriddenMeaning
+    DatasetIssue:
+      type: object
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high]
+        column:
+          type: string
+        count:
+          type: integer
+        message:
+          type: string
+        suggestedFix:
+          type: string
+      required:
+        - id
+        - category
+        - severity
+        - count
+        - message
+        - suggestedFix
+    DatasetDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        workspaceId:
+          type: integer
+        fileName:
+          type: string
+        sheetName:
+          type: string
+        byteSize:
+          type: integer
+        rowCount:
+          type: integer
+        returnedRowCount:
+          type: integer
+        truncated:
+          type: boolean
+        readinessScore:
+          type: integer
+        issueCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        columns:
+          type: array
+          items:
+            $ref: "#/components/schemas/DatasetColumn"
+        sampleRows:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/DatasetIssue"
+      required:
+        - id
+        - workspaceId
+        - fileName
+        - sheetName
+        - byteSize
+        - rowCount
+        - returnedRowCount
+        - truncated
+        - readinessScore
+        - issueCount
+        - createdAt
+        - updatedAt
+        - columns
+        - sampleRows
+        - issues
+    UploadDatasetResponse:
+      type: object
+      properties:
+        datasets:
+          type: array
+          items:
+            $ref: "#/components/schemas/Dataset"
+      required:
+        - datasets
+    UpdateDatasetColumnBody:
+      type: object
+      properties:
+        semanticType:
+          type: string
+          enum: [date, currency, percent, id, category, measure, text, boolean]
+        businessMeaning:
+          type: ["string", "null"]
     UpdateSettingsBody:
       type: object
       properties:

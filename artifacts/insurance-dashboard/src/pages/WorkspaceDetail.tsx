@@ -11,8 +11,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   AlertTriangle,
   ArrowLeft,
-  Upload,
-  FileSpreadsheet,
   LayoutDashboard,
   Lightbulb,
   FileText,
@@ -20,6 +18,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import FilesTab from "@/components/workspace/FilesTab";
 
 const TABS = ["overview", "files", "prepared", "dashboards", "insights", "reports", "governance"] as const;
 type TabKey = (typeof TABS)[number];
@@ -182,16 +181,7 @@ export default function WorkspaceDetail() {
         </TabsContent>
 
         <TabsContent value="files" className="mt-4">
-          <PlaceholderTab
-            icon={FileSpreadsheet}
-            title="No files in this workspace yet"
-            body="Upload CSVs and Gen-BI will profile, score and prepare them for analysis."
-          />
-          <div className="flex justify-center mt-3">
-            <Link href="/upload">
-              <Button variant="outline" size="sm"><Upload className="w-4 h-4 mr-2" /> Upload a file</Button>
-            </Link>
-          </div>
+          <FilesTab workspaceId={id} />
         </TabsContent>
         <TabsContent value="prepared" className="mt-4">
           <PlaceholderTab icon={Sparkles} title="Prepared data appears here" body="Joined and cleaned datasets surface on this tab once the data journey is complete." />

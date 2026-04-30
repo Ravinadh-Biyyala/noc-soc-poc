@@ -20,6 +20,8 @@ import type {
   ClaimsRisk,
   CreateOpenaiConversationBody,
   CreateWorkspaceBody,
+  Dataset,
+  DatasetDetail,
   ExecutiveSummary,
   GeographyData,
   GetDashboardSection200,
@@ -34,7 +36,10 @@ import type {
   SendOpenaiMessageBody,
   Settings,
   TenantClientConfig,
+  UpdateDatasetColumnBody,
   UpdateSettingsBody,
+  UploadDatasetResponse,
+  UploadWorkspaceDatasetBody,
   Workspace,
 } from "./api.schemas";
 
@@ -1564,6 +1569,469 @@ export const useUpdateSettings = <
   TContext
 > => {
   return useMutation(getUpdateSettingsMutationOptions(options));
+};
+
+/**
+ * @summary List datasets for a workspace
+ */
+export const getListWorkspaceDatasetsUrl = (id: number) => {
+  return `/api/workspaces/${id}/datasets`;
+};
+
+export const listWorkspaceDatasets = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Dataset[]> => {
+  return customFetch<Dataset[]>(getListWorkspaceDatasetsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListWorkspaceDatasetsQueryKey = (id: number) => {
+  return [`/api/workspaces/${id}/datasets`] as const;
+};
+
+export const getListWorkspaceDatasetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listWorkspaceDatasets>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listWorkspaceDatasets>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListWorkspaceDatasetsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listWorkspaceDatasets>>
+  > = ({ signal }) => listWorkspaceDatasets(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listWorkspaceDatasets>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListWorkspaceDatasetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listWorkspaceDatasets>>
+>;
+export type ListWorkspaceDatasetsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List datasets for a workspace
+ */
+
+export function useListWorkspaceDatasets<
+  TData = Awaited<ReturnType<typeof listWorkspaceDatasets>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listWorkspaceDatasets>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListWorkspaceDatasetsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Upload a workbook (CSV / XLSX) to a workspace
+ */
+export const getUploadWorkspaceDatasetUrl = (id: number) => {
+  return `/api/workspaces/${id}/datasets`;
+};
+
+export const uploadWorkspaceDataset = async (
+  id: number,
+  uploadWorkspaceDatasetBody: UploadWorkspaceDatasetBody,
+  options?: RequestInit,
+): Promise<UploadDatasetResponse> => {
+  const formData = new FormData();
+  formData.append(`file`, uploadWorkspaceDatasetBody.file);
+
+  return customFetch<UploadDatasetResponse>(getUploadWorkspaceDatasetUrl(id), {
+    ...options,
+    method: "POST",
+    body: formData,
+  });
+};
+
+export const getUploadWorkspaceDatasetMutationOptions = <
+  TError = ErrorType<OpenaiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof uploadWorkspaceDataset>>,
+    TError,
+    { id: number; data: BodyType<UploadWorkspaceDatasetBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof uploadWorkspaceDataset>>,
+  TError,
+  { id: number; data: BodyType<UploadWorkspaceDatasetBody> },
+  TContext
+> => {
+  const mutationKey = ["uploadWorkspaceDataset"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof uploadWorkspaceDataset>>,
+    { id: number; data: BodyType<UploadWorkspaceDatasetBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return uploadWorkspaceDataset(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UploadWorkspaceDatasetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof uploadWorkspaceDataset>>
+>;
+export type UploadWorkspaceDatasetMutationBody =
+  BodyType<UploadWorkspaceDatasetBody>;
+export type UploadWorkspaceDatasetMutationError = ErrorType<OpenaiError>;
+
+/**
+ * @summary Upload a workbook (CSV / XLSX) to a workspace
+ */
+export const useUploadWorkspaceDataset = <
+  TError = ErrorType<OpenaiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof uploadWorkspaceDataset>>,
+    TError,
+    { id: number; data: BodyType<UploadWorkspaceDatasetBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof uploadWorkspaceDataset>>,
+  TError,
+  { id: number; data: BodyType<UploadWorkspaceDatasetBody> },
+  TContext
+> => {
+  return useMutation(getUploadWorkspaceDatasetMutationOptions(options));
+};
+
+/**
+ * @summary Get a dataset including columns, sample rows, score, and issues
+ */
+export const getGetDatasetUrl = (datasetId: number) => {
+  return `/api/datasets/${datasetId}`;
+};
+
+export const getDataset = async (
+  datasetId: number,
+  options?: RequestInit,
+): Promise<DatasetDetail> => {
+  return customFetch<DatasetDetail>(getGetDatasetUrl(datasetId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDatasetQueryKey = (datasetId: number) => {
+  return [`/api/datasets/${datasetId}`] as const;
+};
+
+export const getGetDatasetQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDataset>>,
+  TError = ErrorType<OpenaiError>,
+>(
+  datasetId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDataset>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDatasetQueryKey(datasetId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDataset>>> = ({
+    signal,
+  }) => getDataset(datasetId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!datasetId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDataset>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDatasetQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDataset>>
+>;
+export type GetDatasetQueryError = ErrorType<OpenaiError>;
+
+/**
+ * @summary Get a dataset including columns, sample rows, score, and issues
+ */
+
+export function useGetDataset<
+  TData = Awaited<ReturnType<typeof getDataset>>,
+  TError = ErrorType<OpenaiError>,
+>(
+  datasetId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDataset>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDatasetQueryOptions(datasetId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Delete a dataset
+ */
+export const getDeleteDatasetUrl = (datasetId: number) => {
+  return `/api/datasets/${datasetId}`;
+};
+
+export const deleteDataset = async (
+  datasetId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteDatasetUrl(datasetId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteDatasetMutationOptions = <
+  TError = ErrorType<OpenaiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteDataset>>,
+    TError,
+    { datasetId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteDataset>>,
+  TError,
+  { datasetId: number },
+  TContext
+> => {
+  const mutationKey = ["deleteDataset"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteDataset>>,
+    { datasetId: number }
+  > = (props) => {
+    const { datasetId } = props ?? {};
+
+    return deleteDataset(datasetId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteDatasetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteDataset>>
+>;
+
+export type DeleteDatasetMutationError = ErrorType<OpenaiError>;
+
+/**
+ * @summary Delete a dataset
+ */
+export const useDeleteDataset = <
+  TError = ErrorType<OpenaiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteDataset>>,
+    TError,
+    { datasetId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteDataset>>,
+  TError,
+  { datasetId: number },
+  TContext
+> => {
+  return useMutation(getDeleteDatasetMutationOptions(options));
+};
+
+/**
+ * @summary Override a column's semantic type or business meaning
+ */
+export const getUpdateDatasetColumnUrl = (
+  datasetId: number,
+  columnId: number,
+) => {
+  return `/api/datasets/${datasetId}/columns/${columnId}`;
+};
+
+export const updateDatasetColumn = async (
+  datasetId: number,
+  columnId: number,
+  updateDatasetColumnBody: UpdateDatasetColumnBody,
+  options?: RequestInit,
+): Promise<DatasetDetail> => {
+  return customFetch<DatasetDetail>(
+    getUpdateDatasetColumnUrl(datasetId, columnId),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateDatasetColumnBody),
+    },
+  );
+};
+
+export const getUpdateDatasetColumnMutationOptions = <
+  TError = ErrorType<OpenaiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDatasetColumn>>,
+    TError,
+    {
+      datasetId: number;
+      columnId: number;
+      data: BodyType<UpdateDatasetColumnBody>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateDatasetColumn>>,
+  TError,
+  {
+    datasetId: number;
+    columnId: number;
+    data: BodyType<UpdateDatasetColumnBody>;
+  },
+  TContext
+> => {
+  const mutationKey = ["updateDatasetColumn"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateDatasetColumn>>,
+    {
+      datasetId: number;
+      columnId: number;
+      data: BodyType<UpdateDatasetColumnBody>;
+    }
+  > = (props) => {
+    const { datasetId, columnId, data } = props ?? {};
+
+    return updateDatasetColumn(datasetId, columnId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateDatasetColumnMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateDatasetColumn>>
+>;
+export type UpdateDatasetColumnMutationBody = BodyType<UpdateDatasetColumnBody>;
+export type UpdateDatasetColumnMutationError = ErrorType<OpenaiError>;
+
+/**
+ * @summary Override a column's semantic type or business meaning
+ */
+export const useUpdateDatasetColumn = <
+  TError = ErrorType<OpenaiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDatasetColumn>>,
+    TError,
+    {
+      datasetId: number;
+      columnId: number;
+      data: BodyType<UpdateDatasetColumnBody>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateDatasetColumn>>,
+  TError,
+  {
+    datasetId: number;
+    columnId: number;
+    data: BodyType<UpdateDatasetColumnBody>;
+  },
+  TContext
+> => {
+  return useMutation(getUpdateDatasetColumnMutationOptions(options));
 };
 
 /**

@@ -541,6 +541,186 @@ export const UpdateSettingsResponse = zod.object({
 });
 
 /**
+ * @summary List datasets for a workspace
+ */
+export const ListWorkspaceDatasetsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListWorkspaceDatasetsResponseItem = zod.object({
+  id: zod.number(),
+  workspaceId: zod.number(),
+  fileName: zod.string(),
+  sheetName: zod.string(),
+  byteSize: zod.number(),
+  rowCount: zod.number(),
+  returnedRowCount: zod.number(),
+  truncated: zod.boolean(),
+  readinessScore: zod.number(),
+  issueCount: zod.number(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListWorkspaceDatasetsResponse = zod.array(
+  ListWorkspaceDatasetsResponseItem,
+);
+
+/**
+ * @summary Upload a workbook (CSV / XLSX) to a workspace
+ */
+export const UploadWorkspaceDatasetParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UploadWorkspaceDatasetBody = zod.object({
+  file: zod.instanceof(File),
+});
+
+/**
+ * @summary Get a dataset including columns, sample rows, score, and issues
+ */
+export const GetDatasetParams = zod.object({
+  datasetId: zod.coerce.number(),
+});
+
+export const GetDatasetResponse = zod.object({
+  id: zod.number(),
+  workspaceId: zod.number(),
+  fileName: zod.string(),
+  sheetName: zod.string(),
+  byteSize: zod.number(),
+  rowCount: zod.number(),
+  returnedRowCount: zod.number(),
+  truncated: zod.boolean(),
+  readinessScore: zod.number(),
+  issueCount: zod.number(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+  columns: zod.array(
+    zod.object({
+      id: zod.number(),
+      datasetId: zod.number(),
+      ordinal: zod.number(),
+      name: zod.string(),
+      rawType: zod.string(),
+      semanticType: zod.string(),
+      businessMeaning: zod.string().nullish(),
+      uniqueCount: zod.number(),
+      nullCount: zod.number(),
+      sample: zod.array(zod.unknown()),
+      stats: zod
+        .union([
+          zod.object({
+            min: zod.number().optional(),
+            max: zod.number().optional(),
+            mean: zod.number().optional(),
+          }),
+          zod.null(),
+        ])
+        .optional(),
+      overriddenSemantic: zod.boolean(),
+      overriddenMeaning: zod.boolean(),
+    }),
+  ),
+  sampleRows: zod.array(zod.record(zod.string(), zod.unknown())),
+  issues: zod.array(
+    zod.object({
+      id: zod.string(),
+      category: zod.string(),
+      severity: zod.enum(["low", "medium", "high"]),
+      column: zod.string().optional(),
+      count: zod.number(),
+      message: zod.string(),
+      suggestedFix: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Delete a dataset
+ */
+export const DeleteDatasetParams = zod.object({
+  datasetId: zod.coerce.number(),
+});
+
+/**
+ * @summary Override a column's semantic type or business meaning
+ */
+export const UpdateDatasetColumnParams = zod.object({
+  datasetId: zod.coerce.number(),
+  columnId: zod.coerce.number(),
+});
+
+export const UpdateDatasetColumnBody = zod.object({
+  semanticType: zod
+    .enum([
+      "date",
+      "currency",
+      "percent",
+      "id",
+      "category",
+      "measure",
+      "text",
+      "boolean",
+    ])
+    .optional(),
+  businessMeaning: zod.string().nullish(),
+});
+
+export const UpdateDatasetColumnResponse = zod.object({
+  id: zod.number(),
+  workspaceId: zod.number(),
+  fileName: zod.string(),
+  sheetName: zod.string(),
+  byteSize: zod.number(),
+  rowCount: zod.number(),
+  returnedRowCount: zod.number(),
+  truncated: zod.boolean(),
+  readinessScore: zod.number(),
+  issueCount: zod.number(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+  columns: zod.array(
+    zod.object({
+      id: zod.number(),
+      datasetId: zod.number(),
+      ordinal: zod.number(),
+      name: zod.string(),
+      rawType: zod.string(),
+      semanticType: zod.string(),
+      businessMeaning: zod.string().nullish(),
+      uniqueCount: zod.number(),
+      nullCount: zod.number(),
+      sample: zod.array(zod.unknown()),
+      stats: zod
+        .union([
+          zod.object({
+            min: zod.number().optional(),
+            max: zod.number().optional(),
+            mean: zod.number().optional(),
+          }),
+          zod.null(),
+        ])
+        .optional(),
+      overriddenSemantic: zod.boolean(),
+      overriddenMeaning: zod.boolean(),
+    }),
+  ),
+  sampleRows: zod.array(zod.record(zod.string(), zod.unknown())),
+  issues: zod.array(
+    zod.object({
+      id: zod.string(),
+      category: zod.string(),
+      severity: zod.enum(["low", "medium", "high"]),
+      column: zod.string().optional(),
+      count: zod.number(),
+      message: zod.string(),
+      suggestedFix: zod.string(),
+    }),
+  ),
+});
+
+/**
  * @summary Get data for a specific dashboard section by config-driven section ID
  */
 export const GetDashboardSectionParams = zod.object({

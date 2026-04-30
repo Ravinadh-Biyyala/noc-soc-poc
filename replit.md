@@ -54,6 +54,12 @@ The platform's core design revolves around a configuration-driven approach, enab
 - AI dashboard generation uses gpt-4.1-mini, sampling up to 150 rows of prepared data for the prompt.
 - Supports over 10 visualization types (e.g., area, bar, line, pie, scatter, treemap).
 
+**Workspace Data Journey (Phase 08):**
+- Files are workspace-scoped, persisted assets. Schema: `datasets` (per file), `dataset_columns` (typed metadata + overrides), `dataset_rows` (sampled rows blob, capped at 100k).
+- Server (`/api/workspaces/:id/datasets`, `/api/datasets/:id`, column PATCH, dataset DELETE) parses workbook → classifies columns into semantic types (date/currency/percent/id/category/measure/boolean/text) → scores readiness 0-100 by penalising 7 issue categories (missing values, duplicates, format inconsistency, outliers, invalid dates, empty columns, suspicious negatives). Workspace `fileCount` and `readinessScore` aggregates are recomputed on every dataset write/delete.
+- UI: WorkspaceDetail Files tab now hosts a drag-and-drop zone, dataset list with score badges, and per-dataset detail with two sub-tabs — Understanding (column chips, semantic-type override Select, business-meaning Input, sample rows) and Quality (radial score gauge, grouped issue cards with severity badges + suggested fixes, client-side CSV issue export, "Continue to Join Studio" CTA gated at score ≥ 60).
+- Legacy `/upload` route now redirects to the most recent workspace's `/files` tab via wouter `<Redirect>`; the previous direct-generate page is preserved at `/upload/legacy`.
+
 **Tableau-like Data Preparation:**
 - Client-side data operations pipeline for multi-file workflows.
 - Supports joins (inner, left, right, outer), filters, aggregations, and calculated columns.

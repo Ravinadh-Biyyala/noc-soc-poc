@@ -374,6 +374,107 @@ export interface Settings {
   updatedAt: string;
 }
 
+export interface Dataset {
+  id: number;
+  workspaceId: number;
+  fileName: string;
+  sheetName: string;
+  byteSize: number;
+  rowCount: number;
+  returnedRowCount: number;
+  truncated: boolean;
+  readinessScore: number;
+  issueCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DatasetColumnStats {
+  min?: number;
+  max?: number;
+  mean?: number;
+}
+
+export interface DatasetColumn {
+  id: number;
+  datasetId: number;
+  ordinal: number;
+  name: string;
+  rawType: string;
+  semanticType: string;
+  /** @nullable */
+  businessMeaning?: string | null;
+  uniqueCount: number;
+  nullCount: number;
+  sample: unknown[];
+  stats?: DatasetColumnStats | null;
+  overriddenSemantic: boolean;
+  overriddenMeaning: boolean;
+}
+
+export type DatasetIssueSeverity =
+  (typeof DatasetIssueSeverity)[keyof typeof DatasetIssueSeverity];
+
+export const DatasetIssueSeverity = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+} as const;
+
+export interface DatasetIssue {
+  id: string;
+  category: string;
+  severity: DatasetIssueSeverity;
+  column?: string;
+  count: number;
+  message: string;
+  suggestedFix: string;
+}
+
+export type DatasetDetailSampleRowsItem = { [key: string]: unknown };
+
+export interface DatasetDetail {
+  id: number;
+  workspaceId: number;
+  fileName: string;
+  sheetName: string;
+  byteSize: number;
+  rowCount: number;
+  returnedRowCount: number;
+  truncated: boolean;
+  readinessScore: number;
+  issueCount: number;
+  createdAt: string;
+  updatedAt: string;
+  columns: DatasetColumn[];
+  sampleRows: DatasetDetailSampleRowsItem[];
+  issues: DatasetIssue[];
+}
+
+export interface UploadDatasetResponse {
+  datasets: Dataset[];
+}
+
+export type UpdateDatasetColumnBodySemanticType =
+  (typeof UpdateDatasetColumnBodySemanticType)[keyof typeof UpdateDatasetColumnBodySemanticType];
+
+export const UpdateDatasetColumnBodySemanticType = {
+  date: "date",
+  currency: "currency",
+  percent: "percent",
+  id: "id",
+  category: "category",
+  measure: "measure",
+  text: "text",
+  boolean: "boolean",
+} as const;
+
+export interface UpdateDatasetColumnBody {
+  semanticType?: UpdateDatasetColumnBodySemanticType;
+  /** @nullable */
+  businessMeaning?: string | null;
+}
+
 export type UpdateSettingsBodyTheme =
   (typeof UpdateSettingsBodyTheme)[keyof typeof UpdateSettingsBodyTheme];
 
@@ -407,5 +508,9 @@ export interface UpdateSettingsBody {
   aiTone?: UpdateSettingsBodyAiTone;
   aiModel?: string;
 }
+
+export type UploadWorkspaceDatasetBody = {
+  file: Blob;
+};
 
 export type GetDashboardSection200 = { [key: string]: unknown };
