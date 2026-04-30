@@ -7,20 +7,28 @@ import {
 } from "express";
 import multer from "multer";
 import { db, datasets, datasetColumns, datasetRows, workspaces } from "@workspace/db";
-import { and, eq, sql, desc } from "drizzle-orm";
+import { and, eq, desc } from "drizzle-orm";
 import {
   classifyColumns,
   scoreReadiness,
+  mergeIssueStatuses,
+  applyStatusToScore,
+  suggestKpis,
   type ColumnClassification,
+  type DatasetIssue,
+  type IssueStatus,
 } from "../../lib/dataset-engine";
 import { parseWorkbookBuffer } from "../../lib/parse-workbook";
-import { UpdateDatasetColumnBody } from "@workspace/api-zod";
+import { UpdateDatasetColumnBody, UpdateDatasetIssueBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
-const MAX_UPLOAD_BYTES = 60 * 1024 * 1024; // 60 MB
+const MAX_UPLOAD_BYTES = 60 * 1024 * 1024;
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_UPLOAD_BYTES } });
 
-// Translate raw multer errors into friendly JSON.
+type Writer =
+  | typeof db
+  | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 function handleUpload(req: Request, res: Response, next: NextFunction): void {
   upload.single("file")(req, res, (err: any) => {
     if (err) {
@@ -37,7 +45,16 @@ function handleUpload(req: Request, res: Response, next: NextFunction): void {
   });
 }
 
+function getIssues(d: typeof datasets.$inferSelect): DatasetIssue[] {
+  return Array.isArray(d.issues) ? (d.issues as DatasetIssue[]) : [];
+}
+
+function activeIssueCount(issues: DatasetIssue[]): number {
+  return issues.filter((i) => i.status !== "ignored" && i.status !== "resolved").length;
+}
+
 function serializeDataset(d: typeof datasets.$inferSelect) {
+  const issues = getIssues(d);
   return {
     id: d.id,
     workspaceId: d.workspaceId,
@@ -48,7 +65,7 @@ function serializeDataset(d: typeof datasets.$inferSelect) {
     returnedRowCount: d.returnedRowCount,
     truncated: d.truncated,
     readinessScore: d.readinessScore,
-    issueCount: Array.isArray(d.issues) ? d.issues.length : 0,
+    issueCount: activeIssueCount(issues),
     createdAt: d.createdAt.toISOString(),
     updatedAt: d.updatedAt.toISOString(),
   };
@@ -72,36 +89,43 @@ function serializeColumn(c: typeof datasetColumns.$inferSelect) {
   };
 }
 
-// Drizzle transaction handle (any writer that exposes the same query API as
-// `db`). We accept either to keep helpers usable both inside and outside a
-// transaction.
-type DbWriter = typeof db;
+function classificationsFromColumns(
+  cols: (typeof datasetColumns.$inferSelect)[],
+): ColumnClassification[] {
+  return cols.map((c) => ({
+    name: c.name,
+    ordinal: c.ordinal,
+    rawType: c.rawType as ColumnClassification["rawType"],
+    semanticType: c.semanticType as ColumnClassification["semanticType"],
+    businessMeaning: c.businessMeaning ?? "",
+    uniqueCount: c.uniqueCount,
+    nullCount: c.nullCount,
+    sample: Array.isArray(c.sample) ? c.sample : [],
+    stats: (c.stats as ColumnClassification["stats"]) ?? undefined,
+  }));
+}
 
-// Re-derive a workspace's overall readiness as the average of its dataset
-// readiness scores. Bumps fileCount + updatedAt at the same time so the
-// workspace cards on the list page stay in sync.
 async function refreshWorkspaceAggregates(
   workspaceId: number,
-  writer: DbWriter = db,
+  writer: Writer = db,
 ): Promise<void> {
   const all = await writer
     .select({ score: datasets.readinessScore })
     .from(datasets)
     .where(eq(datasets.workspaceId, workspaceId));
   const fileCount = all.length;
-  const readiness = fileCount === 0
-    ? 0
-    : Math.round(all.reduce((sum, d) => sum + d.score, 0) / fileCount);
+  const readiness =
+    fileCount === 0
+      ? 0
+      : Math.round(all.reduce((sum, d) => sum + d.score, 0) / fileCount);
   await writer
     .update(workspaces)
     .set({ fileCount, readinessScore: readiness, updatedAt: new Date() })
     .where(eq(workspaces.id, workspaceId));
 }
 
-// Persist a freshly-parsed sheet as a dataset + columns + rows blob. Writes
-// go through `writer` so we can compose this inside a transaction.
 async function persistDataset(
-  writer: DbWriter,
+  writer: Writer,
   opts: {
     workspaceId: number;
     fileName: string;
@@ -113,7 +137,7 @@ async function persistDataset(
     rows: Record<string, unknown>[];
     classifications: ColumnClassification[];
     readinessScore: number;
-    issues: ReturnType<typeof scoreReadiness>["issues"];
+    issues: DatasetIssue[];
   },
 ) {
   const [datasetRow] = await writer
@@ -156,9 +180,6 @@ async function persistDataset(
   return datasetRow;
 }
 
-// POST /api/workspaces/:id/datasets
-// Multipart file upload, scoped to a workspace. Each non-empty sheet becomes
-// a dataset row; the response returns the list of dataset summaries created.
 router.post(
   "/workspaces/:id/datasets",
   handleUpload,
@@ -189,17 +210,13 @@ router.post(
         return;
       }
 
-      // Persist every sheet + the workspace aggregate refresh inside a single
-      // transaction. If any sheet fails (oversized JSONB, constraint, etc.)
-      // we roll back the whole upload so the workspace never ends up with a
-      // partially-imported file or stale aggregates.
       const file = req.file;
       const created = await db.transaction(async (tx) => {
         const out: ReturnType<typeof serializeDataset>[] = [];
         for (const sheet of parsed.sheets) {
           const classifications = classifyColumns(sheet.rows, sheet.columnNames);
           const { score, issues } = scoreReadiness(sheet.rows, classifications);
-          const ds = await persistDataset(tx as unknown as DbWriter, {
+          const ds = await persistDataset(tx, {
             workspaceId,
             fileName: file.originalname,
             byteSize: file.size,
@@ -214,7 +231,7 @@ router.post(
           });
           out.push(serializeDataset(ds));
         }
-        await refreshWorkspaceAggregates(workspaceId, tx as unknown as DbWriter);
+        await refreshWorkspaceAggregates(workspaceId, tx);
         return out;
       });
 
@@ -226,7 +243,6 @@ router.post(
   },
 );
 
-// GET /api/workspaces/:id/datasets
 router.get("/workspaces/:id/datasets", async (req: Request, res: Response) => {
   const workspaceId = Number(req.params.id);
   if (!Number.isFinite(workspaceId)) {
@@ -241,7 +257,6 @@ router.get("/workspaces/:id/datasets", async (req: Request, res: Response) => {
   res.json(rows.map(serializeDataset));
 });
 
-// GET /api/datasets/:datasetId — full detail incl. columns, sample rows, issues
 router.get("/datasets/:datasetId", async (req: Request, res: Response) => {
   const datasetId = Number(req.params.datasetId);
   if (!Number.isFinite(datasetId)) {
@@ -264,17 +279,16 @@ router.get("/datasets/:datasetId", async (req: Request, res: Response) => {
     .where(eq(datasetRows.datasetId, datasetId))
     .limit(1);
   const allRows = (rowsRow?.rows as Record<string, unknown>[] | undefined) ?? [];
+  const classifications = classificationsFromColumns(cols);
   res.json({
     ...serializeDataset(ds),
-    issues: Array.isArray(ds.issues) ? ds.issues : [],
+    issues: getIssues(ds),
     columns: cols.map(serializeColumn),
     sampleRows: allRows.slice(0, 20),
+    suggestedKpis: suggestKpis(classifications, ds.rowCount),
   });
 });
 
-// PATCH /api/datasets/:datasetId/columns/:columnId
-// Apply user overrides for semantic type and/or business meaning, then
-// recompute the dataset's readiness score with the new classifications.
 router.patch(
   "/datasets/:datasetId/columns/:columnId",
   async (req: Request, res: Response) => {
@@ -295,79 +309,120 @@ router.patch(
       return;
     }
 
-    await db
-      .update(datasetColumns)
-      .set({
-        ...(body.semanticType !== undefined
-          ? { semanticType: body.semanticType, overriddenSemantic: true }
-          : {}),
-        ...(body.businessMeaning !== undefined
-          ? { businessMeaning: body.businessMeaning, overriddenMeaning: true }
-          : {}),
-      })
-      .where(eq(datasetColumns.id, columnId));
+    const result = await db.transaction(async (tx) => {
+      await tx
+        .update(datasetColumns)
+        .set({
+          ...(body.semanticType !== undefined
+            ? { semanticType: body.semanticType, overriddenSemantic: true }
+            : {}),
+          ...(body.businessMeaning !== undefined
+            ? { businessMeaning: body.businessMeaning, overriddenMeaning: true }
+            : {}),
+        })
+        .where(eq(datasetColumns.id, columnId));
 
-    // Recompute readiness with the (possibly overridden) classifications and
-    // the persisted rows.
-    const allCols = await db
-      .select()
-      .from(datasetColumns)
-      .where(eq(datasetColumns.datasetId, datasetId))
-      .orderBy(datasetColumns.ordinal);
-    const [rowsRow] = await db
-      .select()
-      .from(datasetRows)
-      .where(eq(datasetRows.datasetId, datasetId))
-      .limit(1);
-    const allRows = (rowsRow?.rows as Record<string, unknown>[] | undefined) ?? [];
+      const allCols = await tx
+        .select()
+        .from(datasetColumns)
+        .where(eq(datasetColumns.datasetId, datasetId))
+        .orderBy(datasetColumns.ordinal);
+      const [rowsRow] = await tx
+        .select()
+        .from(datasetRows)
+        .where(eq(datasetRows.datasetId, datasetId))
+        .limit(1);
+      const allRows = (rowsRow?.rows as Record<string, unknown>[] | undefined) ?? [];
 
-    const reClassifications: ColumnClassification[] = allCols.map((c) => ({
-      name: c.name,
-      ordinal: c.ordinal,
-      rawType: c.rawType as ColumnClassification["rawType"],
-      semanticType: c.semanticType as ColumnClassification["semanticType"],
-      businessMeaning: c.businessMeaning ?? "",
-      uniqueCount: c.uniqueCount,
-      nullCount: c.nullCount,
-      sample: Array.isArray(c.sample) ? c.sample : [],
-      stats: (c.stats as ColumnClassification["stats"]) ?? undefined,
-    }));
-    const { score, issues } = scoreReadiness(allRows, reClassifications);
+      const reClassifications = classificationsFromColumns(allCols);
+      const { score: rawScore, issues: freshIssues } = scoreReadiness(allRows, reClassifications);
+      const [prev] = await tx.select().from(datasets).where(eq(datasets.id, datasetId)).limit(1);
+      const merged = mergeIssueStatuses(freshIssues, getIssues(prev!));
+      const adjusted = applyStatusToScore(rawScore, merged);
 
-    await db
-      .update(datasets)
-      .set({ readinessScore: score, issues, updatedAt: new Date() })
-      .where(eq(datasets.id, datasetId));
+      await tx
+        .update(datasets)
+        .set({ readinessScore: adjusted, issues: merged, updatedAt: new Date() })
+        .where(eq(datasets.id, datasetId));
 
-    const [ds] = await db.select().from(datasets).where(eq(datasets.id, datasetId)).limit(1);
-    if (ds) await refreshWorkspaceAggregates(ds.workspaceId);
+      const [ds] = await tx.select().from(datasets).where(eq(datasets.id, datasetId)).limit(1);
+      await refreshWorkspaceAggregates(ds!.workspaceId, tx);
+      return { ds: ds!, allCols, allRows, merged, classifications: reClassifications };
+    });
 
     res.json({
-      ...serializeDataset(ds!),
-      issues,
-      columns: allCols.map((c) =>
-        serializeColumn(c.id === columnId ? { ...c, ...inferOverrideFlags(body, c) } : c),
-      ),
-      sampleRows: allRows.slice(0, 20),
+      ...serializeDataset(result.ds),
+      issues: result.merged,
+      columns: result.allCols.map(serializeColumn),
+      sampleRows: result.allRows.slice(0, 20),
+      suggestedKpis: suggestKpis(result.classifications, result.ds.rowCount),
     });
   },
 );
 
-function inferOverrideFlags(
-  body: { semanticType?: string; businessMeaning?: string | null },
-  col: typeof datasetColumns.$inferSelect,
-): Partial<typeof datasetColumns.$inferSelect> {
-  return {
-    ...(body.semanticType !== undefined
-      ? { semanticType: body.semanticType, overriddenSemantic: true }
-      : {}),
-    ...(body.businessMeaning !== undefined
-      ? { businessMeaning: body.businessMeaning, overriddenMeaning: true }
-      : {}),
-  };
-}
+router.patch(
+  "/datasets/:datasetId/issues/:issueId",
+  async (req: Request, res: Response) => {
+    const datasetId = Number(req.params.datasetId);
+    const issueId = String(req.params.issueId);
+    if (!Number.isFinite(datasetId)) {
+      res.status(400).json({ error: "Invalid dataset id" });
+      return;
+    }
+    const body = UpdateDatasetIssueBody.parse(req.body);
+    const status = body.status as IssueStatus;
 
-// DELETE /api/datasets/:datasetId
+    const result = await db.transaction(async (tx) => {
+      const [ds] = await tx.select().from(datasets).where(eq(datasets.id, datasetId)).limit(1);
+      if (!ds) return null;
+      const issues = getIssues(ds);
+      const idx = issues.findIndex((i) => i.id === issueId);
+      if (idx < 0) return { notFoundIssue: true };
+      const next = issues.slice();
+      next[idx] = { ...next[idx], status };
+
+      const cols = await tx
+        .select()
+        .from(datasetColumns)
+        .where(eq(datasetColumns.datasetId, datasetId))
+        .orderBy(datasetColumns.ordinal);
+      const [rowsRow] = await tx
+        .select()
+        .from(datasetRows)
+        .where(eq(datasetRows.datasetId, datasetId))
+        .limit(1);
+      const allRows = (rowsRow?.rows as Record<string, unknown>[] | undefined) ?? [];
+      const classifications = classificationsFromColumns(cols);
+      const { score: rawScore } = scoreReadiness(allRows, classifications);
+      const adjusted = applyStatusToScore(rawScore, next);
+
+      await tx
+        .update(datasets)
+        .set({ readinessScore: adjusted, issues: next, updatedAt: new Date() })
+        .where(eq(datasets.id, datasetId));
+      const [updated] = await tx.select().from(datasets).where(eq(datasets.id, datasetId)).limit(1);
+      await refreshWorkspaceAggregates(updated!.workspaceId, tx);
+      return { ds: updated!, cols, allRows, issues: next, classifications };
+    });
+
+    if (!result) {
+      res.status(404).json({ error: "Dataset not found" });
+      return;
+    }
+    if ("notFoundIssue" in result) {
+      res.status(404).json({ error: "Issue not found" });
+      return;
+    }
+    res.json({
+      ...serializeDataset(result.ds),
+      issues: result.issues,
+      columns: result.cols.map(serializeColumn),
+      sampleRows: result.allRows.slice(0, 20),
+      suggestedKpis: suggestKpis(result.classifications, result.ds.rowCount),
+    });
+  },
+);
+
 router.delete("/datasets/:datasetId", async (req: Request, res: Response) => {
   const datasetId = Number(req.params.datasetId);
   if (!Number.isFinite(datasetId)) {
@@ -385,6 +440,3 @@ router.delete("/datasets/:datasetId", async (req: Request, res: Response) => {
 });
 
 export default router;
-
-// Suppress unused-symbol lint while keeping the helper expressive.
-void sql;

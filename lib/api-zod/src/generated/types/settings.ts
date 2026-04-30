@@ -15,6 +15,7 @@ export interface Settings {
   timezone: string;
   theme: string;
   fileSizeLimitMb: number;
+  readinessThreshold: number;
   defaultPackId?: string | null;
   aiTone: string;
   aiModel: string;

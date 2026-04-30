@@ -52,7 +52,17 @@ interface UnderstandingViewProps {
   dataset: DatasetDetail;
 }
 
+const AGG_LABEL: Record<string, string> = {
+  sum: "Sum",
+  avg: "Average",
+  count: "Count",
+  count_distinct: "Unique count",
+  min: "Min",
+  max: "Max",
+};
+
 export default function UnderstandingView({ dataset }: UnderstandingViewProps) {
+  const kpis = dataset.suggestedKpis ?? [];
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -61,6 +71,40 @@ export default function UnderstandingView({ dataset }: UnderstandingViewProps) {
         <Stat label="Sampled rows" value={dataset.returnedRowCount.toLocaleString()} />
         <Stat label="Readiness" value={`${dataset.readinessScore}%`} />
       </div>
+
+      {kpis.length > 0 && (
+        <Card data-testid="suggested-kpis">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">AI-suggested KPIs</CardTitle>
+            <CardDescription className="text-xs">
+              Starter metrics Gen-BI inferred from your column types — these will seed the dashboards in the next step.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {kpis.map((kpi) => (
+                <div
+                  key={kpi.id}
+                  className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 pl-2 pr-3 py-1"
+                  data-testid={`suggested-kpi-${kpi.id}`}
+                  title={kpi.reason}
+                >
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] font-normal bg-primary/10 text-primary border-primary/20"
+                  >
+                    {AGG_LABEL[kpi.agg] ?? kpi.agg}
+                  </Badge>
+                  <span className="text-xs font-medium">{kpi.label}</span>
+                  {kpi.column !== "*" && (
+                    <span className="text-[10px] text-muted-foreground">· {kpi.column}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader className="pb-2">

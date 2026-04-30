@@ -456,6 +456,41 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OpenaiError"
+  /datasets/{datasetId}/issues/{issueId}:
+    patch:
+      operationId: updateDatasetIssue
+      tags: [datasets]
+      summary: Update a quality issue's status (auto-fix / ignore / review)
+      parameters:
+        - name: datasetId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDatasetIssueBody"
+      responses:
+        "200":
+          description: Updated dataset detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DatasetDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
   /dashboard/{sectionId}:
     get:
       operationId: getDashboardSection
@@ -1382,6 +1417,8 @@ components:
           type: string
         fileSizeLimitMb:
           type: integer
+        readinessThreshold:
+          type: integer
         defaultPackId:
           type: string
           nullable: true
@@ -1398,6 +1435,7 @@ components:
         - timezone
         - theme
         - fileSizeLimitMb
+        - readinessThreshold
         - aiTone
         - aiModel
         - updatedAt
@@ -1514,6 +1552,9 @@ components:
           type: string
         suggestedFix:
           type: string
+        status:
+          type: string
+          enum: [open, ignored, resolved, review]
       required:
         - id
         - category
@@ -1521,6 +1562,27 @@ components:
         - count
         - message
         - suggestedFix
+        - status
+    SuggestedKpi:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        agg:
+          type: string
+          enum: [sum, avg, count, count_distinct, min, max]
+        column:
+          type: string
+        reason:
+          type: string
+      required:
+        - id
+        - label
+        - agg
+        - column
+        - reason
     DatasetDetail:
       type: object
       properties:
@@ -1563,6 +1625,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/DatasetIssue"
+        suggestedKpis:
+          type: array
+          items:
+            $ref: "#/components/schemas/SuggestedKpi"
       required:
         - id
         - workspaceId
@@ -1579,6 +1645,7 @@ components:
         - columns
         - sampleRows
         - issues
+        - suggestedKpis
     UploadDatasetResponse:
       type: object
       properties:
@@ -1596,6 +1663,14 @@ components:
           enum: [date, currency, percent, id, category, measure, text, boolean]
         businessMeaning:
           type: ["string", "null"]
+    UpdateDatasetIssueBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [open, ignored, resolved, review]
+      required:
+        - status
     UpdateSettingsBody:
       type: object
       properties:
@@ -1617,6 +1692,10 @@ components:
           type: integer
           minimum: 1
           maximum: 500
+        readinessThreshold:
+          type: integer
+          minimum: 0
+          maximum: 100
         defaultPackId:
           type: string
           nullable: true

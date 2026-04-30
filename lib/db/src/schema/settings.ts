@@ -15,6 +15,9 @@ export const settings = pgTable("settings", {
   theme: text("theme").notNull().default("light"),
   // File limits
   fileSizeLimitMb: integer("file_size_limit_mb").notNull().default(60),
+  // Readiness gating threshold (0-100). Files below this score block
+  // "Continue to Join Studio" unless the user uses the soft override.
+  readinessThreshold: integer("readiness_threshold").notNull().default(60),
   // Domain packs
   defaultPackId: text("default_pack_id"),
   // AI behaviour

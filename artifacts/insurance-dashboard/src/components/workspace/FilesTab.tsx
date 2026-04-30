@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   ChevronRight,
   FileSpreadsheet,
+  Info,
   Loader2,
   Trash2,
   Upload,
@@ -190,6 +191,27 @@ export default function FilesTab({ workspaceId, initialDatasetId, onSelectDatase
           <span className="leading-snug">{error}</span>
         </div>
       )}
+
+      {(() => {
+        const sampled = (datasets ?? []).filter((d) => d.truncated);
+        if (sampled.length === 0) return null;
+        const totalRows = sampled.reduce((s, d) => s + d.rowCount, 0);
+        const sampledRows = sampled.reduce((s, d) => s + d.returnedRowCount, 0);
+        return (
+          <div
+            className="flex items-start gap-2 text-amber-800 text-xs bg-amber-50 border border-amber-200 p-3 rounded-lg"
+            data-testid="fast-sample-banner"
+          >
+            <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span className="leading-snug">
+              <span className="font-semibold">Fast-sample preview:</span>{" "}
+              {sampled.length === 1 ? "One file was" : `${sampled.length} files were`} parsed using a head sample of{" "}
+              {sampledRows.toLocaleString()} of {totalRows.toLocaleString()} rows so the UI stays snappy. The full
+              file is preserved for joins and exports.
+            </span>
+          </div>
+        );
+      })()}
 
       {/* Dataset list */}
       {isLoading ? (

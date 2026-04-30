@@ -8,6 +8,7 @@
 import type { DatasetColumn } from "./datasetColumn";
 import type { DatasetDetailSampleRowsItem } from "./datasetDetailSampleRowsItem";
 import type { DatasetIssue } from "./datasetIssue";
+import type { SuggestedKpi } from "./suggestedKpi";
 
 export interface DatasetDetail {
   id: number;
@@ -25,4 +26,5 @@ export interface DatasetDetail {
   columns: DatasetColumn[];
   sampleRows: DatasetDetailSampleRowsItem[];
   issues: DatasetIssue[];
+  suggestedKpis: SuggestedKpi[];
 }

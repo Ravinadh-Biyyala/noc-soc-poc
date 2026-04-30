@@ -368,6 +368,7 @@ export interface Settings {
   timezone: string;
   theme: string;
   fileSizeLimitMb: number;
+  readinessThreshold: number;
   defaultPackId?: string | null;
   aiTone: string;
   aiModel: string;
@@ -421,6 +422,16 @@ export const DatasetIssueSeverity = {
   high: "high",
 } as const;
 
+export type DatasetIssueStatus =
+  (typeof DatasetIssueStatus)[keyof typeof DatasetIssueStatus];
+
+export const DatasetIssueStatus = {
+  open: "open",
+  ignored: "ignored",
+  resolved: "resolved",
+  review: "review",
+} as const;
+
 export interface DatasetIssue {
   id: string;
   category: string;
@@ -429,6 +440,27 @@ export interface DatasetIssue {
   count: number;
   message: string;
   suggestedFix: string;
+  status: DatasetIssueStatus;
+}
+
+export type SuggestedKpiAgg =
+  (typeof SuggestedKpiAgg)[keyof typeof SuggestedKpiAgg];
+
+export const SuggestedKpiAgg = {
+  sum: "sum",
+  avg: "avg",
+  count: "count",
+  count_distinct: "count_distinct",
+  min: "min",
+  max: "max",
+} as const;
+
+export interface SuggestedKpi {
+  id: string;
+  label: string;
+  agg: SuggestedKpiAgg;
+  column: string;
+  reason: string;
 }
 
 export type DatasetDetailSampleRowsItem = { [key: string]: unknown };
@@ -449,6 +481,7 @@ export interface DatasetDetail {
   columns: DatasetColumn[];
   sampleRows: DatasetDetailSampleRowsItem[];
   issues: DatasetIssue[];
+  suggestedKpis: SuggestedKpi[];
 }
 
 export interface UploadDatasetResponse {
@@ -473,6 +506,20 @@ export interface UpdateDatasetColumnBody {
   semanticType?: UpdateDatasetColumnBodySemanticType;
   /** @nullable */
   businessMeaning?: string | null;
+}
+
+export type UpdateDatasetIssueBodyStatus =
+  (typeof UpdateDatasetIssueBodyStatus)[keyof typeof UpdateDatasetIssueBodyStatus];
+
+export const UpdateDatasetIssueBodyStatus = {
+  open: "open",
+  ignored: "ignored",
+  resolved: "resolved",
+  review: "review",
+} as const;
+
+export interface UpdateDatasetIssueBody {
+  status: UpdateDatasetIssueBodyStatus;
 }
 
 export type UpdateSettingsBodyTheme =
@@ -504,6 +551,11 @@ export interface UpdateSettingsBody {
    * @maximum 500
    */
   fileSizeLimitMb?: number;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  readinessThreshold?: number;
   defaultPackId?: string | null;
   aiTone?: UpdateSettingsBodyAiTone;
   aiModel?: string;

@@ -38,6 +38,7 @@ export interface ColumnClassification {
 }
 
 export type IssueSeverity = "low" | "medium" | "high";
+export type IssueStatus = "open" | "ignored" | "resolved" | "review";
 
 export interface DatasetIssue {
   id: string;
@@ -54,6 +55,15 @@ export interface DatasetIssue {
   count: number;
   message: string;
   suggestedFix: string;
+  status: IssueStatus;
+}
+
+export interface SuggestedKpi {
+  id: string;
+  label: string;
+  agg: "sum" | "avg" | "count" | "count_distinct" | "min" | "max";
+  column: string;
+  reason: string;
 }
 
 export interface ReadinessReport {
@@ -213,13 +223,16 @@ export function classifyColumns(
 }
 
 interface PenaltyWeights {
-  perMissingPct: number; // points per percent of missing values, capped per column
-  perMissingMax: number; // max penalty per column from missing
-  duplicateRows: number; // flat penalty if any duplicate rows
-  inconsistentFormat: number; // per column
-  invalidDate: number; // per column (any invalid date in a date column)
-  emptyColumn: number; // per column entirely null
-  suspicious: number; // per column flagged
+  perMissingPct: number;
+  perMissingMax: number;
+  duplicateRows: number;
+  inconsistentFormat: number;
+  invalidDate: number;
+  emptyColumn: number;
+  suspicious: number;
+  outlierPerColumn: number;
+  outlierPerPct: number;
+  outlierMaxPct: number;
 }
 
 const PENALTIES: PenaltyWeights = {
@@ -230,6 +243,9 @@ const PENALTIES: PenaltyWeights = {
   invalidDate: 8,
   emptyColumn: 10,
   suspicious: 5,
+  outlierPerColumn: 2,
+  outlierPerPct: 0.4,
+  outlierMaxPct: 8,
 };
 
 function severityFor(impact: number): IssueSeverity {
@@ -265,6 +281,7 @@ export function scoreReadiness(
         count: col.nullCount,
         message: `Column "${col.name}" is completely empty.`,
         suggestedFix: "Drop this column or backfill from another source.",
+        status: "open",
       });
       penalty += PENALTIES.emptyColumn;
       continue;
@@ -282,6 +299,7 @@ export function scoreReadiness(
           missingPct > 30
             ? "Consider dropping the column or imputing with a default."
             : "Impute with the median / mode or filter out rows.",
+        status: "open",
       });
       penalty += cost;
     }
@@ -308,6 +326,7 @@ export function scoreReadiness(
           checkLimit < rows.length ? ` in the first ${checkLimit.toLocaleString()} rows` : ""
         }.`,
         suggestedFix: "Deduplicate by primary key or full-row hash.",
+        status: "open",
       });
       penalty += PENALTIES.duplicateRows;
     }
@@ -329,6 +348,7 @@ export function scoreReadiness(
           count: invalid,
           message: `"${col.name}" contains ${invalid} value${invalid === 1 ? "" : "s"} that don't parse as a date.`,
           suggestedFix: "Normalize to ISO 8601 (YYYY-MM-DD) or drop bad rows.",
+          status: "open",
         });
         penalty += PENALTIES.invalidDate;
       }
@@ -346,6 +366,7 @@ export function scoreReadiness(
           count: stringy,
           message: `"${col.name}" mixes numeric and non-numeric formatting in ${stringy} sample value${stringy === 1 ? "" : "s"}.`,
           suggestedFix: "Strip currency symbols / commas and coerce to a number.",
+          status: "open",
         });
         penalty += PENALTIES.inconsistentFormat;
       }
@@ -366,12 +387,219 @@ export function scoreReadiness(
           count: negs,
           message: `${negs} negative value${negs === 1 ? "" : "s"} in money column "${col.name}".`,
           suggestedFix: "Verify these are refunds / adjustments and not data entry errors.",
+          status: "open",
         });
         penalty += PENALTIES.suspicious;
       }
     }
   }
 
+  // 5. Outliers via the IQR rule on numeric columns. We need a meaningful
+  // sample (>= 12 values) and we cap the scan at the first 5k rows so the
+  // computation stays cheap on large workbooks.
+  for (const col of columns) {
+    if (
+      col.semanticType !== "measure" &&
+      col.semanticType !== "currency" &&
+      col.semanticType !== "percent"
+    ) {
+      continue;
+    }
+    const values: number[] = [];
+    const scan = Math.min(rows.length, 5_000);
+    for (let i = 0; i < scan; i++) {
+      const raw = rows[i][col.name];
+      const n = typeof raw === "number" ? raw : Number(String(raw ?? "").replace(/[$€£¥,%\s]/g, ""));
+      if (Number.isFinite(n)) values.push(n);
+    }
+    if (values.length < 12) continue;
+    values.sort((a, b) => a - b);
+    const q = (p: number) => values[Math.min(values.length - 1, Math.floor(p * values.length))];
+    const q1 = q(0.25);
+    const q3 = q(0.75);
+    const iqr = q3 - q1;
+    if (iqr === 0) continue;
+    const lo = q1 - 1.5 * iqr;
+    const hi = q3 + 1.5 * iqr;
+    const outliers = values.filter((v) => v < lo || v > hi).length;
+    const pct = outliers / values.length;
+    if (pct >= 0.01 && outliers >= 1) {
+      const sev: IssueSeverity = pct >= 0.1 ? "high" : pct >= 0.03 ? "medium" : "low";
+      issues.push({
+        id: nextId(),
+        category: "outliers",
+        severity: sev,
+        column: col.name,
+        count: outliers,
+        message: `${outliers.toLocaleString()} potential outlier${outliers === 1 ? "" : "s"} in "${col.name}" (outside ${lo.toFixed(2)}…${hi.toFixed(2)}).`,
+        suggestedFix: "Inspect the values — they may be data-entry errors or genuine extremes.",
+        status: "open",
+      });
+      penalty +=
+        PENALTIES.outlierPerColumn + Math.min(PENALTIES.outlierMaxPct, pct * 100 * PENALTIES.outlierPerPct);
+    }
+  }
+
   const score = Math.max(0, Math.min(100, Math.round(100 - penalty)));
   return { score, issues };
+}
+
+/**
+ * Recompute the readiness score honouring user issue-status overrides
+ * (ignored issues no longer count, resolved issues stop penalising).
+ * The function takes the freshly-recomputed issues and merges in the
+ * statuses from the previous version so manual triage isn't lost.
+ */
+export function mergeIssueStatuses(
+  fresh: DatasetIssue[],
+  previous: DatasetIssue[],
+): DatasetIssue[] {
+  const previousByKey = new Map<string, DatasetIssue>();
+  for (const prev of previous) {
+    previousByKey.set(`${prev.category}|${prev.column ?? ""}`, prev);
+  }
+  return fresh.map((f) => {
+    const prev = previousByKey.get(`${f.category}|${f.column ?? ""}`);
+    if (prev && prev.status && prev.status !== "open") {
+      return { ...f, status: prev.status };
+    }
+    return f;
+  });
+}
+
+/**
+ * Discount the score by the issues the user has chosen to ignore or mark as
+ * resolved. A pragmatic implementation: compute base penalty as `100 - score`,
+ * then refund a category-weighted penalty per non-open issue.
+ */
+export function applyStatusToScore(score: number, issues: DatasetIssue[]): number {
+  const refund = (cat: DatasetIssue["category"]): number => {
+    switch (cat) {
+      case "missing":
+        return PENALTIES.perMissingMax / 2;
+      case "duplicates":
+        return PENALTIES.duplicateRows;
+      case "format":
+        return PENALTIES.inconsistentFormat;
+      case "outliers":
+        return PENALTIES.outlierPerColumn;
+      case "invalid_date":
+        return PENALTIES.invalidDate;
+      case "empty_column":
+        return PENALTIES.emptyColumn;
+      case "suspicious":
+        return PENALTIES.suspicious;
+    }
+  };
+  let bonus = 0;
+  for (const i of issues) {
+    if (i.status === "ignored" || i.status === "resolved") {
+      bonus += refund(i.category);
+    }
+  }
+  return Math.max(0, Math.min(100, Math.round(score + bonus)));
+}
+
+/**
+ * Suggest 3-5 KPI fields the user is most likely to want, derived from the
+ * column classifications. Order: count of identifier rows → sum/avg of money
+ * columns → avg of percent → top category breakdown. The downstream metric
+ * builder (a future task) reads these as starter suggestions.
+ */
+export function suggestKpis(columns: ColumnClassification[], rowCount: number): SuggestedKpi[] {
+  const out: SuggestedKpi[] = [];
+  const usable = columns.filter((c) => c.nullCount < rowCount);
+  let counter = 0;
+  const next = () => `kpi-${++counter}`;
+
+  const idCol = usable.find((c) => c.semanticType === "id");
+  if (idCol) {
+    out.push({
+      id: next(),
+      label: `Total ${prettify(idCol.name)}`,
+      agg: "count_distinct",
+      column: idCol.name,
+      reason: "Counts unique identifiers — usually the headline volume KPI.",
+    });
+  } else if (rowCount > 0) {
+    out.push({
+      id: next(),
+      label: "Total records",
+      agg: "count",
+      column: "*",
+      reason: "Row count is a baseline volume metric for this dataset.",
+    });
+  }
+
+  const currencyCols = usable.filter((c) => c.semanticType === "currency");
+  for (const col of currencyCols.slice(0, 2)) {
+    out.push({
+      id: next(),
+      label: `Total ${prettify(col.name)}`,
+      agg: "sum",
+      column: col.name,
+      reason: "Sum of a money column — typical revenue / spend KPI.",
+    });
+    if (out.length >= 5) break;
+    out.push({
+      id: next(),
+      label: `Average ${prettify(col.name)}`,
+      agg: "avg",
+      column: col.name,
+      reason: "Average money per row gives a per-unit economics view.",
+    });
+    if (out.length >= 5) break;
+  }
+
+  if (out.length < 5) {
+    const percent = usable.find((c) => c.semanticType === "percent");
+    if (percent) {
+      out.push({
+        id: next(),
+        label: `Average ${prettify(percent.name)}`,
+        agg: "avg",
+        column: percent.name,
+        reason: "Average rate is a typical performance KPI.",
+      });
+    }
+  }
+
+  if (out.length < 5) {
+    const measure = usable.find((c) => c.semanticType === "measure");
+    if (measure) {
+      out.push({
+        id: next(),
+        label: `Average ${prettify(measure.name)}`,
+        agg: "avg",
+        column: measure.name,
+        reason: "Average of the leading numeric measure.",
+      });
+    }
+  }
+
+  if (out.length < 5) {
+    const cat = usable.find((c) => c.semanticType === "category" && c.uniqueCount <= 25 && c.uniqueCount > 1);
+    if (cat) {
+      out.push({
+        id: next(),
+        label: `${prettify(cat.name)} breakdown`,
+        agg: "count",
+        column: cat.name,
+        reason: "Top categories are useful for grouping and filtering.",
+      });
+    }
+  }
+
+  return out.slice(0, 5);
+}
+
+function prettify(name: string): string {
+  const tidy = name
+    .replace(/[_\-]+/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim();
+  return tidy.length === 0
+    ? name
+    : tidy.charAt(0).toUpperCase() + tidy.slice(1).toLowerCase();
 }

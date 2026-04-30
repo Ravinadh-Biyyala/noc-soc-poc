@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { DatasetIssueSeverity } from "./datasetIssueSeverity";
+import type { DatasetIssueStatus } from "./datasetIssueStatus";
 
 export interface DatasetIssue {
   id: string;
@@ -15,4 +16,5 @@ export interface DatasetIssue {
   count: number;
   message: string;
   suggestedFix: string;
+  status: DatasetIssueStatus;
 }

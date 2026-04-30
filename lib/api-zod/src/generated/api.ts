@@ -498,6 +498,7 @@ export const GetSettingsResponse = zod.object({
   timezone: zod.string(),
   theme: zod.string(),
   fileSizeLimitMb: zod.number(),
+  readinessThreshold: zod.number(),
   defaultPackId: zod.string().nullish(),
   aiTone: zod.string(),
   aiModel: zod.string(),
@@ -509,6 +510,9 @@ export const GetSettingsResponse = zod.object({
  */
 export const updateSettingsBodyFileSizeLimitMbMax = 500;
 
+export const updateSettingsBodyReadinessThresholdMin = 0;
+export const updateSettingsBodyReadinessThresholdMax = 100;
+
 export const UpdateSettingsBody = zod.object({
   organizationName: zod.string().nullish(),
   profileName: zod.string().nullish(),
@@ -519,6 +523,11 @@ export const UpdateSettingsBody = zod.object({
     .number()
     .min(1)
     .max(updateSettingsBodyFileSizeLimitMbMax)
+    .optional(),
+  readinessThreshold: zod
+    .number()
+    .min(updateSettingsBodyReadinessThresholdMin)
+    .max(updateSettingsBodyReadinessThresholdMax)
     .optional(),
   defaultPackId: zod.string().nullish(),
   aiTone: zod.enum(["concise", "balanced", "detailed"]).optional(),
@@ -534,6 +543,7 @@ export const UpdateSettingsResponse = zod.object({
   timezone: zod.string(),
   theme: zod.string(),
   fileSizeLimitMb: zod.number(),
+  readinessThreshold: zod.number(),
   defaultPackId: zod.string().nullish(),
   aiTone: zod.string(),
   aiModel: zod.string(),
@@ -632,6 +642,16 @@ export const GetDatasetResponse = zod.object({
       count: zod.number(),
       message: zod.string(),
       suggestedFix: zod.string(),
+      status: zod.enum(["open", "ignored", "resolved", "review"]),
+    }),
+  ),
+  suggestedKpis: zod.array(
+    zod.object({
+      id: zod.string(),
+      label: zod.string(),
+      agg: zod.enum(["sum", "avg", "count", "count_distinct", "min", "max"]),
+      column: zod.string(),
+      reason: zod.string(),
     }),
   ),
 });
@@ -716,6 +736,91 @@ export const UpdateDatasetColumnResponse = zod.object({
       count: zod.number(),
       message: zod.string(),
       suggestedFix: zod.string(),
+      status: zod.enum(["open", "ignored", "resolved", "review"]),
+    }),
+  ),
+  suggestedKpis: zod.array(
+    zod.object({
+      id: zod.string(),
+      label: zod.string(),
+      agg: zod.enum(["sum", "avg", "count", "count_distinct", "min", "max"]),
+      column: zod.string(),
+      reason: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Update a quality issue's status (auto-fix / ignore / review)
+ */
+export const UpdateDatasetIssueParams = zod.object({
+  datasetId: zod.coerce.number(),
+  issueId: zod.coerce.string(),
+});
+
+export const UpdateDatasetIssueBody = zod.object({
+  status: zod.enum(["open", "ignored", "resolved", "review"]),
+});
+
+export const UpdateDatasetIssueResponse = zod.object({
+  id: zod.number(),
+  workspaceId: zod.number(),
+  fileName: zod.string(),
+  sheetName: zod.string(),
+  byteSize: zod.number(),
+  rowCount: zod.number(),
+  returnedRowCount: zod.number(),
+  truncated: zod.boolean(),
+  readinessScore: zod.number(),
+  issueCount: zod.number(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+  columns: zod.array(
+    zod.object({
+      id: zod.number(),
+      datasetId: zod.number(),
+      ordinal: zod.number(),
+      name: zod.string(),
+      rawType: zod.string(),
+      semanticType: zod.string(),
+      businessMeaning: zod.string().nullish(),
+      uniqueCount: zod.number(),
+      nullCount: zod.number(),
+      sample: zod.array(zod.unknown()),
+      stats: zod
+        .union([
+          zod.object({
+            min: zod.number().optional(),
+            max: zod.number().optional(),
+            mean: zod.number().optional(),
+          }),
+          zod.null(),
+        ])
+        .optional(),
+      overriddenSemantic: zod.boolean(),
+      overriddenMeaning: zod.boolean(),
+    }),
+  ),
+  sampleRows: zod.array(zod.record(zod.string(), zod.unknown())),
+  issues: zod.array(
+    zod.object({
+      id: zod.string(),
+      category: zod.string(),
+      severity: zod.enum(["low", "medium", "high"]),
+      column: zod.string().optional(),
+      count: zod.number(),
+      message: zod.string(),
+      suggestedFix: zod.string(),
+      status: zod.enum(["open", "ignored", "resolved", "review"]),
+    }),
+  ),
+  suggestedKpis: zod.array(
+    zod.object({
+      id: zod.string(),
+      label: zod.string(),
+      agg: zod.enum(["sum", "avg", "count", "count_distinct", "min", "max"]),
+      column: zod.string(),
+      reason: zod.string(),
     }),
   ),
 });

@@ -37,6 +37,7 @@ import type {
   Settings,
   TenantClientConfig,
   UpdateDatasetColumnBody,
+  UpdateDatasetIssueBody,
   UpdateSettingsBody,
   UploadDatasetResponse,
   UploadWorkspaceDatasetBody,
@@ -2032,6 +2033,120 @@ export const useUpdateDatasetColumn = <
   TContext
 > => {
   return useMutation(getUpdateDatasetColumnMutationOptions(options));
+};
+
+/**
+ * @summary Update a quality issue's status (auto-fix / ignore / review)
+ */
+export const getUpdateDatasetIssueUrl = (
+  datasetId: number,
+  issueId: string,
+) => {
+  return `/api/datasets/${datasetId}/issues/${issueId}`;
+};
+
+export const updateDatasetIssue = async (
+  datasetId: number,
+  issueId: string,
+  updateDatasetIssueBody: UpdateDatasetIssueBody,
+  options?: RequestInit,
+): Promise<DatasetDetail> => {
+  return customFetch<DatasetDetail>(
+    getUpdateDatasetIssueUrl(datasetId, issueId),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateDatasetIssueBody),
+    },
+  );
+};
+
+export const getUpdateDatasetIssueMutationOptions = <
+  TError = ErrorType<OpenaiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDatasetIssue>>,
+    TError,
+    {
+      datasetId: number;
+      issueId: string;
+      data: BodyType<UpdateDatasetIssueBody>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateDatasetIssue>>,
+  TError,
+  {
+    datasetId: number;
+    issueId: string;
+    data: BodyType<UpdateDatasetIssueBody>;
+  },
+  TContext
+> => {
+  const mutationKey = ["updateDatasetIssue"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateDatasetIssue>>,
+    {
+      datasetId: number;
+      issueId: string;
+      data: BodyType<UpdateDatasetIssueBody>;
+    }
+  > = (props) => {
+    const { datasetId, issueId, data } = props ?? {};
+
+    return updateDatasetIssue(datasetId, issueId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateDatasetIssueMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateDatasetIssue>>
+>;
+export type UpdateDatasetIssueMutationBody = BodyType<UpdateDatasetIssueBody>;
+export type UpdateDatasetIssueMutationError = ErrorType<OpenaiError>;
+
+/**
+ * @summary Update a quality issue's status (auto-fix / ignore / review)
+ */
+export const useUpdateDatasetIssue = <
+  TError = ErrorType<OpenaiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDatasetIssue>>,
+    TError,
+    {
+      datasetId: number;
+      issueId: string;
+      data: BodyType<UpdateDatasetIssueBody>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateDatasetIssue>>,
+  TError,
+  {
+    datasetId: number;
+    issueId: string;
+    data: BodyType<UpdateDatasetIssueBody>;
+  },
+  TContext
+> => {
+  return useMutation(getUpdateDatasetIssueMutationOptions(options));
 };
 
 /**

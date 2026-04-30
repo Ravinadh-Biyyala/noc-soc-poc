@@ -19,6 +19,11 @@ export interface UpdateSettingsBody {
    * @maximum 500
    */
   fileSizeLimitMb?: number;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  readinessThreshold?: number;
   defaultPackId?: string | null;
   aiTone?: UpdateSettingsBodyAiTone;
   aiModel?: string;
