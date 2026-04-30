@@ -362,20 +362,50 @@ export interface CreateWorkspaceBody {
 export interface Settings {
   id: number;
   userId: string;
+  organizationName?: string | null;
   profileName?: string | null;
   profileEmail?: string | null;
   timezone: string;
   theme: string;
+  fileSizeLimitMb: number;
   defaultPackId?: string | null;
+  aiTone: string;
+  aiModel: string;
   updatedAt: string;
 }
 
+export type UpdateSettingsBodyTheme =
+  (typeof UpdateSettingsBodyTheme)[keyof typeof UpdateSettingsBodyTheme];
+
+export const UpdateSettingsBodyTheme = {
+  light: "light",
+  dark: "dark",
+  system: "system",
+} as const;
+
+export type UpdateSettingsBodyAiTone =
+  (typeof UpdateSettingsBodyAiTone)[keyof typeof UpdateSettingsBodyAiTone];
+
+export const UpdateSettingsBodyAiTone = {
+  concise: "concise",
+  balanced: "balanced",
+  detailed: "detailed",
+} as const;
+
 export interface UpdateSettingsBody {
+  organizationName?: string | null;
   profileName?: string | null;
   profileEmail?: string | null;
   timezone?: string;
-  theme?: string;
+  theme?: UpdateSettingsBodyTheme;
+  /**
+   * @minimum 1
+   * @maximum 500
+   */
+  fileSizeLimitMb?: number;
   defaultPackId?: string | null;
+  aiTone?: UpdateSettingsBodyAiTone;
+  aiModel?: string;
 }
 
 export type GetDashboardSection200 = { [key: string]: unknown };

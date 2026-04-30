@@ -492,33 +492,51 @@ export const GetWorkspaceResponse = zod.object({
 export const GetSettingsResponse = zod.object({
   id: zod.number(),
   userId: zod.string(),
+  organizationName: zod.string().nullish(),
   profileName: zod.string().nullish(),
   profileEmail: zod.string().nullish(),
   timezone: zod.string(),
   theme: zod.string(),
+  fileSizeLimitMb: zod.number(),
   defaultPackId: zod.string().nullish(),
+  aiTone: zod.string(),
+  aiModel: zod.string(),
   updatedAt: zod.coerce.date(),
 });
 
 /**
  * @summary Patch user settings
  */
+export const updateSettingsBodyFileSizeLimitMbMax = 500;
+
 export const UpdateSettingsBody = zod.object({
+  organizationName: zod.string().nullish(),
   profileName: zod.string().nullish(),
   profileEmail: zod.string().nullish(),
   timezone: zod.string().optional(),
-  theme: zod.string().optional(),
+  theme: zod.enum(["light", "dark", "system"]).optional(),
+  fileSizeLimitMb: zod
+    .number()
+    .min(1)
+    .max(updateSettingsBodyFileSizeLimitMbMax)
+    .optional(),
   defaultPackId: zod.string().nullish(),
+  aiTone: zod.enum(["concise", "balanced", "detailed"]).optional(),
+  aiModel: zod.string().optional(),
 });
 
 export const UpdateSettingsResponse = zod.object({
   id: zod.number(),
   userId: zod.string(),
+  organizationName: zod.string().nullish(),
   profileName: zod.string().nullish(),
   profileEmail: zod.string().nullish(),
   timezone: zod.string(),
   theme: zod.string(),
+  fileSizeLimitMb: zod.number(),
   defaultPackId: zod.string().nullish(),
+  aiTone: zod.string(),
+  aiModel: zod.string(),
   updatedAt: zod.coerce.date(),
 });
 

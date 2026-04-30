@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useRoute, Link } from "wouter";
+import { useEffect } from "react";
+import { useRoute, Link, useLocation } from "wouter";
 import { useGetWorkspace, getGetWorkspaceQueryKey } from "@workspace/api-client-react";
 import { getPack } from "@/lib/domain-packs";
 import { WorkspaceStepper } from "@/components/WorkspaceStepper";
@@ -21,6 +21,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const TABS = ["overview", "files", "prepared", "dashboards", "insights", "reports", "governance"] as const;
+type TabKey = (typeof TABS)[number];
+
 function PlaceholderTab({ icon: Icon, title, body }: { icon: React.ComponentType<{ className?: string }>; title: string; body: string }) {
   return (
     <Card>
@@ -34,12 +37,29 @@ function PlaceholderTab({ icon: Icon, title, body }: { icon: React.ComponentType
 }
 
 export default function WorkspaceDetail() {
-  const [, params] = useRoute("/workspaces/:id");
+  const [, paramsWithTab] = useRoute("/workspaces/:id/:tab");
+  const [, paramsNoTab] = useRoute("/workspaces/:id");
+  const params = paramsWithTab ?? paramsNoTab;
   const id = Number(params?.id);
+  const [, setLocation] = useLocation();
+
+  const urlTab = (paramsWithTab?.tab ?? "overview") as string;
+  const tab: TabKey = (TABS as readonly string[]).includes(urlTab) ? (urlTab as TabKey) : "overview";
+
+  // Redirect unknown tab segment back to overview so the URL stays meaningful.
+  useEffect(() => {
+    if (paramsWithTab && !(TABS as readonly string[]).includes(urlTab)) {
+      setLocation(`/workspaces/${params?.id}/overview`, { replace: true });
+    }
+  }, [paramsWithTab, urlTab, params?.id, setLocation]);
+
   const { data, isLoading, error } = useGetWorkspace(id, {
     query: { enabled: Number.isFinite(id), queryKey: getGetWorkspaceQueryKey(id) },
   });
-  const [tab, setTab] = useState("overview");
+
+  const handleTabChange = (next: string) => {
+    setLocation(`/workspaces/${id}/${next}`);
+  };
 
   if (isLoading) {
     return (
@@ -109,7 +129,7 @@ export default function WorkspaceDetail() {
         </CardContent>
       </Card>
 
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={tab} onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
           <TabsTrigger value="files" data-testid="tab-files">Files</TabsTrigger>

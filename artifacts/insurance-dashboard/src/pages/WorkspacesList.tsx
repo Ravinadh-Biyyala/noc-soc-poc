@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { CreateWorkspaceDialog } from "@/components/CreateWorkspaceDialog";
-import { Plus, Briefcase, AlertTriangle, FileSpreadsheet, LayoutDashboard, User } from "lucide-react";
+import { Plus, Briefcase, AlertTriangle, FileSpreadsheet, LayoutDashboard, User, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function statusTone(status: string) {
@@ -19,6 +19,23 @@ function statusTone(status: string) {
     default:
       return "bg-amber-50 text-amber-700 border-amber-200";
   }
+}
+
+function formatRelative(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return "";
+  const diff = Date.now() - then;
+  if (diff < 0) return "just now";
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+  return `${Math.floor(months / 12)}y ago`;
 }
 
 export default function WorkspacesList() {
@@ -109,6 +126,13 @@ export default function WorkspacesList() {
                         <User className="w-3 h-3" /> {w.ownerName}
                       </span>
                       <span className="ml-auto">Readiness {w.readinessScore}%</span>
+                    </div>
+                    <div
+                      className="flex items-center gap-1 text-[10px] text-muted-foreground"
+                      data-testid={`workspace-updated-${w.id}`}
+                    >
+                      <Clock className="w-3 h-3" />
+                      <span>Updated {formatRelative(w.updatedAt)}</span>
                     </div>
                   </CardContent>
                 </Card>

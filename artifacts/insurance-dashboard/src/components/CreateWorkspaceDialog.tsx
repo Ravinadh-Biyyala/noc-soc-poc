@@ -20,12 +20,14 @@ import { Loader2 } from "lucide-react";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultPackId?: string;
 }
 
-export function CreateWorkspaceDialog({ open, onOpenChange }: Props) {
+export function CreateWorkspaceDialog({ open, onOpenChange, defaultPackId }: Props) {
+  const initialPack = defaultPackId ?? DOMAIN_PACKS[0].id;
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [packId, setPackId] = useState<string>(DOMAIN_PACKS[0].id);
+  const [packId, setPackId] = useState<string>(initialPack);
   const [error, setError] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
@@ -35,7 +37,7 @@ export function CreateWorkspaceDialog({ open, onOpenChange }: Props) {
   const reset = () => {
     setName("");
     setDescription("");
-    setPackId(DOMAIN_PACKS[0].id);
+    setPackId(defaultPackId ?? DOMAIN_PACKS[0].id);
     setError(null);
   };
 

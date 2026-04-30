@@ -3,6 +3,10 @@ import { db, settings as settingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { UpdateSettingsBody } from "@workspace/api-zod";
 
+// Single-row settings keyed by user id. There is no auth layer yet, so all
+// requests share the "default" row. Once auth ships, swap this for the
+// authenticated user's id and the `unique` constraint on `userId` will keep
+// settings keyed per user automatically.
 const DEFAULT_USER_ID = "default";
 
 const router: IRouter = Router();
@@ -11,11 +15,15 @@ function serialize(s: typeof settingsTable.$inferSelect) {
   return {
     id: s.id,
     userId: s.userId,
+    organizationName: s.organizationName,
     profileName: s.profileName,
     profileEmail: s.profileEmail,
     timezone: s.timezone,
     theme: s.theme,
+    fileSizeLimitMb: s.fileSizeLimitMb,
     defaultPackId: s.defaultPackId,
+    aiTone: s.aiTone,
+    aiModel: s.aiModel,
     updatedAt: s.updatedAt.toISOString(),
   };
 }
@@ -45,11 +53,15 @@ router.patch("/settings", async (req: Request, res: Response) => {
   const [updated] = await db
     .update(settingsTable)
     .set({
+      ...(body.organizationName !== undefined ? { organizationName: body.organizationName } : {}),
       ...(body.profileName !== undefined ? { profileName: body.profileName } : {}),
       ...(body.profileEmail !== undefined ? { profileEmail: body.profileEmail } : {}),
       ...(body.timezone !== undefined ? { timezone: body.timezone } : {}),
       ...(body.theme !== undefined ? { theme: body.theme } : {}),
+      ...(body.fileSizeLimitMb !== undefined ? { fileSizeLimitMb: body.fileSizeLimitMb } : {}),
       ...(body.defaultPackId !== undefined ? { defaultPackId: body.defaultPackId } : {}),
+      ...(body.aiTone !== undefined ? { aiTone: body.aiTone } : {}),
+      ...(body.aiModel !== undefined ? { aiModel: body.aiModel } : {}),
       updatedAt: new Date(),
     })
     .where(eq(settingsTable.userId, DEFAULT_USER_ID))

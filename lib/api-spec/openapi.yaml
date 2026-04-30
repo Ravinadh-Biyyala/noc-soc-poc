@@ -1226,6 +1226,9 @@ components:
           type: integer
         userId:
           type: string
+        organizationName:
+          type: string
+          nullable: true
         profileName:
           type: string
           nullable: true
@@ -1236,9 +1239,15 @@ components:
           type: string
         theme:
           type: string
+        fileSizeLimitMb:
+          type: integer
         defaultPackId:
           type: string
           nullable: true
+        aiTone:
+          type: string
+        aiModel:
+          type: string
         updatedAt:
           type: string
           format: date-time
@@ -1247,10 +1256,16 @@ components:
         - userId
         - timezone
         - theme
+        - fileSizeLimitMb
+        - aiTone
+        - aiModel
         - updatedAt
     UpdateSettingsBody:
       type: object
       properties:
+        organizationName:
+          type: string
+          nullable: true
         profileName:
           type: string
           nullable: true
@@ -1261,6 +1276,16 @@ components:
           type: string
         theme:
           type: string
+          enum: [light, dark, system]
+        fileSizeLimitMb:
+          type: integer
+          minimum: 1
+          maximum: 500
         defaultPackId:
           type: string
           nullable: true
+        aiTone:
+          type: string
+          enum: [concise, balanced, detailed]
+        aiModel:
+          type: string

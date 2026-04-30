@@ -9,10 +9,14 @@
 export interface Settings {
   id: number;
   userId: string;
+  organizationName?: string | null;
   profileName?: string | null;
   profileEmail?: string | null;
   timezone: string;
   theme: string;
+  fileSizeLimitMb: number;
   defaultPackId?: string | null;
+  aiTone: string;
+  aiModel: string;
   updatedAt: Date;
 }

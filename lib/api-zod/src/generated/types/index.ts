@@ -49,6 +49,8 @@ export * from "./tenantClientConfig";
 export * from "./tenantClientConfigClickToAskTemplates";
 export * from "./trendPoint";
 export * from "./updateSettingsBody";
+export * from "./updateSettingsBodyAiTone";
+export * from "./updateSettingsBodyTheme";
 export * from "./widgetConfig";
 export * from "./widgetConfigProps";
 export * from "./workspace";

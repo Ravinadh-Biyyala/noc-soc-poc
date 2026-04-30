@@ -2,171 +2,80 @@
 
 ## Overview
 
-An enterprise-grade, **configuration-driven** analytics dashboard platform. Features a multi-tenant architecture where switching between industries (insurance, banking, utilities) requires only changing a configuration file — not code. Ships with two complete tenant configs: **Insurance Brokerage** (default) and **Commercial Banking** (sample). Includes a Gen-BI AI Copilot that generates inline data visualizations.
+This project is an enterprise-grade, configuration-driven analytics dashboard platform designed for multi-tenant environments. Its primary purpose is to provide flexible, industry-specific data visualization and analysis capabilities, with a focus on ease of configuration rather than code modification for different business domains. A key feature is the integrated Gen-BI AI Copilot, which generates inline data visualizations based on user queries. The platform aims to offer a comprehensive, adaptable solution for business intelligence, initially targeting the insurance brokerage and commercial banking sectors.
 
-## Stack
+## User Preferences
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **Frontend**: React + Vite + Tailwind CSS + Recharts + shadcn/ui + wouter
-- **Backend**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **AI Integration**: OpenAI via Replit AI Integrations (gpt-4.1-mini)
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+I want iterative development.
+I prefer to be asked before making major changes.
+I like clear and concise explanations.
 
-## Color Palette (Light Theme — McKinsey-inspired)
+## System Architecture
 
-- Background: Light gray (#f5f7fa)
-- Cards: White (#ffffff) with subtle shadows and borders (#e1e5eb)
-- Sidebar: Dark navy (#1a2332) — kept dark for contrast
-- Primary accent: Deep blue (#1565C0) for primary interactions
-- Charts: Deep blue, electric blue, teal, cyan palette
-- USA Map: Blue-to-teal gradient by premium volume
-- Risk/Alerts: Red (#ef4444) for warnings
-- Positive: Emerald (#10b981) for growth indicators
-- Text: Dark (#1e293b) on white, light on dark sidebar
+The system is built as a monorepo using pnpm workspaces, with Node.js 24 and TypeScript 5.9.
 
-## Enterprise Architecture
+**Core Architectural Pattern:** Configuration-Driven Multi-Tenancy.
+The platform's core design revolves around a configuration-driven approach, enabling adaptation to different industries (tenants) by simply changing a configuration file. This is managed by a `TenantConfig` schema and loader, which dynamically adjusts branding, sections, KPIs, charts, tables, widgets, and AI prompt configurations based on the active tenant.
 
-### Configuration-Driven Tenant System
-- **Config schema**: `artifacts/api-server/src/config/types.ts` — TypeScript types for `TenantConfig`
-- **Config loader**: `artifacts/api-server/src/config/index.ts` — reads `TENANT` env var (default: `insurance`)
-- **Data adapter**: `artifacts/api-server/src/config/data-adapter.ts` — `DataAdapter` interface + `StaticDataAdapter` implementation
-- **Tenant configs**:
-  - `artifacts/api-server/src/config/tenants/insurance.ts` — full insurance brokerage config with data adapters
-  - `artifacts/api-server/src/config/tenants/banking.ts` — commercial banking config with sample data
-- **Prompt builder**: `artifacts/api-server/src/config/prompt-builder.ts` — composable system prompt from config templates
-- Switch tenants: set `TENANT=banking` environment variable
+**Frontend (React + Vite):**
+- Uses Tailwind CSS, Recharts, shadcn/ui, and wouter for UI and routing.
+- Employs a light, corporate theme inspired by McKinsey's aesthetic (light gray background, white cards, dark navy sidebar, deep blue accents).
+- `TenantConfigProvider` fetches and manages the active tenant configuration, dynamically rendering dashboard sections, navigation, and the AI Copilot interface.
+- A single `DashboardSection` component dynamically renders content based on the fetched configuration, eliminating the need for hardcoded pages.
+- Dynamic routing and navigation are generated from the tenant configuration.
+- The UI includes components for KPIs, various chart types (area, bar, line, pie), data tables with Copilot integration, and conditional widgets like a USA map.
 
-### What Each Tenant Config Defines
-- **Branding**: name, copilot name, industry, currency, date range
-- **Sections**: id, label, route, icon, KPIs, charts, tables, widgets
-- **KPIs**: label, data key, format (currency/number/percent), icon, copilot question, changeKey for YoY
-- **Charts**: type (bar/line/area/pie), data key, x/y keys, multi-series support
-- **Tables**: columns with format, copilot question templates for click-to-ask
-- **Widgets**: conditional rendering (USA map, funnel, recent items)
-- **Prompt config**: persona template, domain terminology, few-shot examples, suggested prompts
-- **Data sources**: static data adapters per section via `DataAdapter` interface
+**Backend (Express 5):**
+- Provides REST APIs for serving tenant configurations and dashboard data.
+- Employs a `DataAdapter` interface for fetching section-specific and full data contexts based on the tenant.
+- A prompt template engine constructs AI system prompts using composable blocks derived from tenant configuration.
+- API codegen is handled by Orval from an OpenAPI spec, generating Zod schemas and TypeScript interfaces.
 
-### API Endpoints
-- `GET /api/config` — serves active tenant config to frontend (sections, branding, prompts)
-- `GET /api/dashboard/:sectionId` — unified config-driven data endpoint
-- `GET /api/dashboard/executive|sales|products|renewals|claims|geography` — backward-compatible legacy endpoints
-- OpenAI chat endpoints with SSE streaming (system prompt built from config)
+**Database:**
+- PostgreSQL is used with Drizzle ORM for data persistence.
+- Key tables include `conversations`, `messages` (for AI chat), `workspaces` (for analytics projects), and `settings` (for user preferences — organization, theme, file size limit, default domain pack, AI tone/model).
 
-### Frontend (artifacts/insurance-dashboard) — Config-Driven
-- React + Vite app with light corporate theme
-- **TenantConfigProvider** (`src/lib/tenant-config.tsx`) — fetches `/api/config` on load, provides config via React context
-- **Icon resolver** — maps icon name strings from config to Lucide icon components
-- **DashboardSection** (`src/components/DashboardSection.tsx`) — single generic page component that reads section config and renders KPIs, charts, tables, and widgets dynamically
-  - `ConfigKPICard` — renders primary (with YoY change) or secondary KPI cards from config
-  - `ConfigChart` — renders area/bar/line/pie charts from config (supports stacked multi-series)
-  - `ConfigTable` — renders data tables with click-to-ask copilot integration
-- **Config-driven routing** — `App.tsx` generates `<Route>` components from config sections array
-- **Config-driven navigation** — sidebar nav items rendered from config sections (labels, icons, routes)
-- **Config-driven Copilot** — copilot name, suggested prompts, and click-to-ask templates from config
-- USAMap component conditionally rendered only when config declares a `usa-map` widget
-- Old hardcoded page files (dashboard.tsx, sales.tsx, etc.) removed — single DashboardSection replaces all
-- Uses generated API hooks from @workspace/api-client-react (`useGetTenantConfig`, `useGetDashboardSection`)
-- **CopilotContext** + `useCopilot` hook for click-to-ask on KPIs, tables, charts
-- **CustomDashboardsProvider** for pinning AI-generated charts to dashboard pages
+**Core Shell (Phase 02):**
+- Permanent left navigation that does not change with the tenant: Home, Workspaces, Data, Analytics, Outputs, Governance, Settings (Data / Analytics / Outputs are collapsible groups with sub-items).
+- Top-level pages: `/` (Home with welcome card, recent workspaces/dashboards, and 5 quick actions: Upload, Create workspace, Ask Gen-BI, Generate dashboard, Try a sample pack), `/workspaces` (cards showing pack, files/dashboards counts, owner, status, readiness, and last-updated relative time), `/workspaces/:id/:tab?` (header + Upload→Understand→Clean→Join→Metrics→Dashboard→Ask→Report stepper, with each of the 7 tabs — Overview, Files, Prepared, Dashboards, Insights, Reports, Governance — backed by a real shareable route segment), and `/settings` (5 tabs: Organization, Theme, File limits, Domain packs, AI behavior — all fields persist via `PATCH /api/settings`).
+- 5 domain packs (Insurance Broker, E-commerce Sales, SaaS Metrics, Marketing Funnel, Generic) each carry a copilot name, suggested prompts and starter metrics. The right-rail Copilot reads from the active workspace's pack via a URL-derived `useActiveWorkspace()` context, falling back to the global tenant config elsewhere.
+- Backend endpoints: `GET/POST /api/workspaces`, `GET /api/workspaces/:id`, `GET/PATCH /api/settings` (settings auto-creates a single "default" user row; will be keyed per authenticated user once auth ships).
 
-### Backend (artifacts/api-server)
-- Express 5 REST API with config-driven architecture
-- **Prompt template engine**: composable blocks (persona, data context, chart rules, response rules, few-shot examples) interpolated from tenant config
-- **DataAdapter interface**: async `getDataForSection(sectionId)` and `getFullDataContext()` per tenant
-- PostgreSQL for conversation/message persistence
+**AI Integration (Gen-BI Copilot):**
+- Utilizes OpenAI (gpt-4.1-mini) via Replit AI Integrations.
+- Features generative BI, creating inline chart visualizations directly within chat responses.
+- Supports streaming AI responses via Server-Sent Events.
+- Injects full data context from the tenant configuration into AI prompts.
+- Enables dashboard navigation and dynamic dashboard creation through AI commands.
 
-### Database Tables
-- `conversations` — AI chat conversations
-- `messages` — Chat messages (user and assistant)
-- `workspaces` — Per-question / per-dataset analytics workspaces (id, name, packId, description, ownerName, status, readinessScore, fileCount, dashboardCount, timestamps). Backed by `GET/POST /api/workspaces` and `GET /api/workspaces/:id`.
-- `settings` — Per-user settings, single "default" row auto-created on first read (profileName, profileEmail, timezone, theme, defaultPackId). Backed by `GET/PATCH /api/settings`.
+**Data Ingestion & Auto-Dashboard Generation:**
+- Supports drag-and-drop CSV/XLSX/XLS file uploads with a 60 MB limit.
+- Backend parses uploaded files, extracts row data and column metadata, and performs numeric column statistics.
+- AI dashboard generation uses gpt-4.1-mini, sampling up to 150 rows of prepared data for the prompt.
+- Supports over 10 visualization types (e.g., area, bar, line, pie, scatter, treemap).
 
-## Core Shell (Phase 02)
+**Tableau-like Data Preparation:**
+- Client-side data operations pipeline for multi-file workflows.
+- Supports joins (inner, left, right, outer), filters, aggregations, and calculated columns.
+- Provides a live preview of data transformations.
+- Includes a heuristic for suggesting potential joins between tables.
+- Generated dashboards are persisted in `localStorage` and dynamically routed, appearing in the sidebar under "Your Data".
 
-The dashboard now has a permanent left navigation that doesn't change with the tenant: **Home, Workspaces, Data, Analytics, Outputs, Governance, Settings** (defined in `src/lib/nav-config.ts`). Data/Analytics/Outputs are collapsible groups with sub-items (some marked "soon" until later phases ship them).
+## External Dependencies
 
-- **Home** (`/`) — Welcome card, recent workspaces, recent dashboards, saved insights / pending approvals / data-quality / quick-actions placeholders.
-- **Workspaces list** (`/workspaces`) — Grid of workspace cards with status, file/dashboard counts and readiness; "New workspace" dialog seeds the workspace with a domain pack.
-- **Workspace detail** (`/workspaces/:id`) — Header + stepper (Upload → Understand → Clean → Join → Metrics → Dashboard → Ask → Report) + 7 tabs (Overview, Files, Prepared Data, Dashboards, Insights, Reports, Governance). Most tabs render placeholder empty states until later phases.
-- **Settings** (`/settings`) — Profile, Defaults (default domain pack), Notifications/Security/Integrations placeholders. Saves go to `PATCH /api/settings`.
-- **Domain packs** (`src/lib/domain-packs.ts`) — Insurance Broker, E-commerce Sales, SaaS Metrics, Marketing Funnel, Generic. Each pack carries a copilot name, suggested prompts and starter metrics.
-- **Pack-driven Copilot** — `useActiveWorkspace()` parses `/workspaces/:id` from the URL and the right-rail ChatPanel uses the active workspace's pack copy (name + suggested prompts), falling back to the global tenant config elsewhere.
-- **Legacy tenant section routes** (`/sales`, `/products`, etc.) still mount via `App.tsx` so existing dashboards keep working; they will be linked from the workspace Dashboards tab in a later phase.
-
-## API + codegen note
-
-`lib/api-zod/src/index.ts` re-exports the runtime Zod schemas from `./generated/api` and explicitly type-only re-exports the non-conflicting interfaces from `./generated/types`. Orval emits both a Zod schema and a TS interface for request bodies (`CreateWorkspaceBody`, `UpdateSettingsBody`, `CreateOpenaiConversationBody`, `SendOpenaiMessageBody`); the four conflicting body names are intentionally not type-re-exported — callers needing the type form should use `z.infer<typeof X>`.
-
-## Key Commands
-
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
-
-## Dashboard Pages (Insurance Tenant — Default)
-
-1. **Executive Summary** (`/`) — Written Premium ($267.8M), Commission Revenue ($40.2M), Policies Bound (11,482), Renewal Rate (92.8%), Quote-to-Bind (37.2%), YoY Growth (+10.1%), Premium & Commission Trends (2022-2026), Policy Mix donut, USA Geographic Heat Map, Top States
-2. **Sales Performance** (`/sales`) — Quote Rate (71.2%), Bind Rate (37.2%), Closing Ratio (26.4%), Avg Days to Bind (15.8), Sales Pipeline funnel, Monthly Bind Trend, Producer Leaderboard
-3. **Product Analytics** (`/products`) — Premium by Line of Business stacked area, Lines of Business table, Carrier Performance table
-4. **Renewals & Retention** (`/renewals`) — Renewal Rate (92.8%), Retained Premium ($175.8M), Lost Premium ($9.6M), Premium at Risk, Retention Trend, Churn by Producer
-5. **Claims & Risk** (`/claims`) — Loss Ratio (46.2%), Open Claims (412), Incurred Loss by LOB, Top States by Risk, Recent Claims (2026 dates)
-
-## Banking Tenant (Sample)
-
-1. **Loan Portfolio Overview** (`/`) — Total Assets ($4.25B), NII ($186.5M), Total Loans ($3.12B), NIM (4.38%), ROE (12.45%), NPL Ratio (1.34%), Tier 1 Capital (12.8%)
-2. **Revenue Analytics** (`/revenue`) — Revenue breakdown, RM Leaderboard, Revenue by Segment
-3. **Customer Segments** (`/customers`) — Customer base (248K), Retention (91.2%), Digital Adoption (78.4%), NPS (62)
-4. **Risk & Compliance** (`/risk`) — NPL by Segment, Capital Trends, Charge-Off Rate
-5. **Branch Performance** (`/branches`) — 124 branches, Digital Transactions (68.2%), Performance by Region
-
-## Data Ingestion & Auto-Dashboard Generation
-- **Upload page** (`/upload`): Drag-and-drop CSV/XLSX/XLS files up to 60 MB; supports adding multiple files. Empty state is a single focused dropzone with a compact one-line "E-commerce demo" sample selector below (orders / customers / products + "Load all").
-- **Backend parsing** (`POST /api/upload`): multer (60 MB limit, friendly 413 JSON on overflow) + xlsx, multi-sheet support, returns full row data + column metadata. Numeric column stats use a single-pass loop (no `Math.min(...nums)` spread) to avoid call-stack overflows on >64k-row columns.
-- **Body-size scoping** (`api-server/src/app.ts`): default JSON limit is 1 MB; only `/api/generate-dashboard` is bumped to 25 MB to accept the sampled preview. Keeps the global memory/DoS surface tight.
-- **AI dashboard generation** (`POST /api/generate-dashboard`): gpt-4.1-mini with `json_object` response_format; uses up to 150 rows of actual prepared data in prompt. Frontend stratified-samples to ≤1000 rows (200 head + 600 evenly-spaced middle + 200 tail) before posting, so very large prepared tables don't bloat the request.
-- **10+ visualization types**: area, bar, horizontal-bar, line, pie, donut, scatter, bubble, radar, treemap, stacked-area, stacked-bar, gauge, waterfall, heatmap, progress-bar
-
-### Tableau-like Data Prep (`components/DataPrep.tsx`)
-- **Multi-file workflow**: upload several CSV/XLSX files, each becomes a "source table"
-- **Operations pipeline** (all client-side via `lib/data-operations.ts`):
-  - **Joins**: inner / left / right / outer on selected key columns; safe key handling for nulls/types/delimiters
-  - **Filters**: equals, not equals, >, <, ≥, ≤, contains, not contains, in (csv list), is null, is not null
-  - **Aggregations**: group by multiple columns + sum/avg/count/count_distinct/min/max/first
-  - **Calculated columns**: JavaScript expressions over column names (e.g. `Revenue - Cost`)
-- **Cascade delete**: removing an upstream operation also removes downstream ops referencing it
-- **Live preview**: data grid updates in real time as ops are added; shows row/column counts per stage
-- **Tables panel**: tree view of source tables and derived tables with column type indicators
-- **Suggested joins** (heuristic, no AI): `suggestJoins()` in `data-operations.ts` scores cross-table column pairs by name similarity (normalized Jaccard + suffix-id match) plus value overlap (300-row sample), surfacing top suggestions in an amber banner above the pipeline. One-click "Apply" creates an inner join; "Customize" pre-fills the Join modal via the `seedJoin` prop. Suggestions are filtered by exact key tuple (table+column on both sides) so alternate joins remain visible. Dismiss state resets when source tables change.
-- **Sample dataset**: `public/samples/{orders,customers,products}.csv` ships with the app. Empty upload page shows a "No data handy?" card with per-file Load + Download buttons and a "Load all 3" button — designed to demo joins on CustomerID and ProductID.
-- After preparing, "Generate Dashboard" sends the final transformed table to AI for visualization
-
-### Generated Dashboard Persistence
-- **GeneratedDashboardProvider** (`src/lib/generated-dashboards.tsx`): persists generated dashboards in localStorage (`genbi-generated-dashboards`), provides `useGeneratedDashboards` hook
-- **Dynamic routing**: generated dashboards get unique routes (`/generated/<slug>-<id>`) and appear in sidebar under "Your Data" section
-- **Sidebar integration**: "Upload Data" button + generated dashboard links with delete option
-- Key files: `UploadPage.tsx`, `DataPrep.tsx`, `data-operations.ts`, `GeneratedDashboard.tsx`, `generated-dashboards.tsx`, `api-server/src/routes/upload/index.ts`
-
-## Gen-BI Copilot Features
-- **Generative BI**: Every data question generates an inline chart visualization
-- Chart types: bar (comparisons), line/area (trends), pie (composition)
-- Inline Recharts rendering inside chat bubbles
-- Custom JSON parser for `[CHART:{...}]` format with brace-depth matching
-- Streaming AI responses via Server-Sent Events
-- "Generating insights..." thinking indicator with spinning animation
-- Full data context injected from tenant config
-- Dashboard navigation via `[NAVIGATE:/route]` buttons
-- Dynamic dashboard creation via `[CREATE_DASHBOARD:title]`
-- Bold markdown rendering
-- Quick-start suggestion buttons
-- Conversation persistence in PostgreSQL
-- **Config-driven**: persona, terminology, few-shot examples, suggested prompts all from tenant config
-
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+- **OpenAI:** Integrated for AI Copilot functionalities (gpt-4.1-mini).
+- **PostgreSQL:** Used as the primary database.
+- **Drizzle ORM:** Used for database interaction.
+- **React:** Frontend library.
+- **Vite:** Frontend build tool.
+- **Tailwind CSS:** CSS framework.
+- **Recharts:** Charting library.
+- **shadcn/ui:** UI component library.
+- **wouter:** Routing library for React.
+- **Express:** Backend web framework.
+- **Zod:** Schema validation library.
+- **Orval:** API client code generation from OpenAPI.
+- **esbuild:** For backend CJS bundle.
+- **pnpm workspaces:** Monorepo management.
+- **multer:** For handling file uploads on the backend.
+- **xlsx:** For parsing Excel files.

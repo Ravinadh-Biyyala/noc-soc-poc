@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useListWorkspaces } from "@workspace/api-client-react";
 import { useGeneratedDashboards } from "@/lib/generated-dashboards";
-import { getPack } from "@/lib/domain-packs";
+import { getPack, DOMAIN_PACKS } from "@/lib/domain-packs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +17,9 @@ import {
   Upload,
   ArrowRight,
   Sparkles,
+  MessageSquare,
+  Wand2,
+  Package,
 } from "lucide-react";
 
 function EmptyState({ icon: Icon, label, action }: { icon: React.ComponentType<{ className?: string }>; label: string; action?: React.ReactNode }) {
@@ -31,8 +34,23 @@ function EmptyState({ icon: Icon, label, action }: { icon: React.ComponentType<{
 
 export default function Home() {
   const [createOpen, setCreateOpen] = useState(false);
+  const [samplePackId, setSamplePackId] = useState<string | undefined>(undefined);
+  const [, setLocation] = useLocation();
   const { data: workspaces, isLoading: wsLoading, error: wsError } = useListWorkspaces();
   const { dashboards } = useGeneratedDashboards();
+
+  const openCreate = (packId?: string) => {
+    setSamplePackId(packId);
+    setCreateOpen(true);
+  };
+
+  const askCopilot = () => {
+    // The Copilot lives on the right rail of every page — bring the user
+    // somewhere it is most discoverable and dispatch a focus event so the
+    // ChatPanel can scroll/highlight its input.
+    setLocation("/");
+    window.dispatchEvent(new CustomEvent("copilot:focus"));
+  };
 
   const recentWorkspaces = (workspaces ?? []).slice(0, 4);
   const recentDashboards = dashboards.slice(0, 4);
@@ -201,29 +219,44 @@ export default function Home() {
             <CardDescription className="text-xs">Common starting points.</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-2">
-            <Button variant="outline" size="sm" className="justify-start" onClick={() => setCreateOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" /> New workspace
-            </Button>
             <Link href="/upload">
-              <Button variant="outline" size="sm" className="justify-start w-full">
+              <Button variant="outline" size="sm" className="justify-start w-full" data-testid="quick-upload">
                 <Upload className="w-4 h-4 mr-2" /> Upload data
               </Button>
             </Link>
-            <Link href="/workspaces">
-              <Button variant="outline" size="sm" className="justify-start w-full">
-                <Briefcase className="w-4 h-4 mr-2" /> View workspaces
+            <Button variant="outline" size="sm" className="justify-start" onClick={() => openCreate()} data-testid="quick-create-workspace">
+              <Plus className="w-4 h-4 mr-2" /> Create workspace
+            </Button>
+            <Button variant="outline" size="sm" className="justify-start" onClick={askCopilot} data-testid="quick-ask">
+              <MessageSquare className="w-4 h-4 mr-2" /> Ask Gen-BI
+            </Button>
+            <Link href="/upload">
+              <Button variant="outline" size="sm" className="justify-start w-full" data-testid="quick-generate-dashboard">
+                <Wand2 className="w-4 h-4 mr-2" /> Generate dashboard
               </Button>
             </Link>
-            <Link href="/settings">
-              <Button variant="outline" size="sm" className="justify-start w-full">
-                <ArrowRight className="w-4 h-4 mr-2" /> Open settings
-              </Button>
-            </Link>
+            <Button
+              variant="outline"
+              size="sm"
+              className="justify-start col-span-2"
+              onClick={() => openCreate(DOMAIN_PACKS[0].id)}
+              data-testid="quick-sample-pack"
+            >
+              <Package className="w-4 h-4 mr-2" /> Try a sample pack
+              <ArrowRight className="w-3 h-3 ml-auto opacity-60" />
+            </Button>
           </CardContent>
         </Card>
       </div>
 
-      <CreateWorkspaceDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <CreateWorkspaceDialog
+        open={createOpen}
+        onOpenChange={(o) => {
+          setCreateOpen(o);
+          if (!o) setSamplePackId(undefined);
+        }}
+        defaultPackId={samplePackId}
+      />
     </div>
   );
 }

@@ -61,6 +61,7 @@ function ConfigDrivenRoutes() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/workspaces" component={WorkspacesList} />
+      <Route path="/workspaces/:id/:tab" component={WorkspaceDetail} />
       <Route path="/workspaces/:id" component={WorkspaceDetail} />
       <Route path="/settings" component={Settings} />
       <Route path="/governance" component={GovernancePlaceholder} />
