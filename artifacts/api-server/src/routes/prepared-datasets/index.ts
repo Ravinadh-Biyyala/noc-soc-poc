@@ -32,10 +32,16 @@ interface LineageStep {
 async function buildLineage(
   baseDatasetId: number,
   joinIds: number[],
+  workspaceId: number,
 ): Promise<{ baseFile: string; steps: LineageStep[] }> {
   const refIds = [baseDatasetId];
   const usedJoins = joinIds.length > 0
-    ? await db.select().from(joins).where(inArray(joins.id, joinIds))
+    ? await db
+        .select()
+        .from(joins)
+        .where(
+          and(eq(joins.workspaceId, workspaceId), inArray(joins.id, joinIds)),
+        )
     : [];
   for (const j of usedJoins) {
     refIds.push(j.leftDatasetId, j.rightDatasetId);
@@ -234,7 +240,7 @@ router.get(
     const enriched = await Promise.all(
       rows.map(async (r) => {
         const ids = Array.isArray(r.joinIds) ? (r.joinIds as number[]) : [];
-        const lineage = await buildLineage(r.baseDatasetId, ids);
+        const lineage = await buildLineage(r.baseDatasetId, ids, workspaceId);
         return { ...serialize(r), lineage };
       }),
     );
@@ -347,41 +353,75 @@ router.post(
         rowCount: materializedRowCount,
       })
       .returning();
-    const lineage = await buildLineage(created.baseDatasetId, joinIds);
+    const lineage = await buildLineage(
+      created.baseDatasetId,
+      joinIds,
+      workspaceId,
+    );
     res.status(201).json({ ...serialize(created), lineage });
   },
 );
 
-router.get("/prepared-datasets/:id", async (req: Request, res: Response) => {
-  const id = Number(req.params.id);
-  if (!Number.isFinite(id)) {
-    res.status(400).json({ error: "Invalid prepared dataset id" });
-    return;
-  }
-  const [row] = await db
-    .select()
-    .from(preparedDatasets)
-    .where(eq(preparedDatasets.id, id))
-    .limit(1);
-  if (!row) {
-    res.status(404).json({ error: "Prepared dataset not found" });
-    return;
-  }
-  const lineage = await buildLineage(
-    row.baseDatasetId,
-    Array.isArray(row.joinIds) ? (row.joinIds as number[]) : [],
-  );
-  res.json({ ...serialize(row), lineage });
-});
+router.get(
+  "/workspaces/:workspaceId/prepared-datasets/:preparedDatasetId",
+  async (req: Request, res: Response) => {
+    const workspaceId = Number(req.params.workspaceId);
+    const id = Number(req.params.preparedDatasetId);
+    if (!Number.isFinite(workspaceId) || !Number.isFinite(id)) {
+      res
+        .status(400)
+        .json({ error: "Invalid workspace or prepared dataset id" });
+      return;
+    }
+    const [row] = await db
+      .select()
+      .from(preparedDatasets)
+      .where(
+        and(
+          eq(preparedDatasets.id, id),
+          eq(preparedDatasets.workspaceId, workspaceId),
+        ),
+      )
+      .limit(1);
+    if (!row) {
+      res.status(404).json({ error: "Prepared dataset not found" });
+      return;
+    }
+    const lineage = await buildLineage(
+      row.baseDatasetId,
+      Array.isArray(row.joinIds) ? (row.joinIds as number[]) : [],
+      workspaceId,
+    );
+    res.json({ ...serialize(row), lineage });
+  },
+);
 
-router.delete("/prepared-datasets/:id", async (req: Request, res: Response) => {
-  const id = Number(req.params.id);
-  if (!Number.isFinite(id)) {
-    res.status(400).json({ error: "Invalid prepared dataset id" });
-    return;
-  }
-  await db.delete(preparedDatasets).where(eq(preparedDatasets.id, id));
-  res.status(204).end();
-});
+router.delete(
+  "/workspaces/:workspaceId/prepared-datasets/:preparedDatasetId",
+  async (req: Request, res: Response) => {
+    const workspaceId = Number(req.params.workspaceId);
+    const id = Number(req.params.preparedDatasetId);
+    if (!Number.isFinite(workspaceId) || !Number.isFinite(id)) {
+      res
+        .status(400)
+        .json({ error: "Invalid workspace or prepared dataset id" });
+      return;
+    }
+    const result = await db
+      .delete(preparedDatasets)
+      .where(
+        and(
+          eq(preparedDatasets.id, id),
+          eq(preparedDatasets.workspaceId, workspaceId),
+        ),
+      )
+      .returning({ id: preparedDatasets.id });
+    if (result.length === 0) {
+      res.status(404).json({ error: "Prepared dataset not found" });
+      return;
+    }
+    res.status(204).end();
+  },
+);
 
 export default router;

@@ -124,88 +124,138 @@ router.post("/workspaces/:id/metrics", async (req: Request, res: Response) => {
   res.status(201).json(serialize(created));
 });
 
-router.patch("/metrics/:id", async (req: Request, res: Response) => {
-  const id = Number(req.params.id);
-  if (!Number.isFinite(id)) {
-    res.status(400).json({ error: "Invalid metric id" });
-    return;
+interface LockedMetricRow {
+  id: number;
+  status: string;
+  owner: string;
+  workspace_id: number;
+  audit_log: unknown;
+}
+
+interface PgQueryResult<T> {
+  rows?: T[];
+}
+
+function firstLockedRow(result: unknown): LockedMetricRow | undefined {
+  if (Array.isArray(result)) {
+    return result[0] as LockedMetricRow | undefined;
   }
-  const body = UpdateMetricBody.parse(req.body);
-  if (body.formula !== undefined) {
-    const v = validateFormula(body.formula);
-    if (!v.ok) {
-      res.status(400).json({ error: v.error });
+  if (typeof result === "object" && result !== null) {
+    const rows = (result as PgQueryResult<LockedMetricRow>).rows;
+    if (Array.isArray(rows)) return rows[0];
+  }
+  return undefined;
+}
+
+class HttpError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message);
+  }
+}
+
+router.patch(
+  "/workspaces/:workspaceId/metrics/:metricId",
+  async (req: Request, res: Response) => {
+    const workspaceId = Number(req.params.workspaceId);
+    const id = Number(req.params.metricId);
+    if (!Number.isFinite(workspaceId) || !Number.isFinite(id)) {
+      res.status(400).json({ error: "Invalid workspace or metric id" });
       return;
     }
-  }
-
-  // Atomic audit-log append: lock the metric row, read the latest auditLog,
-  // append, and update inside the same transaction. This prevents the
-  // read-modify-write race that could lose audit entries on concurrent
-  // status transitions.
-  try {
-    const updated = await db.transaction(async (tx) => {
-      const locked = await tx.execute(
-        sql`select id, status, owner, audit_log from metrics where id = ${id} for update`,
-      );
-      const lockedRow = ((locked as any).rows?.[0] ?? (locked as any)[0]) as
-        | { id: number; status: string; owner: string; audit_log: unknown }
-        | undefined;
-      if (!lockedRow) {
-        throw Object.assign(new Error("Metric not found"), { httpStatus: 404 });
+    const body = UpdateMetricBody.parse(req.body);
+    if (body.formula !== undefined) {
+      const v = validateFormula(body.formula);
+      if (!v.ok) {
+        res.status(400).json({ error: v.error });
+        return;
       }
-      const currentLog: AuditEntry[] = Array.isArray(lockedRow.audit_log)
-        ? (lockedRow.audit_log as AuditEntry[])
-        : [];
-      const actor = body.owner ?? lockedRow.owner;
-      const action =
-        body.status && body.status !== lockedRow.status
-          ? `status: ${lockedRow.status} → ${body.status}`
-          : "edited";
-      const nextLog = appendAudit(currentLog, {
-        action,
-        by: actor,
-        note: body.note ?? undefined,
+    }
+
+    // Atomic audit-log append: lock the metric row, read the latest auditLog,
+    // append, and update inside the same transaction. This prevents the
+    // read-modify-write race that could lose audit entries on concurrent
+    // status transitions.
+    try {
+      const updated = await db.transaction(async (tx) => {
+        const locked = await tx.execute(
+          sql`select id, status, owner, workspace_id, audit_log from metrics where id = ${id} for update`,
+        );
+        const lockedRow = firstLockedRow(locked);
+        if (!lockedRow) {
+          throw new HttpError("Metric not found", 404);
+        }
+        if (lockedRow.workspace_id !== workspaceId) {
+          // Don't leak existence — same response as not found.
+          throw new HttpError("Metric not found", 404);
+        }
+        const currentLog: AuditEntry[] = Array.isArray(lockedRow.audit_log)
+          ? (lockedRow.audit_log as AuditEntry[])
+          : [];
+        const actor = body.owner ?? lockedRow.owner;
+        const action =
+          body.status && body.status !== lockedRow.status
+            ? `status: ${lockedRow.status} → ${body.status}`
+            : "edited";
+        const nextLog = appendAudit(currentLog, {
+          action,
+          by: actor,
+          note: body.note ?? undefined,
+        });
+        const [row] = await tx
+          .update(metrics)
+          .set({
+            ...(body.name !== undefined ? { name: body.name } : {}),
+            ...(body.description !== undefined
+              ? { description: body.description }
+              : {}),
+            ...(body.formula !== undefined ? { formula: body.formula } : {}),
+            ...(body.format !== undefined ? { format: body.format } : {}),
+            ...(body.status !== undefined ? { status: body.status } : {}),
+            ...(body.owner !== undefined ? { owner: body.owner } : {}),
+            auditLog: nextLog,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(eq(metrics.id, id), eq(metrics.workspaceId, workspaceId)),
+          )
+          .returning();
+        return row;
       });
-      const [row] = await tx
-        .update(metrics)
-        .set({
-          ...(body.name !== undefined ? { name: body.name } : {}),
-          ...(body.description !== undefined
-            ? { description: body.description }
-            : {}),
-          ...(body.formula !== undefined ? { formula: body.formula } : {}),
-          ...(body.format !== undefined ? { format: body.format } : {}),
-          ...(body.status !== undefined ? { status: body.status } : {}),
-          ...(body.owner !== undefined ? { owner: body.owner } : {}),
-          auditLog: nextLog,
-          updatedAt: new Date(),
-        })
-        .where(eq(metrics.id, id))
-        .returning();
-      return row;
-    });
-    res.json(serialize(updated));
-  } catch (err: any) {
-    const status = err?.httpStatus ?? 500;
-    if (status === 404) {
+      res.json(serialize(updated));
+    } catch (err) {
+      if (err instanceof HttpError) {
+        res.status(err.status).json({ error: err.message });
+        return;
+      }
+      req.log.error({ err }, "Failed to update metric");
+      res.status(500).json({ error: "Failed to update metric" });
+    }
+  },
+);
+
+router.delete(
+  "/workspaces/:workspaceId/metrics/:metricId",
+  async (req: Request, res: Response) => {
+    const workspaceId = Number(req.params.workspaceId);
+    const id = Number(req.params.metricId);
+    if (!Number.isFinite(workspaceId) || !Number.isFinite(id)) {
+      res.status(400).json({ error: "Invalid workspace or metric id" });
+      return;
+    }
+    const result = await db
+      .delete(metrics)
+      .where(and(eq(metrics.id, id), eq(metrics.workspaceId, workspaceId)))
+      .returning({ id: metrics.id });
+    if (result.length === 0) {
       res.status(404).json({ error: "Metric not found" });
       return;
     }
-    req.log.error({ err }, "Failed to update metric");
-    res.status(500).json({ error: "Failed to update metric" });
-  }
-});
-
-router.delete("/metrics/:id", async (req: Request, res: Response) => {
-  const id = Number(req.params.id);
-  if (!Number.isFinite(id)) {
-    res.status(400).json({ error: "Invalid metric id" });
-    return;
-  }
-  await db.delete(metrics).where(eq(metrics.id, id));
-  res.status(204).end();
-});
+    res.status(204).end();
+  },
+);
 
 router.post(
   "/workspaces/:id/metrics/suggest",
@@ -238,7 +288,12 @@ router.post(
       const joinRows = await db
         .select()
         .from(joinsTable)
-        .where(inArray(joinsTable.id, joinIds));
+        .where(
+          and(
+            eq(joinsTable.workspaceId, workspaceId),
+            inArray(joinsTable.id, joinIds),
+          ),
+        );
       for (const j of joinRows) {
         refDsIds.add(j.leftDatasetId);
         refDsIds.add(j.rightDatasetId);
@@ -317,7 +372,7 @@ router.post(
         return out;
       });
       res.status(201).json({ metrics: created.map(serialize) });
-    } catch (err: any) {
+    } catch (err: unknown) {
       req.log.error({ err }, "Failed to suggest metrics");
       res.status(500).json({ error: "Failed to suggest metrics" });
     }

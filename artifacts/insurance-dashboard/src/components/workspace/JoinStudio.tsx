@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListJoinSuggestions,
@@ -10,13 +10,15 @@ import {
   useListPreparedDatasets,
   useCreatePreparedDataset,
   useDeletePreparedDataset,
+  useSuggestMetrics,
   useListWorkspaceDatasets,
   useGetDataset,
-  getGetDatasetQueryKey,
   PreviewJoinBodyJoinType,
   getListJoinSuggestionsQueryKey,
   getListJoinsQueryKey,
   getListPreparedDatasetsQueryKey,
+  getListMetricsQueryKey,
+  getGetDatasetQueryKey,
   type JoinSuggestion,
   type Join,
   type PreparedDataset,
@@ -103,6 +105,7 @@ export default function JoinStudio({ workspaceId }: JoinStudioProps) {
     queryClient.invalidateQueries({ queryKey: getListJoinSuggestionsQueryKey(workspaceId) });
     queryClient.invalidateQueries({ queryKey: getListJoinsQueryKey(workspaceId) });
     queryClient.invalidateQueries({ queryKey: getListPreparedDatasetsQueryKey(workspaceId) });
+    queryClient.invalidateQueries({ queryKey: getListMetricsQueryKey(workspaceId) });
   };
 
   const createJoin = useCreateJoin({
@@ -119,6 +122,9 @@ export default function JoinStudio({ workspaceId }: JoinStudioProps) {
     mutation: { onSuccess: invalidateAll },
   });
   const deletePrepared = useDeletePreparedDataset({
+    mutation: { onSuccess: invalidateAll },
+  });
+  const suggestMetrics = useSuggestMetrics({
     mutation: { onSuccess: invalidateAll },
   });
 
@@ -153,6 +159,11 @@ export default function JoinStudio({ workspaceId }: JoinStudioProps) {
 
   // Create prepared dataset state
   const [showPrepared, setShowPrepared] = useState(false);
+  const [preparedSeed, setPreparedSeed] = useState<{
+    name: string;
+    baseDatasetId: number;
+    joinIds: number[];
+  } | null>(null);
 
   // Lineage detail state
   const [openLineage, setOpenLineage] = useState<number | null>(null);
@@ -167,8 +178,17 @@ export default function JoinStudio({ workspaceId }: JoinStudioProps) {
     );
   }
 
+  function preparedAlreadyCovers(baseId: number, joinId: number): boolean {
+    return preparedList.some(
+      (pd) =>
+        pd.baseDatasetId === baseId &&
+        Array.isArray(pd.joinIds) &&
+        pd.joinIds.includes(joinId),
+    );
+  }
+
   async function acceptSuggestion(s: JoinSuggestion) {
-    await createJoin.mutateAsync({
+    const created = await createJoin.mutateAsync({
       id: workspaceId,
       data: {
         leftDatasetId: s.leftDatasetId,
@@ -183,6 +203,14 @@ export default function JoinStudio({ workspaceId }: JoinStudioProps) {
         source: "ai",
       },
     });
+    if (created?.id && !preparedAlreadyCovers(s.leftDatasetId, created.id)) {
+      setPreparedSeed({
+        name: `${s.leftDatasetName} + ${s.rightDatasetName}`,
+        baseDatasetId: s.leftDatasetId,
+        joinIds: [created.id],
+      });
+      setShowPrepared(true);
+    }
   }
 
   async function rejectSuggestion(s: JoinSuggestion) {
@@ -297,25 +325,7 @@ export default function JoinStudio({ workspaceId }: JoinStudioProps) {
         <h3 className="text-sm font-semibold mb-2 text-foreground">Datasets in this workspace</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {datasets.map((d) => (
-            <Card key={d.id} data-testid={`dataset-card-${d.id}`}>
-              <CardContent className="p-4 flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <Database className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium truncate" title={d.fileName}>
-                    {d.fileName}
-                  </span>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {d.rowCount?.toLocaleString() ?? "—"} rows
-                  {d.issueCount ? ` · ${d.issueCount} issues` : ""}
-                </div>
-                <div className="flex items-center gap-1 mt-1">
-                  <Badge variant="outline" className="text-[10px]">
-                    Readiness {d.readinessScore ?? 0}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
+            <DatasetSummaryCard key={d.id} dataset={d} />
           ))}
         </div>
       </section>
@@ -475,7 +485,7 @@ export default function JoinStudio({ workspaceId }: JoinStudioProps) {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => deleteJoin.mutate({ id: j.id })}
+                        onClick={() => deleteJoin.mutate({ workspaceId, joinId: j.id })}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
@@ -517,7 +527,9 @@ export default function JoinStudio({ workspaceId }: JoinStudioProps) {
                 pd={pd}
                 expanded={openLineage === pd.id}
                 onToggle={() => setOpenLineage(openLineage === pd.id ? null : pd.id)}
-                onDelete={() => deletePrepared.mutate({ id: pd.id })}
+                onDelete={() =>
+                  deletePrepared.mutate({ workspaceId, preparedDatasetId: pd.id })
+                }
               />
             ))}
           </div>
@@ -549,7 +561,8 @@ export default function JoinStudio({ workspaceId }: JoinStudioProps) {
             });
           } else {
             await updateJoin.mutateAsync({
-              id: modifyTarget.join.id,
+              workspaceId,
+              joinId: modifyTarget.join.id,
               data: { joinType, leftColumn, rightColumn, status: "accepted" },
             });
           }
@@ -583,15 +596,32 @@ export default function JoinStudio({ workspaceId }: JoinStudioProps) {
       {/* Create prepared dataset dialog */}
       <CreatePreparedDialog
         open={showPrepared}
-        onOpenChange={setShowPrepared}
+        onOpenChange={(o) => {
+          setShowPrepared(o);
+          if (!o) setPreparedSeed(null);
+        }}
         datasets={datasets}
         joins={acceptedJoins}
+        seed={preparedSeed}
         onSubmit={async (name, description, baseDatasetId, joinIds) => {
-          await createPrepared.mutateAsync({
+          const created = await createPrepared.mutateAsync({
             id: workspaceId,
             data: { name, description: description || null, baseDatasetId, joinIds },
           });
           setShowPrepared(false);
+          setPreparedSeed(null);
+          if (created?.id) {
+            // Auto-suggest a starter set of metrics for the new prepared dataset.
+            // Best-effort: surface failures via the suggestMetrics mutation state.
+            void suggestMetrics
+              .mutateAsync({
+                id: workspaceId,
+                data: { preparedDatasetId: created.id },
+              })
+              .catch(() => {
+                /* non-fatal — user can re-trigger from the Metrics tab */
+              });
+          }
         }}
       />
 
@@ -782,7 +812,7 @@ function ModifyJoinDialog({
         <DialogHeader>
           <DialogTitle>Modify join</DialogTitle>
           <DialogDescription>
-            Change the join type or swap key columns. Multi-column and fuzzy joins are coming soon.
+            Change the join type or swap key columns to refine the match.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
@@ -1009,12 +1039,14 @@ function CreatePreparedDialog({
   onOpenChange,
   datasets,
   joins,
+  seed,
   onSubmit,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   datasets: Dataset[];
   joins: Join[];
+  seed?: { name: string; baseDatasetId: number; joinIds: number[] } | null;
   onSubmit: (
     name: string,
     description: string,
@@ -1022,10 +1054,22 @@ function CreatePreparedDialog({
     joinIds: number[],
   ) => Promise<void>;
 }) {
-  const [name, setName] = useState("");
+  const [name, setName] = useState(seed?.name ?? "");
   const [description, setDescription] = useState("");
-  const [baseId, setBaseId] = useState<number | null>(null);
-  const [selectedJoins, setSelectedJoins] = useState<Set<number>>(new Set());
+  const [baseId, setBaseId] = useState<number | null>(seed?.baseDatasetId ?? null);
+  const [selectedJoins, setSelectedJoins] = useState<Set<number>>(
+    () => new Set(seed?.joinIds ?? []),
+  );
+
+  // When the dialog (re)opens with a fresh seed, reset the form so each
+  // Accept-driven prompt starts from sensible defaults.
+  useEffect(() => {
+    if (!open) return;
+    setName(seed?.name ?? "");
+    setDescription("");
+    setBaseId(seed?.baseDatasetId ?? null);
+    setSelectedJoins(new Set(seed?.joinIds ?? []));
+  }, [open, seed]);
 
   // Derive which datasets appear in any accepted join (eligible bases)
   const baseCandidates = useMemo(() => {
@@ -1170,5 +1214,53 @@ function CreatePreparedDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function DatasetSummaryCard({ dataset }: { dataset: Dataset }) {
+  const { data: detail } = useGetDataset(dataset.id);
+  const cols = detail?.columns ?? [];
+  const colCount = cols.length;
+  const detectedKeys = useMemo(() => {
+    if (!cols.length || !detail?.rowCount) return [] as string[];
+    return cols
+      .filter((c) => {
+        const unique = c.uniqueCount ?? 0;
+        const rows = detail.rowCount ?? 0;
+        return rows > 0 && unique / rows > 0.95;
+      })
+      .map((c) => c.name)
+      .slice(0, 4);
+  }, [cols, detail?.rowCount]);
+
+  return (
+    <Card data-testid={`dataset-card-${dataset.id}`}>
+      <CardContent className="p-4 flex flex-col gap-1">
+        <div className="flex items-center gap-2">
+          <Database className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-medium truncate" title={dataset.fileName}>
+            {dataset.fileName}
+          </span>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {dataset.rowCount?.toLocaleString() ?? "—"} rows
+          {colCount ? ` · ${colCount} cols` : ""}
+          {dataset.issueCount ? ` · ${dataset.issueCount} issues` : ""}
+        </div>
+        <div className="flex items-center gap-1 mt-1 flex-wrap">
+          <Badge variant="outline" className="text-[10px]">
+            Readiness {dataset.readinessScore ?? 0}
+          </Badge>
+          {detectedKeys.length > 0 && (
+            <span
+              className="text-[10px] text-muted-foreground"
+              data-testid={`detected-keys-${dataset.id}`}
+            >
+              keys: {detectedKeys.join(", ")}
+            </span>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

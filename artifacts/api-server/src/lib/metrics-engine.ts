@@ -72,10 +72,29 @@ CRITICAL RULES:
 Respond with ONLY valid JSON in this exact shape (no markdown, no backticks):
 { "metrics": [ { "name": "...", "description": "...", "formula": "...", "format": "currency|percent|number" } ] }`;
 
+interface ChatCompletionResponse {
+  choices?: Array<{ message?: { content?: string | null } }>;
+}
+
+interface OpenAIChatClient {
+  chat: {
+    completions: {
+      create: (args: {
+        model: string;
+        max_completion_tokens: number;
+        messages: Array<{ role: "system" | "user"; content: string }>;
+        response_format: { type: "json_object" };
+      }) => Promise<ChatCompletionResponse>;
+    };
+  };
+}
+
+function isObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
 export async function suggestMetrics(
-  openaiClient: {
-    chat: { completions: { create: (args: any) => Promise<any> } };
-  },
+  openaiClient: OpenAIChatClient,
   opts: {
     datasetName: string;
     domain: string;
@@ -105,25 +124,31 @@ Suggest 5-8 starter KPIs.`;
     ],
     response_format: { type: "json_object" },
   });
-  const content: string | undefined = resp.choices?.[0]?.message?.content;
+  const content = resp.choices?.[0]?.message?.content;
   if (!content) return [];
-  let parsed: { metrics?: unknown };
+  let parsed: unknown;
   try {
     parsed = JSON.parse(content);
   } catch {
     return [];
   }
-  if (!parsed || !Array.isArray(parsed.metrics)) return [];
+  if (!isObject(parsed) || !Array.isArray(parsed.metrics)) return [];
   const out: SuggestedMetric[] = [];
-  for (const m of parsed.metrics as any[]) {
-    if (!m || typeof m.name !== "string" || typeof m.formula !== "string") continue;
-    const v = validateFormula(m.formula);
+  for (const raw of parsed.metrics) {
+    if (!isObject(raw)) continue;
+    const name = raw.name;
+    const formula = raw.formula;
+    if (typeof name !== "string" || typeof formula !== "string") continue;
+    const v = validateFormula(formula);
     if (!v.ok) continue;
-    const format = m.format === "currency" || m.format === "percent" ? m.format : "number";
+    const formatRaw = raw.format;
+    const format: "number" | "currency" | "percent" =
+      formatRaw === "currency" || formatRaw === "percent" ? formatRaw : "number";
+    const description = typeof raw.description === "string" ? raw.description : "";
     out.push({
-      name: String(m.name).slice(0, 80),
-      description: typeof m.description === "string" ? String(m.description).slice(0, 240) : "",
-      formula: m.formula.trim(),
+      name: name.slice(0, 80),
+      description: description.slice(0, 240),
+      formula: formula.trim(),
       format,
     });
   }

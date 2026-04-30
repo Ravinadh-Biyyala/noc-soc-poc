@@ -2511,16 +2511,17 @@ export const usePreviewJoin = <
 /**
  * @summary Update an existing join (status, type, columns)
  */
-export const getUpdateJoinUrl = (id: number) => {
-  return `/api/joins/${id}`;
+export const getUpdateJoinUrl = (workspaceId: number, joinId: number) => {
+  return `/api/workspaces/${workspaceId}/joins/${joinId}`;
 };
 
 export const updateJoin = async (
-  id: number,
+  workspaceId: number,
+  joinId: number,
   updateJoinBody: UpdateJoinBody,
   options?: RequestInit,
 ): Promise<Join> => {
-  return customFetch<Join>(getUpdateJoinUrl(id), {
+  return customFetch<Join>(getUpdateJoinUrl(workspaceId, joinId), {
     ...options,
     method: "PATCH",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -2535,14 +2536,14 @@ export const getUpdateJoinMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateJoin>>,
     TError,
-    { id: number; data: BodyType<UpdateJoinBody> },
+    { workspaceId: number; joinId: number; data: BodyType<UpdateJoinBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof updateJoin>>,
   TError,
-  { id: number; data: BodyType<UpdateJoinBody> },
+  { workspaceId: number; joinId: number; data: BodyType<UpdateJoinBody> },
   TContext
 > => {
   const mutationKey = ["updateJoin"];
@@ -2556,11 +2557,11 @@ export const getUpdateJoinMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof updateJoin>>,
-    { id: number; data: BodyType<UpdateJoinBody> }
+    { workspaceId: number; joinId: number; data: BodyType<UpdateJoinBody> }
   > = (props) => {
-    const { id, data } = props ?? {};
+    const { workspaceId, joinId, data } = props ?? {};
 
-    return updateJoin(id, data, requestOptions);
+    return updateJoin(workspaceId, joinId, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -2582,14 +2583,14 @@ export const useUpdateJoin = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateJoin>>,
     TError,
-    { id: number; data: BodyType<UpdateJoinBody> },
+    { workspaceId: number; joinId: number; data: BodyType<UpdateJoinBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof updateJoin>>,
   TError,
-  { id: number; data: BodyType<UpdateJoinBody> },
+  { workspaceId: number; joinId: number; data: BodyType<UpdateJoinBody> },
   TContext
 > => {
   return useMutation(getUpdateJoinMutationOptions(options));
@@ -2598,15 +2599,16 @@ export const useUpdateJoin = <
 /**
  * @summary Delete a join
  */
-export const getDeleteJoinUrl = (id: number) => {
-  return `/api/joins/${id}`;
+export const getDeleteJoinUrl = (workspaceId: number, joinId: number) => {
+  return `/api/workspaces/${workspaceId}/joins/${joinId}`;
 };
 
 export const deleteJoin = async (
-  id: number,
+  workspaceId: number,
+  joinId: number,
   options?: RequestInit,
 ): Promise<void> => {
-  return customFetch<void>(getDeleteJoinUrl(id), {
+  return customFetch<void>(getDeleteJoinUrl(workspaceId, joinId), {
     ...options,
     method: "DELETE",
   });
@@ -2619,14 +2621,14 @@ export const getDeleteJoinMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof deleteJoin>>,
     TError,
-    { id: number },
+    { workspaceId: number; joinId: number },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteJoin>>,
   TError,
-  { id: number },
+  { workspaceId: number; joinId: number },
   TContext
 > => {
   const mutationKey = ["deleteJoin"];
@@ -2640,11 +2642,11 @@ export const getDeleteJoinMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteJoin>>,
-    { id: number }
+    { workspaceId: number; joinId: number }
   > = (props) => {
-    const { id } = props ?? {};
+    const { workspaceId, joinId } = props ?? {};
 
-    return deleteJoin(id, requestOptions);
+    return deleteJoin(workspaceId, joinId, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -2666,14 +2668,14 @@ export const useDeleteJoin = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof deleteJoin>>,
     TError,
-    { id: number },
+    { workspaceId: number; joinId: number },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof deleteJoin>>,
   TError,
-  { id: number },
+  { workspaceId: number; joinId: number },
   TContext
 > => {
   return useMutation(getDeleteJoinMutationOptions(options));
@@ -2858,29 +2860,42 @@ export const useCreatePreparedDataset = <
 /**
  * @summary Get a prepared dataset by id (incl. lineage)
  */
-export const getGetPreparedDatasetUrl = (id: number) => {
-  return `/api/prepared-datasets/${id}`;
+export const getGetPreparedDatasetUrl = (
+  workspaceId: number,
+  preparedDatasetId: number,
+) => {
+  return `/api/workspaces/${workspaceId}/prepared-datasets/${preparedDatasetId}`;
 };
 
 export const getPreparedDataset = async (
-  id: number,
+  workspaceId: number,
+  preparedDatasetId: number,
   options?: RequestInit,
 ): Promise<PreparedDataset> => {
-  return customFetch<PreparedDataset>(getGetPreparedDatasetUrl(id), {
-    ...options,
-    method: "GET",
-  });
+  return customFetch<PreparedDataset>(
+    getGetPreparedDatasetUrl(workspaceId, preparedDatasetId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
 };
 
-export const getGetPreparedDatasetQueryKey = (id: number) => {
-  return [`/api/prepared-datasets/${id}`] as const;
+export const getGetPreparedDatasetQueryKey = (
+  workspaceId: number,
+  preparedDatasetId: number,
+) => {
+  return [
+    `/api/workspaces/${workspaceId}/prepared-datasets/${preparedDatasetId}`,
+  ] as const;
 };
 
 export const getGetPreparedDatasetQueryOptions = <
   TData = Awaited<ReturnType<typeof getPreparedDataset>>,
   TError = ErrorType<unknown>,
 >(
-  id: number,
+  workspaceId: number,
+  preparedDatasetId: number,
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof getPreparedDataset>>,
@@ -2892,16 +2907,22 @@ export const getGetPreparedDatasetQueryOptions = <
 ) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetPreparedDatasetQueryKey(id);
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGetPreparedDatasetQueryKey(workspaceId, preparedDatasetId);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getPreparedDataset>>
-  > = ({ signal }) => getPreparedDataset(id, { signal, ...requestOptions });
+  > = ({ signal }) =>
+    getPreparedDataset(workspaceId, preparedDatasetId, {
+      signal,
+      ...requestOptions,
+    });
 
   return {
     queryKey,
     queryFn,
-    enabled: !!id,
+    enabled: !!(workspaceId && preparedDatasetId),
     ...queryOptions,
   } as UseQueryOptions<
     Awaited<ReturnType<typeof getPreparedDataset>>,
@@ -2923,7 +2944,8 @@ export function useGetPreparedDataset<
   TData = Awaited<ReturnType<typeof getPreparedDataset>>,
   TError = ErrorType<unknown>,
 >(
-  id: number,
+  workspaceId: number,
+  preparedDatasetId: number,
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof getPreparedDataset>>,
@@ -2933,7 +2955,11 @@ export function useGetPreparedDataset<
     request?: SecondParameter<typeof customFetch>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetPreparedDatasetQueryOptions(id, options);
+  const queryOptions = getGetPreparedDatasetQueryOptions(
+    workspaceId,
+    preparedDatasetId,
+    options,
+  );
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -2945,18 +2971,25 @@ export function useGetPreparedDataset<
 /**
  * @summary Delete a prepared dataset
  */
-export const getDeletePreparedDatasetUrl = (id: number) => {
-  return `/api/prepared-datasets/${id}`;
+export const getDeletePreparedDatasetUrl = (
+  workspaceId: number,
+  preparedDatasetId: number,
+) => {
+  return `/api/workspaces/${workspaceId}/prepared-datasets/${preparedDatasetId}`;
 };
 
 export const deletePreparedDataset = async (
-  id: number,
+  workspaceId: number,
+  preparedDatasetId: number,
   options?: RequestInit,
 ): Promise<void> => {
-  return customFetch<void>(getDeletePreparedDatasetUrl(id), {
-    ...options,
-    method: "DELETE",
-  });
+  return customFetch<void>(
+    getDeletePreparedDatasetUrl(workspaceId, preparedDatasetId),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
 };
 
 export const getDeletePreparedDatasetMutationOptions = <
@@ -2966,14 +2999,14 @@ export const getDeletePreparedDatasetMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof deletePreparedDataset>>,
     TError,
-    { id: number },
+    { workspaceId: number; preparedDatasetId: number },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deletePreparedDataset>>,
   TError,
-  { id: number },
+  { workspaceId: number; preparedDatasetId: number },
   TContext
 > => {
   const mutationKey = ["deletePreparedDataset"];
@@ -2987,11 +3020,15 @@ export const getDeletePreparedDatasetMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deletePreparedDataset>>,
-    { id: number }
+    { workspaceId: number; preparedDatasetId: number }
   > = (props) => {
-    const { id } = props ?? {};
+    const { workspaceId, preparedDatasetId } = props ?? {};
 
-    return deletePreparedDataset(id, requestOptions);
+    return deletePreparedDataset(
+      workspaceId,
+      preparedDatasetId,
+      requestOptions,
+    );
   };
 
   return { mutationFn, ...mutationOptions };
@@ -3013,14 +3050,14 @@ export const useDeletePreparedDataset = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof deletePreparedDataset>>,
     TError,
-    { id: number },
+    { workspaceId: number; preparedDatasetId: number },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof deletePreparedDataset>>,
   TError,
-  { id: number },
+  { workspaceId: number; preparedDatasetId: number },
   TContext
 > => {
   return useMutation(getDeletePreparedDatasetMutationOptions(options));
@@ -3290,16 +3327,17 @@ export const useSuggestMetrics = <
 /**
  * @summary Edit / approve / certify / reject a metric (appends audit)
  */
-export const getUpdateMetricUrl = (id: number) => {
-  return `/api/metrics/${id}`;
+export const getUpdateMetricUrl = (workspaceId: number, metricId: number) => {
+  return `/api/workspaces/${workspaceId}/metrics/${metricId}`;
 };
 
 export const updateMetric = async (
-  id: number,
+  workspaceId: number,
+  metricId: number,
   updateMetricBody: UpdateMetricBody,
   options?: RequestInit,
 ): Promise<Metric> => {
-  return customFetch<Metric>(getUpdateMetricUrl(id), {
+  return customFetch<Metric>(getUpdateMetricUrl(workspaceId, metricId), {
     ...options,
     method: "PATCH",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -3314,14 +3352,14 @@ export const getUpdateMetricMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateMetric>>,
     TError,
-    { id: number; data: BodyType<UpdateMetricBody> },
+    { workspaceId: number; metricId: number; data: BodyType<UpdateMetricBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof updateMetric>>,
   TError,
-  { id: number; data: BodyType<UpdateMetricBody> },
+  { workspaceId: number; metricId: number; data: BodyType<UpdateMetricBody> },
   TContext
 > => {
   const mutationKey = ["updateMetric"];
@@ -3335,11 +3373,11 @@ export const getUpdateMetricMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof updateMetric>>,
-    { id: number; data: BodyType<UpdateMetricBody> }
+    { workspaceId: number; metricId: number; data: BodyType<UpdateMetricBody> }
   > = (props) => {
-    const { id, data } = props ?? {};
+    const { workspaceId, metricId, data } = props ?? {};
 
-    return updateMetric(id, data, requestOptions);
+    return updateMetric(workspaceId, metricId, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -3361,14 +3399,14 @@ export const useUpdateMetric = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateMetric>>,
     TError,
-    { id: number; data: BodyType<UpdateMetricBody> },
+    { workspaceId: number; metricId: number; data: BodyType<UpdateMetricBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof updateMetric>>,
   TError,
-  { id: number; data: BodyType<UpdateMetricBody> },
+  { workspaceId: number; metricId: number; data: BodyType<UpdateMetricBody> },
   TContext
 > => {
   return useMutation(getUpdateMetricMutationOptions(options));
@@ -3377,15 +3415,16 @@ export const useUpdateMetric = <
 /**
  * @summary Delete a metric
  */
-export const getDeleteMetricUrl = (id: number) => {
-  return `/api/metrics/${id}`;
+export const getDeleteMetricUrl = (workspaceId: number, metricId: number) => {
+  return `/api/workspaces/${workspaceId}/metrics/${metricId}`;
 };
 
 export const deleteMetric = async (
-  id: number,
+  workspaceId: number,
+  metricId: number,
   options?: RequestInit,
 ): Promise<void> => {
-  return customFetch<void>(getDeleteMetricUrl(id), {
+  return customFetch<void>(getDeleteMetricUrl(workspaceId, metricId), {
     ...options,
     method: "DELETE",
   });
@@ -3398,14 +3437,14 @@ export const getDeleteMetricMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof deleteMetric>>,
     TError,
-    { id: number },
+    { workspaceId: number; metricId: number },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteMetric>>,
   TError,
-  { id: number },
+  { workspaceId: number; metricId: number },
   TContext
 > => {
   const mutationKey = ["deleteMetric"];
@@ -3419,11 +3458,11 @@ export const getDeleteMetricMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteMetric>>,
-    { id: number }
+    { workspaceId: number; metricId: number }
   > = (props) => {
-    const { id } = props ?? {};
+    const { workspaceId, metricId } = props ?? {};
 
-    return deleteMetric(id, requestOptions);
+    return deleteMetric(workspaceId, metricId, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -3445,14 +3484,14 @@ export const useDeleteMetric = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof deleteMetric>>,
     TError,
-    { id: number },
+    { workspaceId: number; metricId: number },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof deleteMetric>>,
   TError,
-  { id: number },
+  { workspaceId: number; metricId: number },
   TContext
 > => {
   return useMutation(getDeleteMetricMutationOptions(options));

@@ -156,8 +156,12 @@ export default function MetricBuilder({ workspaceId }: MetricBuilderProps) {
               key={m.id}
               metric={m}
               preparedList={preparedList}
-              onSave={(patch) => updateMetric.mutateAsync({ id: m.id, data: patch })}
-              onDelete={() => deleteMetric.mutate({ id: m.id })}
+              onSave={(patch) =>
+                updateMetric.mutateAsync({ workspaceId, metricId: m.id, data: patch })
+              }
+              onDelete={() =>
+                deleteMetric.mutate({ workspaceId, metricId: m.id })
+              }
               busy={updateMetric.isPending || deleteMetric.isPending}
             />
           ))}

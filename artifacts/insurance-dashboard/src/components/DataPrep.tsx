@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import {
   Plus, Trash2, Database, GitMerge, Filter as FilterIcon, Layers, Calculator,
-  ChevronDown, ChevronRight, ArrowRight, Sparkles, X, Eye,
+  ChevronDown, ChevronRight, ArrowRight, Sparkles, Eye, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,9 +10,8 @@ import {
   type Table, type Operation, type JoinOperation, type FilterOperation,
   type AggregateOperation, type CalculatedColumnOperation,
   type JoinType, type FilterOp, type AggFunc, type JoinSuggestion,
-  executePipeline, getOperationInputs, suggestJoins,
+  executePipeline, getOperationInputs,
 } from "@/lib/data-operations";
-import { Lightbulb } from "lucide-react";
 
 interface DataPrepProps {
   sourceTables: Table[];
@@ -29,44 +28,11 @@ export default function DataPrep({ sourceTables, onAddMoreFiles, onGenerateDashb
   const [previewTableId, setPreviewTableId] = useState<string | null>(null);
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set(sourceTables.slice(0, 1).map((t) => t.id)));
   const [seedJoinSuggestion, setSeedJoinSuggestion] = useState<JoinSuggestion | null>(null);
-  const [dismissedSuggestions, setDismissedSuggestions] = useState(false);
 
   const { tables, tablesById } = useMemo(
     () => executePipeline(sourceTables, operations),
     [sourceTables, operations]
   );
-
-  const joinSuggestions = useMemo(() => suggestJoins(sourceTables), [sourceTables]);
-  const usedJoinKeys = useMemo(() => {
-    const set = new Set<string>();
-    for (const op of operations) {
-      if (op.type === "join") {
-        const a = `${op.leftTableId}.${op.leftKey}`;
-        const b = `${op.rightTableId}.${op.rightKey}`;
-        set.add([a, b].sort().join("|"));
-      }
-    }
-    return set;
-  }, [operations]);
-  const visibleSuggestions = useMemo(
-    () =>
-      joinSuggestions.filter((s) => {
-        const a = `${s.leftTableId}.${s.leftKey}`;
-        const b = `${s.rightTableId}.${s.rightKey}`;
-        return !usedJoinKeys.has([a, b].sort().join("|"));
-      }),
-    [joinSuggestions, usedJoinKeys]
-  );
-
-  // Reset "dismissed" when the source table set materially changes
-  // (so adding/removing files re-shows fresh suggestions)
-  const sourceTablesKey = useMemo(
-    () => sourceTables.map((t) => t.id).sort().join(","),
-    [sourceTables]
-  );
-  useEffect(() => {
-    setDismissedSuggestions(false);
-  }, [sourceTablesKey]);
 
   // Auto-prune operations whose inputs no longer exist (e.g. file removed)
   useEffect(() => {
@@ -124,23 +90,6 @@ export default function DataPrep({ sourceTables, onAddMoreFiles, onGenerateDashb
 
   const handleGenerate = () => {
     if (activeTable) onGenerateDashboard(activeTable);
-  };
-
-  const applySuggestion = (s: JoinSuggestion) => {
-    addOperation({
-      id: `op-${Date.now()}`,
-      type: "join",
-      leftTableId: s.leftTableId,
-      rightTableId: s.rightTableId,
-      leftKey: s.leftKey,
-      rightKey: s.rightKey,
-      joinType: "inner",
-    });
-  };
-
-  const openJoinModalWithSuggestion = (s: JoinSuggestion) => {
-    setSeedJoinSuggestion(s);
-    setAddingOp("join");
   };
 
   return (
@@ -216,67 +165,6 @@ export default function DataPrep({ sourceTables, onAddMoreFiles, onGenerateDashb
             {isGenerating ? "Generating..." : "Generate Dashboard"}
           </Button>
         </div>
-
-        {/* Suggested joins banner */}
-        {visibleSuggestions.length > 0 && !dismissedSuggestions && (
-          <div className="px-6 py-3 border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50/50">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Lightbulb className="w-3.5 h-3.5 text-amber-600" />
-                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-amber-900">
-                    Suggested Joins
-                  </h4>
-                  <span className="text-[10px] text-amber-700/70">
-                    Based on column names + value overlap
-                  </span>
-                </div>
-                <div className="space-y-1.5">
-                  {visibleSuggestions.slice(0, 3).map((s) => (
-                    <div
-                      key={`${s.leftTableId}.${s.leftKey}|${s.rightTableId}.${s.rightKey}`}
-                      className="flex items-center gap-2 bg-white/80 border border-amber-200/60 rounded-md px-2.5 py-1.5"
-                    >
-                      <div className="flex-1 min-w-0 text-[11px]">
-                        <div className="flex items-center gap-1.5 font-medium text-foreground">
-                          <span className="px-1.5 py-0.5 bg-muted rounded text-[10px]">{s.leftTableName}</span>
-                          <span className="text-muted-foreground">.{s.leftKey}</span>
-                          <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                          <span className="px-1.5 py-0.5 bg-muted rounded text-[10px]">{s.rightTableName}</span>
-                          <span className="text-muted-foreground">.{s.rightKey}</span>
-                          <span className="ml-auto text-[10px] font-semibold text-emerald-700">
-                            {Math.round(s.overlap * 100)}% match
-                          </span>
-                        </div>
-                        <div className="text-[10px] text-muted-foreground mt-0.5 truncate">{s.reason}</div>
-                      </div>
-                      <button
-                        onClick={() => openJoinModalWithSuggestion(s)}
-                        className="text-[10px] px-2 py-1 rounded border border-border hover:border-primary hover:bg-primary/5 hover:text-primary transition-colors flex-shrink-0"
-                      >
-                        Customize
-                      </button>
-                      <button
-                        onClick={() => applySuggestion(s)}
-                        className="text-[10px] px-2 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex-shrink-0 font-medium"
-                      >
-                        Apply
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <button
-                onClick={() => setDismissedSuggestions(true)}
-                className="text-amber-600/60 hover:text-amber-800 transition-colors flex-shrink-0"
-                title="Dismiss suggestions"
-                aria-label="Dismiss join suggestions"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Pipeline */}
         <div className="px-6 py-4 border-b border-border bg-muted/10">

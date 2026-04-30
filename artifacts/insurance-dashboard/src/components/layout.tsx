@@ -322,7 +322,7 @@ function ChatPanel() {
   const { registerHandler } = useCopilot();
   const pendingQuestionRef = useRef<string | null>(null);
   const { config } = useTenantConfig();
-  const { pack } = useActiveWorkspace();
+  const { pack, workspace } = useActiveWorkspace();
 
   // Listen for the global "copilot:focus" event (dispatched, for example,
   // by the Home "Ask Gen-BI" quick action) and visibly bring the chat
@@ -420,7 +420,10 @@ function ChatPanel() {
       const response = await fetch(`${base}api/openai/conversations/${activeConvId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: userMsg }),
+        body: JSON.stringify({
+          content: userMsg,
+          ...(workspace?.id ? { workspaceId: workspace.id } : {}),
+        }),
       });
 
       if (!response.ok) throw new Error("Failed to send message");

@@ -89,6 +89,12 @@ export const SendOpenaiMessageParams = zod.object({
 
 export const SendOpenaiMessageBody = zod.object({
   content: zod.string(),
+  workspaceId: zod
+    .number()
+    .nullish()
+    .describe(
+      "When supplied, user-approved\/certified metrics for this workspace are injected into the system prompt.",
+    ),
 });
 
 /**
@@ -920,7 +926,8 @@ export const PreviewJoinResponse = zod.object({
  * @summary Update an existing join (status, type, columns)
  */
 export const UpdateJoinParams = zod.object({
-  id: zod.coerce.number(),
+  workspaceId: zod.coerce.number(),
+  joinId: zod.coerce.number(),
 });
 
 export const UpdateJoinBody = zod.object({
@@ -951,7 +958,8 @@ export const UpdateJoinResponse = zod.object({
  * @summary Delete a join
  */
 export const DeleteJoinParams = zod.object({
-  id: zod.coerce.number(),
+  workspaceId: zod.coerce.number(),
+  joinId: zod.coerce.number(),
 });
 
 /**
@@ -1010,7 +1018,8 @@ export const CreatePreparedDatasetBody = zod.object({
  * @summary Get a prepared dataset by id (incl. lineage)
  */
 export const GetPreparedDatasetParams = zod.object({
-  id: zod.coerce.number(),
+  workspaceId: zod.coerce.number(),
+  preparedDatasetId: zod.coerce.number(),
 });
 
 export const GetPreparedDatasetResponse = zod.object({
@@ -1045,7 +1054,8 @@ export const GetPreparedDatasetResponse = zod.object({
  * @summary Delete a prepared dataset
  */
 export const DeletePreparedDatasetParams = zod.object({
-  id: zod.coerce.number(),
+  workspaceId: zod.coerce.number(),
+  preparedDatasetId: zod.coerce.number(),
 });
 
 /**
@@ -1114,7 +1124,8 @@ export const SuggestMetricsBody = zod.object({
  * @summary Edit / approve / certify / reject a metric (appends audit)
  */
 export const UpdateMetricParams = zod.object({
-  id: zod.coerce.number(),
+  workspaceId: zod.coerce.number(),
+  metricId: zod.coerce.number(),
 });
 
 export const UpdateMetricBody = zod.object({
@@ -1156,7 +1167,8 @@ export const UpdateMetricResponse = zod.object({
  * @summary Delete a metric
  */
 export const DeleteMetricParams = zod.object({
-  id: zod.coerce.number(),
+  workspaceId: zod.coerce.number(),
+  metricId: zod.coerce.number(),
 });
 
 /**

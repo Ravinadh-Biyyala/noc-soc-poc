@@ -188,41 +188,60 @@ router.post("/workspaces/:id/joins", async (req: Request, res: Response) => {
   res.status(201).json(serializeJoin(created));
 });
 
-router.patch("/joins/:id", async (req: Request, res: Response) => {
-  const id = Number(req.params.id);
-  if (!Number.isFinite(id)) {
-    res.status(400).json({ error: "Invalid join id" });
-    return;
-  }
-  const body = UpdateJoinBody.parse(req.body);
-  const [existing] = await db.select().from(joins).where(eq(joins.id, id)).limit(1);
-  if (!existing) {
-    res.status(404).json({ error: "Join not found" });
-    return;
-  }
-  const [updated] = await db
-    .update(joins)
-    .set({
-      ...(body.joinType !== undefined ? { joinType: body.joinType } : {}),
-      ...(body.status !== undefined ? { status: body.status } : {}),
-      ...(body.leftColumn !== undefined ? { leftColumn: body.leftColumn } : {}),
-      ...(body.rightColumn !== undefined ? { rightColumn: body.rightColumn } : {}),
-      updatedAt: new Date(),
-    })
-    .where(eq(joins.id, id))
-    .returning();
-  res.json(serializeJoin(updated));
-});
+router.patch(
+  "/workspaces/:workspaceId/joins/:joinId",
+  async (req: Request, res: Response) => {
+    const workspaceId = Number(req.params.workspaceId);
+    const id = Number(req.params.joinId);
+    if (!Number.isFinite(workspaceId) || !Number.isFinite(id)) {
+      res.status(400).json({ error: "Invalid workspace or join id" });
+      return;
+    }
+    const body = UpdateJoinBody.parse(req.body);
+    const [existing] = await db
+      .select()
+      .from(joins)
+      .where(and(eq(joins.id, id), eq(joins.workspaceId, workspaceId)))
+      .limit(1);
+    if (!existing) {
+      res.status(404).json({ error: "Join not found" });
+      return;
+    }
+    const [updated] = await db
+      .update(joins)
+      .set({
+        ...(body.joinType !== undefined ? { joinType: body.joinType } : {}),
+        ...(body.status !== undefined ? { status: body.status } : {}),
+        ...(body.leftColumn !== undefined ? { leftColumn: body.leftColumn } : {}),
+        ...(body.rightColumn !== undefined ? { rightColumn: body.rightColumn } : {}),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(joins.id, id), eq(joins.workspaceId, workspaceId)))
+      .returning();
+    res.json(serializeJoin(updated));
+  },
+);
 
-router.delete("/joins/:id", async (req: Request, res: Response) => {
-  const id = Number(req.params.id);
-  if (!Number.isFinite(id)) {
-    res.status(400).json({ error: "Invalid join id" });
-    return;
-  }
-  await db.delete(joins).where(eq(joins.id, id));
-  res.status(204).end();
-});
+router.delete(
+  "/workspaces/:workspaceId/joins/:joinId",
+  async (req: Request, res: Response) => {
+    const workspaceId = Number(req.params.workspaceId);
+    const id = Number(req.params.joinId);
+    if (!Number.isFinite(workspaceId) || !Number.isFinite(id)) {
+      res.status(400).json({ error: "Invalid workspace or join id" });
+      return;
+    }
+    const result = await db
+      .delete(joins)
+      .where(and(eq(joins.id, id), eq(joins.workspaceId, workspaceId)))
+      .returning({ id: joins.id });
+    if (result.length === 0) {
+      res.status(404).json({ error: "Join not found" });
+      return;
+    }
+    res.status(204).end();
+  },
+);
 
 router.post(
   "/workspaces/:id/joins/preview",

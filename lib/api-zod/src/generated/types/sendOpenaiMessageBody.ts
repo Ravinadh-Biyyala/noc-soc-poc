@@ -8,4 +8,6 @@
 
 export interface SendOpenaiMessageBody {
   content: string;
+  /** When supplied, user-approved/certified metrics for this workspace are injected into the system prompt. */
+  workspaceId?: number | null;
 }

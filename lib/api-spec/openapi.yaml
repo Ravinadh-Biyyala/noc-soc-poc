@@ -588,13 +588,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/JoinPreview"
-  /joins/{id}:
+  /workspaces/{workspaceId}/joins/{joinId}:
     patch:
       operationId: updateJoin
       tags: [joins]
       summary: Update an existing join (status, type, columns)
       parameters:
-        - name: id
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: joinId
           in: path
           required: true
           schema:
@@ -617,7 +622,12 @@ paths:
       tags: [joins]
       summary: Delete a join
       parameters:
-        - name: id
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: joinId
           in: path
           required: true
           schema:
@@ -668,13 +678,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PreparedDataset"
-  /prepared-datasets/{id}:
+  /workspaces/{workspaceId}/prepared-datasets/{preparedDatasetId}:
     get:
       operationId: getPreparedDataset
       tags: [preparedDatasets]
       summary: Get a prepared dataset by id (incl. lineage)
       parameters:
-        - name: id
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: preparedDatasetId
           in: path
           required: true
           schema:
@@ -691,7 +706,12 @@ paths:
       tags: [preparedDatasets]
       summary: Delete a prepared dataset
       parameters:
-        - name: id
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: preparedDatasetId
           in: path
           required: true
           schema:
@@ -772,13 +792,18 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Metric"
-  /metrics/{id}:
+  /workspaces/{workspaceId}/metrics/{metricId}:
     patch:
       operationId: updateMetric
       tags: [metrics]
       summary: Edit / approve / certify / reject a metric (appends audit)
       parameters:
-        - name: id
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: metricId
           in: path
           required: true
           schema:
@@ -801,7 +826,12 @@ paths:
       tags: [metrics]
       summary: Delete a metric
       parameters:
-        - name: id
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: metricId
           in: path
           required: true
           schema:
@@ -889,6 +919,10 @@ components:
       properties:
         content:
           type: string
+        workspaceId:
+          type: integer
+          nullable: true
+          description: When supplied, user-approved/certified metrics for this workspace are injected into the system prompt.
       required:
         - content
     OpenaiConversationWithMessages:
