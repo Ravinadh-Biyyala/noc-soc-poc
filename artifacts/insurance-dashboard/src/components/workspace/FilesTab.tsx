@@ -206,8 +206,8 @@ export default function FilesTab({ workspaceId, initialDatasetId, onSelectDatase
             <span className="leading-snug">
               <span className="font-semibold">Fast-sample preview:</span>{" "}
               {sampled.length === 1 ? "One file was" : `${sampled.length} files were`} parsed using a head sample of{" "}
-              {sampledRows.toLocaleString()} of {totalRows.toLocaleString()} rows so the UI stays snappy. The full
-              file is preserved for joins and exports.
+              {sampledRows.toLocaleString()} of {totalRows.toLocaleString()} rows so the UI stays snappy. Re-upload
+              the full file later if you need every row in joins or exports.
             </span>
           </div>
         );
