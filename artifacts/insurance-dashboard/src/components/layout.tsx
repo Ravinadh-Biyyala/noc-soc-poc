@@ -314,13 +314,33 @@ function ChatPanel() {
   const [input, setInput] = useState("");
   const [streamingMessage, setStreamingMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [highlightInput, setHighlightInput] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [_, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { registerHandler } = useCopilot();
   const pendingQuestionRef = useRef<string | null>(null);
   const { config } = useTenantConfig();
   const { pack } = useActiveWorkspace();
+
+  // Listen for the global "copilot:focus" event (dispatched, for example,
+  // by the Home "Ask Gen-BI" quick action) and visibly bring the chat
+  // input into focus with a brief highlight ring so the user has clear
+  // feedback that the Copilot is ready.
+  useEffect(() => {
+    const onFocus = () => {
+      const el = inputRef.current;
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        el.focus({ preventScroll: false });
+      }
+      setHighlightInput(true);
+      window.setTimeout(() => setHighlightInput(false), 1400);
+    };
+    window.addEventListener("copilot:focus", onFocus);
+    return () => window.removeEventListener("copilot:focus", onFocus);
+  }, []);
 
   // When the user is inside a workspace, prefer that workspace's pack copy.
   // Falls back to the global tenant config (legacy insurance content) and
@@ -576,11 +596,16 @@ function ChatPanel() {
           onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}
           className="relative flex items-center"
         >
-          <Input 
+          <Input
+            ref={inputRef}
+            data-testid="copilot-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask anything about your data..."
-            className="pr-10 bg-muted/50 border-border focus-visible:ring-primary h-9 rounded-lg text-sm placeholder:text-muted-foreground/60"
+            className={cn(
+              "pr-10 bg-muted/50 border-border focus-visible:ring-primary h-9 rounded-lg text-sm placeholder:text-muted-foreground/60 transition-shadow",
+              highlightInput && "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md",
+            )}
             disabled={isTyping}
           />
           <Button 
