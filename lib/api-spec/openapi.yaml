@@ -15,6 +15,10 @@ tags:
     description: Dashboard data endpoints
   - name: config
     description: Tenant configuration
+  - name: workspaces
+    description: Analytics workspaces (one per business question / dataset bundle)
+  - name: settings
+    description: Per-user settings
 paths:
   /healthz:
     get:
@@ -227,6 +231,90 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TenantClientConfig"
+  /workspaces:
+    get:
+      operationId: listWorkspaces
+      tags: [workspaces]
+      summary: List all workspaces
+      responses:
+        "200":
+          description: List of workspaces
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Workspace"
+    post:
+      operationId: createWorkspace
+      tags: [workspaces]
+      summary: Create a new workspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkspaceBody"
+      responses:
+        "201":
+          description: Created workspace
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workspace"
+  /workspaces/{id}:
+    get:
+      operationId: getWorkspace
+      tags: [workspaces]
+      summary: Get a workspace by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Workspace detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workspace"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get user settings (auto-creates default row if missing)
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+    patch:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Patch user settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSettingsBody"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
   /dashboard/{sectionId}:
     get:
       operationId: getDashboardSection
@@ -1078,3 +1166,101 @@ components:
         - sections
         - suggestedPrompts
         - clickToAskTemplates
+    Workspace:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        packId:
+          type: string
+        description:
+          type: string
+          nullable: true
+        ownerName:
+          type: string
+        status:
+          type: string
+        readinessScore:
+          type: integer
+        fileCount:
+          type: integer
+        dashboardCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - packId
+        - ownerName
+        - status
+        - readinessScore
+        - fileCount
+        - dashboardCount
+        - createdAt
+        - updatedAt
+    CreateWorkspaceBody:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        packId:
+          type: string
+          minLength: 1
+        description:
+          type: string
+      required:
+        - name
+        - packId
+    Settings:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+        profileName:
+          type: string
+          nullable: true
+        profileEmail:
+          type: string
+          nullable: true
+        timezone:
+          type: string
+        theme:
+          type: string
+        defaultPackId:
+          type: string
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - timezone
+        - theme
+        - updatedAt
+    UpdateSettingsBody:
+      type: object
+      properties:
+        profileName:
+          type: string
+          nullable: true
+        profileEmail:
+          type: string
+          nullable: true
+        timezone:
+          type: string
+        theme:
+          type: string
+        defaultPackId:
+          type: string
+          nullable: true

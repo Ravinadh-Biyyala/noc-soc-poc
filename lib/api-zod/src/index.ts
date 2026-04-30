@@ -1,2 +1,51 @@
+// The runtime zod schemas (./generated/api) win for any name that exists in
+// both modules. Orval also emits TypeScript interfaces for request bodies
+// with the same names, which would clash — so we explicitly skip those four
+// here. Callers that need the type form should use `z.infer<typeof X>`.
 export * from "./generated/api";
-export * from "./generated/types";
+
+export type {
+  CarrierMetric,
+  ChartConfig,
+  ChartYKey,
+  ClaimsRisk,
+  ClaimsRiskClaimsByLineItem,
+  ClaimsRiskClaimsByStateItem,
+  ClaimsRiskRecentClaimsItem,
+  ExecutiveSummary,
+  ExecutiveSummaryPolicyMixItem,
+  ExecutiveSummaryTopStatesByPremiumItem,
+  GeographyData,
+  GeographyDataConcentrationRiskItem,
+  GeographyDataTopGrowthStatesItem,
+  GetDashboardSection200,
+  HealthStatus,
+  KpiConfig,
+  LineOfBusiness,
+  OpenaiConversation,
+  OpenaiConversationWithMessages,
+  OpenaiError,
+  OpenaiMessage,
+  ProducerMetric,
+  ProductAnalytics,
+  ProductAnalyticsPremiumByLineTrendItem,
+  RenewalsRetention,
+  RenewalsRetentionChurnByLineItem,
+  RenewalsRetentionChurnByProducerItem,
+  SalesPerformance,
+  SalesPerformanceAccountSizeBucketsItem,
+  SalesPerformanceFunnelStagesItem,
+  SectionConfig,
+  Settings,
+  StateData,
+  TableColumn,
+  TableConfig,
+  TenantBranding,
+  TenantClientConfig,
+  TenantClientConfigClickToAskTemplates,
+  TrendPoint,
+  WidgetConfig,
+  WidgetConfigProps,
+  Workspace,
+  YoyComparison,
+} from "./generated/types";

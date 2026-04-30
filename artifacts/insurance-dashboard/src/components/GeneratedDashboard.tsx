@@ -8,7 +8,7 @@ import {
   BarChart, Bar,
   LineChart, Line,
   PieChart, Pie, Cell,
-  ScatterChart, Scatter,
+  ScatterChart, Scatter, ZAxis,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   Treemap,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -16,9 +16,43 @@ import {
 import {
   TrendingUp, TrendingDown, DollarSign, Users, BarChart3,
   Activity, Package, Target, ShieldAlert, FileText,
-  Hash, Percent, ArrowUpRight, ArrowDownRight,
+  Hash, Percent, ArrowUpRight, ArrowDownRight, AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+/**
+ * True if a numeric coercion yields a finite number. Avoids the recharts
+ * footgun where `type="number"` axes silently drop rows whose key is a
+ * non-numeric string.
+ */
+function isFiniteNumeric(v: unknown): boolean {
+  if (v === null || v === undefined || v === "") return false;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n);
+}
+
+/**
+ * Returns true when the column reads as numeric across the bulk of the rows
+ * (>=70% finite). Below that threshold a chart should treat the axis as
+ * categorical, otherwise non-numeric labels (e.g. customer names) get
+ * coerced to NaN and the entire scatter renders empty.
+ */
+function isNumericColumn(rows: any[], key: string): boolean {
+  if (!rows.length) return false;
+  let n = 0;
+  for (const row of rows) if (isFiniteNumeric(row?.[key])) n++;
+  return n / rows.length >= 0.7;
+}
+
+/** Friendly placeholder so a missing/malformed chart never silently renders empty. */
+function EmptyChartState({ message }: { message: string }) {
+  return (
+    <div className="h-[280px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
+      <AlertCircle className="w-5 h-5 opacity-50" />
+      <p className="text-xs">{message}</p>
+    </div>
+  );
+}
 
 const PALETTE = [
   "#1565C0", "#0288D1", "#00838F", "#00695C", "#2E7D32",
@@ -206,21 +240,47 @@ function ChartCard({ chart }: { chart: any }) {
         );
 
       case "scatter":
-      case "bubble":
+      case "bubble": {
+        // Pick a size series for bubble charts: explicit config wins, then a
+        // second yKey, then fall back to the primary so points are at least
+        // visible (just uniform-sized).
         const sizeKey = chart.config?.sizeKey || yKeys[1] || yKeys[0];
+        const isBubble = chart.type === "bubble";
+        const xIsNumeric = isNumericColumn(data, xKey);
+        // Drop rows missing a y-value so the auto-domain isn't dominated by
+        // NaNs, and (for numeric x) drop bad x-values too. Without this the
+        // axes draw but no points plot.
+        const cleanData = data.filter((d: any) => isFiniteNumeric(d?.[yKeys[0]]) && (!xIsNumeric || isFiniteNumeric(d?.[xKey])));
+        if (cleanData.length === 0) {
+          return <EmptyChartState message="No numeric data points to plot" />;
+        }
         return (
-          <ScatterChart margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <ScatterChart margin={{ top: 10, right: 10, left: 0, bottom: xIsNumeric ? 0 : 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey={xKey} type="number" fontSize={10} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" name={xKey} tickFormatter={(v) => formatValue(v)} />
+            <XAxis
+              dataKey={xKey}
+              type={xIsNumeric ? "number" : "category"}
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              stroke="hsl(var(--muted-foreground))"
+              name={xKey}
+              angle={xIsNumeric ? 0 : -20}
+              textAnchor={xIsNumeric ? "middle" : "end"}
+              tickFormatter={xIsNumeric ? (v) => formatValue(v) : undefined}
+              allowDuplicatedCategory={false}
+            />
             <YAxis dataKey={yKeys[0]} type="number" fontSize={10} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" name={yKeys[0]} tickFormatter={(v) => formatValue(v)} />
+            {isBubble && <ZAxis dataKey={sizeKey} range={[60, 600]} name={sizeKey} />}
             <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatValue(v)]} cursor={{ strokeDasharray: "3 3" }} />
-            <Scatter data={data} fill={PALETTE[0]}>
-              {data.map((_: any, idx: number) => (
+            <Scatter data={cleanData} fill={PALETTE[0]} fillOpacity={isBubble ? 0.7 : 1}>
+              {cleanData.map((_: any, idx: number) => (
                 <Cell key={idx} fill={PALETTE[idx % PALETTE.length]} />
               ))}
             </Scatter>
           </ScatterChart>
         );
+      }
 
       case "radar":
         return (

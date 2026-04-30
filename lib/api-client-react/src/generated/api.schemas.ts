@@ -337,4 +337,45 @@ export interface TenantClientConfig {
   clickToAskTemplates: TenantClientConfigClickToAskTemplates;
 }
 
+export interface Workspace {
+  id: number;
+  name: string;
+  packId: string;
+  description?: string | null;
+  ownerName: string;
+  status: string;
+  readinessScore: number;
+  fileCount: number;
+  dashboardCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateWorkspaceBody {
+  /** @minLength 1 */
+  name: string;
+  /** @minLength 1 */
+  packId: string;
+  description?: string;
+}
+
+export interface Settings {
+  id: number;
+  userId: string;
+  profileName?: string | null;
+  profileEmail?: string | null;
+  timezone: string;
+  theme: string;
+  defaultPackId?: string | null;
+  updatedAt: string;
+}
+
+export interface UpdateSettingsBody {
+  profileName?: string | null;
+  profileEmail?: string | null;
+  timezone?: string;
+  theme?: string;
+  defaultPackId?: string | null;
+}
+
 export type GetDashboardSection200 = { [key: string]: unknown };

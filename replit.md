@@ -84,6 +84,24 @@ An enterprise-grade, **configuration-driven** analytics dashboard platform. Feat
 ### Database Tables
 - `conversations` — AI chat conversations
 - `messages` — Chat messages (user and assistant)
+- `workspaces` — Per-question / per-dataset analytics workspaces (id, name, packId, description, ownerName, status, readinessScore, fileCount, dashboardCount, timestamps). Backed by `GET/POST /api/workspaces` and `GET /api/workspaces/:id`.
+- `settings` — Per-user settings, single "default" row auto-created on first read (profileName, profileEmail, timezone, theme, defaultPackId). Backed by `GET/PATCH /api/settings`.
+
+## Core Shell (Phase 02)
+
+The dashboard now has a permanent left navigation that doesn't change with the tenant: **Home, Workspaces, Data, Analytics, Outputs, Governance, Settings** (defined in `src/lib/nav-config.ts`). Data/Analytics/Outputs are collapsible groups with sub-items (some marked "soon" until later phases ship them).
+
+- **Home** (`/`) — Welcome card, recent workspaces, recent dashboards, saved insights / pending approvals / data-quality / quick-actions placeholders.
+- **Workspaces list** (`/workspaces`) — Grid of workspace cards with status, file/dashboard counts and readiness; "New workspace" dialog seeds the workspace with a domain pack.
+- **Workspace detail** (`/workspaces/:id`) — Header + stepper (Upload → Understand → Clean → Join → Metrics → Dashboard → Ask → Report) + 7 tabs (Overview, Files, Prepared Data, Dashboards, Insights, Reports, Governance). Most tabs render placeholder empty states until later phases.
+- **Settings** (`/settings`) — Profile, Defaults (default domain pack), Notifications/Security/Integrations placeholders. Saves go to `PATCH /api/settings`.
+- **Domain packs** (`src/lib/domain-packs.ts`) — Insurance Broker, E-commerce Sales, SaaS Metrics, Marketing Funnel, Generic. Each pack carries a copilot name, suggested prompts and starter metrics.
+- **Pack-driven Copilot** — `useActiveWorkspace()` parses `/workspaces/:id` from the URL and the right-rail ChatPanel uses the active workspace's pack copy (name + suggested prompts), falling back to the global tenant config elsewhere.
+- **Legacy tenant section routes** (`/sales`, `/products`, etc.) still mount via `App.tsx` so existing dashboards keep working; they will be linked from the workspace Dashboards tab in a later phase.
+
+## API + codegen note
+
+`lib/api-zod/src/index.ts` re-exports the runtime Zod schemas from `./generated/api` and explicitly type-only re-exports the non-conflicting interfaces from `./generated/types`. Orval emits both a Zod schema and a TS interface for request bodies (`CreateWorkspaceBody`, `UpdateSettingsBody`, `CreateOpenaiConversationBody`, `SendOpenaiMessageBody`); the four conflicting body names are intentionally not type-re-exported — callers needing the type form should use `z.infer<typeof X>`.
 
 ## Key Commands
 
