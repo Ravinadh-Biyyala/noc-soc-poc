@@ -1,0 +1,1361 @@
+Recommended Left Navigation
+
+Replace the current left navigation with this structure:
+
+## Primary Navigation
+
+1. **Home**
+2. **Workspaces**
+3. **Data Uploads**
+4. **Data Preparation**
+5. **Dashboards**
+6. **Ask Gen-BI**
+7. **Insights**
+8. **Reports**
+9. **Governance**
+10. **Settings**
+
+---
+
+## Left Navigation Details
+
+### 1. Home
+
+Purpose: Executive landing page.
+
+Show:
+
+* Recent workspaces
+* Recently generated dashboards
+* Saved insights
+* Pending approvals
+* Data quality warnings
+* Quick actions
+
+Quick actions:
+
+* Upload data
+* Create workspace
+* Ask a question
+* Generate dashboard
+* Import sample dataset
+
+---
+
+### 2. Workspaces
+
+Purpose: Organize data, dashboards, joins, glossary, and reports by business use case.
+
+Example workspaces:
+
+* Broker Performance Analysis
+* Sales Performance
+* HR Workforce Analytics
+* Finance Review
+* Claims Risk Analysis
+
+Each workspace contains:
+
+* uploaded files
+* prepared datasets
+* joins
+* dashboards
+* saved insights
+* reports
+* glossary
+* governance status
+
+This is very important. Without workspaces, the app feels like a one-time dashboard generator.
+
+---
+
+### 3. Data Uploads
+
+Purpose: Upload Excel/CSV files.
+
+Features:
+
+* Drag-and-drop file upload
+* Multi-file upload
+* File preview
+* Sheet selection for Excel
+* Auto-detect headers
+* Auto-detect data types
+* Detect date, currency, percentage, ID, category, measure fields
+* Show upload status
+* Show file metadata
+
+After upload, route user to **Data Understanding**.
+
+---
+
+### 4. Data Preparation
+
+Purpose: Let Gen-BI understand, clean, join, and prepare data.
+
+This should have sub-sections:
+
+#### A. Data Understanding
+
+Show:
+
+* detected columns
+* sample rows
+* inferred business meaning
+* dimension/measure classification
+* possible KPI fields
+* possible date fields
+* possible ID fields
+
+#### B. Data Quality
+
+Show:
+
+* missing values
+* duplicates
+* inconsistent formats
+* outliers
+* invalid dates
+* empty columns
+* suspicious records
+
+Add a **Data Readiness Score**.
+
+Example:
+
+> Data Readiness Score: 82/100
+> 12 missing commission values
+> 4 duplicate policy records
+> 7 inconsistent date formats
+
+Actions:
+
+* Auto-fix
+* Ignore
+* Review manually
+* Download issue report
+
+#### C. Join Studio
+
+This is a major wow feature.
+
+Show uploaded datasets visually as cards.
+
+For each file, show:
+
+* file name
+* row count
+* column count
+* detected keys
+* data quality score
+
+Gen-BI should suggest joins.
+
+Example:
+
+> Suggested Join: Policy Data + Commission Data
+> Join Key: Policy Number
+> Confidence: 96%
+> Match Rate: 94%
+> Unmatched Records: 312
+
+Support:
+
+* exact joins
+* fuzzy joins
+* multi-column joins
+* lookup joins
+* date-range joins
+
+Actions:
+
+* Accept join
+* Modify join
+* Preview result
+* Save prepared dataset
+
+#### D. Metric Builder
+
+Purpose: Define or approve KPI formulas.
+
+Example:
+
+* Written Premium = SUM(premium_amount)
+* Commission Revenue = SUM(commission_amount)
+* Renewal Rate = renewed policies / eligible policies
+* Loss Ratio = claims paid / premium earned
+
+Add status:
+
+* AI Suggested
+* User Approved
+* Certified
+
+---
+
+### 5. Dashboards
+
+Purpose: View, create, save, and manage dashboards.
+
+Dashboard categories:
+
+* Executive Summary
+* Sales Performance
+* Product Analytics
+* Renewals & Retention
+* Claims & Risk
+* Custom Dashboards
+* AI-Generated Dashboards
+
+Each dashboard should have:
+
+* title
+* description
+* source dataset
+* last refreshed date
+* data quality status
+* owner
+* status: Draft / Reviewed / Published
+* actions: View, Edit, Ask, Export, Share, Duplicate
+
+---
+
+### 6. Ask Gen-BI
+
+Purpose: Natural language analytics.
+
+This should not only be a side panel. It should also be a full-screen experience.
+
+User can ask:
+
+* “What was total commission revenue in 2024?”
+* “Why did renewal rate drop in Q3?”
+* “Show broker-wise premium growth.”
+* “Create a dashboard for product performance.”
+* “Generate a report for executive review.”
+
+For every answer, show:
+
+* direct answer
+* formula used
+* filters applied
+* source dataset
+* confidence score
+* chart preview
+* button to create dashboard
+* button to save insight
+
+Example response:
+
+> Total commission revenue for 2024 is **$31.8M**.
+> Formula used: SUM(commission_revenue)
+> Filter applied: Year = 2024
+> Source: Broker_Commission.csv
+> Confidence: High
+
+Actions:
+
+* View chart
+* Create dashboard
+* Save insight
+* Export answer
+* Ask follow-up
+
+---
+
+### 7. Insights
+
+Purpose: Store important AI-discovered insights.
+
+Insight cards should include:
+
+* insight title
+* explanation
+* metric impact
+* supporting chart
+* confidence score
+* source data
+* generated date
+* status: Draft / Validated / Approved
+
+Examples:
+
+* “Top 5 brokers contribute 61% of premium”
+* “Renewal rate improved steadily from 2022 to 2026”
+* “Commercial Property drove most premium growth”
+* “Loss ratio is increasing in one product segment”
+
+Actions:
+
+* Save to dashboard
+* Add to report
+* Approve insight
+* Dismiss insight
+* Ask follow-up
+
+---
+
+### 8. Reports
+
+Purpose: Convert dashboards and insights into business material.
+
+Report types:
+
+* Executive Summary PDF
+* PowerPoint Board Pack
+* Monthly Business Review
+* Client Report
+* Email Summary
+* Data Quality Report
+* Insight Report
+
+Report generation flow:
+
+1. Select dashboard or insights.
+2. Choose report type.
+3. Gen-BI generates narrative.
+4. User reviews.
+5. Export as PDF/PPT.
+
+This is a very strong enterprise wow factor.
+
+---
+
+### 9. Governance
+
+Purpose: Build enterprise trust.
+
+Governance should include:
+
+* source files
+* join lineage
+* metric definitions
+* approved KPIs
+* dashboard status
+* data quality score
+* audit trail
+* user approvals
+* generated reports
+
+Key tabs:
+
+#### A. Data Lineage
+
+Show:
+
+* which files were uploaded
+* how they were joined
+* which dashboards use which dataset
+
+#### B. Metric Registry
+
+Show:
+
+* metric name
+* formula
+* owner
+* status
+* last modified
+* certified or not
+
+#### C. Audit Trail
+
+Show:
+
+* user actions
+* dashboard generation history
+* question history
+* export history
+* approval history
+
+#### D. Approval Center
+
+Show pending items:
+
+* dashboard approval
+* metric approval
+* insight approval
+* report approval
+
+---
+
+### 10. Settings
+
+Purpose: Workspace and user preferences.
+
+Include:
+
+* organization settings
+* user roles
+* theme preferences
+* default dashboard style
+* file upload limits
+* export settings
+* domain packs
+* AI behavior settings
+
+---
+
+# 3. Ideal Enterprise UX Journey
+
+This should be the main journey.
+
+## Journey 1: First-Time User Creates a Dashboard
+
+### Step 1: Home
+
+User sees a clear CTA:
+
+> Start with your data
+
+Buttons:
+
+* Upload Excel/CSV
+* Create Workspace
+* Try Sample Dataset
+
+---
+
+### Step 2: Create Workspace
+
+User enters:
+
+* workspace name
+* business domain
+* description
+* target audience
+
+Example:
+
+Workspace Name: Broker Performance
+Domain: Insurance
+Audience: Executives / Sales Leaders
+
+---
+
+### Step 3: Upload Files
+
+User uploads:
+
+* policy_data.csv
+* broker_master.xlsx
+* commission_data.csv
+* claims_data.csv
+
+System shows upload success.
+
+---
+
+### Step 4: Data Understanding
+
+Gen-BI says:
+
+> I found 4 files, 62 columns, and 48,000 rows.
+> I detected premium, commission, broker, policy, product, region, claim, and renewal fields.
+
+Show:
+
+* file summary
+* column classification
+* suggested business meaning
+
+---
+
+### Step 5: Data Quality Review
+
+System shows:
+
+> Data Readiness Score: 84/100
+
+Issues:
+
+* 312 unmatched broker records
+* 18 duplicate policies
+* 7 date format issues
+* 3 outlier premium values
+
+User actions:
+
+* Auto-fix
+* Review issues
+* Continue with warnings
+
+---
+
+### Step 6: Join Studio
+
+System suggests:
+
+> Join Policy Data with Commission Data using Policy Number.
+> Confidence: 96%
+
+> Join Broker Master with Policy Data using Broker ID.
+> Confidence: 98%
+
+> Join Claims Data with Policy Data using Policy Number.
+> Confidence: 89%
+
+User clicks:
+
+> Accept Suggested Joins
+
+---
+
+### Step 7: KPI Detection
+
+System suggests KPIs:
+
+* Written Premium
+* Commission Revenue
+* Policies Bound
+* Renewal Rate
+* Quote-to-Bind Ratio
+* Loss Ratio
+* Average Premium per Policy
+* Broker Contribution
+* Product Mix
+
+User can approve or edit.
+
+---
+
+### Step 8: Dashboard Generation
+
+System asks:
+
+> What type of dashboard do you want?
+
+Options:
+
+* Executive Summary
+* Sales Performance
+* Product Analytics
+* Renewal & Retention
+* Claims & Risk
+* Custom
+
+User selects:
+
+> Executive Summary
+
+System generates dashboard.
+
+---
+
+### Step 9: Dashboard View
+
+Dashboard shows:
+
+* KPI cards
+* trend charts
+* product mix
+* broker leaderboard
+* region performance
+* AI-generated summary
+* insight cards
+* trust panel
+
+Right side: Gen-BI Copilot.
+
+---
+
+### Step 10: Ask Follow-Up Question
+
+User asks:
+
+> Why did commission revenue increase in 2024?
+
+Agent answers with:
+
+* answer
+* chart
+* drivers
+* formula
+* source
+* confidence
+
+Then shows:
+
+> Create dashboard from this answer?
+
+User clicks:
+
+> Create Dashboard
+
+---
+
+### Step 11: Save Dashboard
+
+User saves:
+
+> 2024 Commission Growth Analysis
+
+Status:
+
+> Draft
+
+User can:
+
+* publish
+* share
+* export
+* add to report
+
+---
+
+### Step 12: Generate Report
+
+User selects:
+
+> Generate Executive Summary PDF
+
+System creates:
+
+* title page
+* executive summary
+* KPI highlights
+* chart snapshots
+* insights
+* recommendations
+* appendix with data sources
+
+---
+
+# 4. Must-Have Screens for Replit
+
+Build these screens.
+
+## Screen 1: Home / Landing
+
+Purpose: Starting point.
+
+Components:
+
+* Welcome banner
+* Create workspace button
+* Upload data button
+* Ask Gen-BI button
+* Recent workspaces
+* Recent dashboards
+* Saved insights
+* Pending approvals
+
+---
+
+## Screen 2: Workspace List
+
+Purpose: Manage all analysis workspaces.
+
+Components:
+
+* workspace cards
+* domain label
+* number of files
+* number of dashboards
+* data quality score
+* last updated
+* owner
+* status
+
+Actions:
+
+* open workspace
+* create workspace
+* archive workspace
+
+---
+
+## Screen 3: Workspace Detail
+
+Purpose: Main hub for one business use case.
+
+Tabs:
+
+* Overview
+* Files
+* Prepared Data
+* Dashboards
+* Insights
+* Reports
+* Governance
+
+Show:
+
+* workspace summary
+* data readiness
+* recent activity
+* recommended next actions
+
+---
+
+## Screen 4: Upload Data
+
+Purpose: Upload Excel/CSV.
+
+Components:
+
+* drag-and-drop upload
+* file list
+* upload progress
+* sheet selector
+* preview table
+* file metadata
+
+Actions:
+
+* upload
+* remove file
+* continue to data understanding
+
+---
+
+## Screen 5: Data Understanding
+
+Purpose: AI explanation of uploaded data.
+
+Components:
+
+* file summary cards
+* detected column types
+* dimension/measure tags
+* suggested business meanings
+* possible key fields
+* possible KPI fields
+* sample data preview
+
+Actions:
+
+* confirm column meaning
+* edit data type
+* continue to quality review
+
+---
+
+## Screen 6: Data Quality
+
+Purpose: Validate data before dashboarding.
+
+Components:
+
+* Data Readiness Score
+* issue categories
+* issue table
+* severity badges
+* suggested fixes
+
+Actions:
+
+* auto-fix selected issues
+* ignore issue
+* download issue report
+* continue to Join Studio
+
+---
+
+## Screen 7: Join Studio
+
+Purpose: Join multiple files intelligently.
+
+Components:
+
+* dataset cards
+* suggested join cards
+* join confidence score
+* match rate
+* unmatched count
+* join preview table
+* visual relationship view
+
+Actions:
+
+* accept join
+* modify join
+* add manual join
+* preview joined data
+* save prepared dataset
+
+---
+
+## Screen 8: Metric Builder
+
+Purpose: Approve KPI formulas.
+
+Components:
+
+* suggested KPI cards
+* formula editor
+* metric owner
+* metric status
+* certified badge
+
+Actions:
+
+* approve metric
+* edit formula
+* reject metric
+* create custom metric
+
+---
+
+## Screen 9: Dashboard Gallery
+
+Purpose: Manage dashboards.
+
+Components:
+
+* dashboard cards
+* category filters
+* status filter
+* source dataset
+* owner
+* last refreshed date
+
+Actions:
+
+* view
+* edit
+* duplicate
+* delete
+* export
+
+---
+
+## Screen 10: Dashboard Viewer
+
+Purpose: View generated dashboard.
+
+Components:
+
+* KPI cards
+* charts
+* filters
+* AI narrative
+* insight cards
+* trust panel
+* right-side Gen-BI Copilot
+
+Actions:
+
+* ask question
+* save dashboard
+* publish dashboard
+* export
+* create report
+* view lineage
+
+---
+
+## Screen 11: Ask Gen-BI Full Page
+
+Purpose: Conversational analytics workspace.
+
+Components:
+
+* chat interface
+* suggested questions
+* answer cards
+* generated charts
+* source explanation
+* formula explanation
+* confidence score
+
+Actions:
+
+* create dashboard from answer
+* save insight
+* export answer
+* ask follow-up
+
+---
+
+## Screen 12: Insight Library
+
+Purpose: Store generated insights.
+
+Components:
+
+* insight cards
+* confidence score
+* source dataset
+* metric impact
+* generated date
+* approval status
+
+Actions:
+
+* approve
+* add to dashboard
+* add to report
+* dismiss
+* ask follow-up
+
+---
+
+## Screen 13: Report Builder
+
+Purpose: Generate PDF/PPT/business material.
+
+Components:
+
+* select dashboard
+* select insights
+* report type
+* report preview
+* editable narrative
+* export buttons
+
+Actions:
+
+* generate PDF
+* generate PPT
+* generate email summary
+* save report
+
+---
+
+## Screen 14: Governance Center
+
+Purpose: Enterprise trust and control.
+
+Tabs:
+
+* Data Lineage
+* Metric Registry
+* Audit Trail
+* Approval Center
+
+Components:
+
+* source file lineage
+* join lineage
+* metric formulas
+* approval status
+* user actions
+
+---
+
+# 5. The Most Important Wow Features
+
+Do not build too many random features. Prioritize these.
+
+## Wow Feature 1: Smart Data Understanding
+
+After upload, Gen-BI should explain the data like an analyst.
+
+Example:
+
+> This dataset appears to contain insurance policy and commission information. I detected premium, broker, policy, product, region, renewal, and claims-related fields.
+
+---
+
+## Wow Feature 2: Data Readiness Score
+
+Before dashboard generation, show a score.
+
+Example:
+
+> Data Readiness Score: 84/100
+
+This immediately creates trust.
+
+---
+
+## Wow Feature 3: Intelligent Join Studio
+
+This is one of the most important features.
+
+The system should recommend joins and explain confidence.
+
+Example:
+
+> Policy Data and Commission Data can be joined using Policy Number with 96% confidence.
+
+---
+
+## Wow Feature 4: Auto KPI Detection
+
+System should detect KPIs automatically.
+
+Example:
+
+> I detected 8 possible KPIs: Written Premium, Commission Revenue, Policies Bound, Renewal Rate, Loss Ratio, Quote-to-Bind, Average Premium, Broker Contribution.
+
+---
+
+## Wow Feature 5: Question-to-Dashboard
+
+User asks a question. The system creates a dashboard.
+
+Example:
+
+> Show me why commission revenue increased in 2024.
+
+System creates:
+
+* trend chart
+* broker contribution
+* product contribution
+* region split
+* explanation
+* recommended actions
+
+---
+
+## Wow Feature 6: Explain Every Answer
+
+Every AI answer must include:
+
+* formula
+* filters
+* source file
+* confidence
+* generated chart
+
+This is mandatory for enterprise adoption.
+
+---
+
+## Wow Feature 7: Insight Cards
+
+System should automatically create insight cards.
+
+Example:
+
+> Top 5 brokers contribute 61% of written premium.
+
+Each insight card should be saveable.
+
+---
+
+## Wow Feature 8: Trust Panel
+
+Every dashboard should have a trust panel.
+
+Show:
+
+* source files
+* joins used
+* filters applied
+* metric formulas
+* data quality score
+* last refresh date
+
+---
+
+## Wow Feature 9: Report Generation
+
+User should convert dashboards into PDF/PPT.
+
+Example:
+
+> Generate a 5-slide executive pack from this dashboard.
+
+---
+
+## Wow Feature 10: Workspace Memory
+
+The workspace should remember:
+
+* uploaded files
+* approved joins
+* approved metrics
+* saved dashboards
+* saved insights
+* reports
+
+This makes the app useful beyond a single session.
+
+---
+
+# 6. Recommended Dashboard UX
+
+The dashboard viewer should have this layout:
+
+## Top Bar
+
+* Dashboard title
+* Workspace name
+* status: Draft / Published
+* data quality score
+* last refreshed date
+* export button
+* publish button
+
+## Main Area
+
+* KPI cards on top
+* main trend chart
+* supporting charts
+* insight cards
+* narrative summary
+
+## Right Panel
+
+Gen-BI Copilot.
+
+The copilot should:
+
+* answer questions
+* create dashboard from answer
+* explain charts
+* suggest next analysis
+* generate reports
+
+## Trust Drawer
+
+A collapsible drawer named:
+
+> Why can I trust this?
+
+Inside:
+
+* source files
+* formulas
+* joins
+* filters
+* data quality
+* lineage
+
+---
+
+# 7. Recommended User Flow for Replit Build
+
+Use this as the application flow:
+
+```text
+Home
+  → Create Workspace
+    → Upload Data
+      → Data Understanding
+        → Data Quality Review
+          → Join Studio
+            → Metric Builder
+              → Generate Dashboard
+                → Dashboard Viewer
+                  → Ask Gen-BI
+                    → Create New Dashboard from Answer
+                      → Save Dashboard
+                        → Generate Report
+```
+
+This flow should be visible to the user as a progress stepper.
+
+Example:
+
+```text
+Upload → Understand → Clean → Join → Metrics → Dashboard → Ask → Report
+```
+
+---
+
+# 8. Dashboard Status Lifecycle
+
+Every generated dashboard should have status.
+
+```text
+Draft → Reviewed → Published → Archived
+```
+
+For AI-generated dashboards:
+
+```text
+AI Generated → User Reviewed → Approved → Published
+```
+
+This gives enterprise-grade maturity.
+
+---
+
+# 9. Minimum MVP Build Order
+
+Build in this order.
+
+## Phase 1: Core Shell
+
+Build:
+
+* left navigation
+* home page
+* workspace list
+* workspace detail
+* dashboard viewer
+* right-side copilot panel
+
+## Phase 2: Data Upload Journey
+
+Build:
+
+* upload screen
+* file preview
+* data understanding screen
+* data quality score screen
+
+## Phase 3: Join + Metrics
+
+Build:
+
+* join studio
+* suggested joins
+* metric builder
+* KPI approval
+
+## Phase 4: Dashboard Generation
+
+Build:
+
+* dashboard templates
+* executive summary dashboard
+* save dashboard
+* dashboard gallery
+
+## Phase 5: Ask Gen-BI
+
+Build:
+
+* chat interface
+* question answer card
+* chart response
+* create dashboard from answer
+* save insight
+
+## Phase 6: Enterprise Layer
+
+Build:
+
+* insight library
+* report builder
+* governance center
+* audit trail
+* trust panel
+
+---
+
+# 10. Replit Prompt You Can Use
+
+Use this prompt directly:
+
+```text
+Build an enterprise-grade React application called Gen-BI Asset.
+
+Gen-BI Asset is an agentic micro-BI workspace where users upload Excel/CSV files, the system understands the data, detects data quality issues, suggests joins, detects KPIs, generates dashboards, allows natural-language questions, creates new dashboards from answers, saves insights, and exports reports.
+
+Do not build it like Power BI or Tableau. Build it as a lightweight, beautiful, guided analytics workspace for business users working with Excel/CSV files.
+
+Use the following left navigation:
+1. Home
+2. Workspaces
+3. Data Uploads
+4. Data Preparation
+5. Dashboards
+6. Ask Gen-BI
+7. Insights
+8. Reports
+9. Governance
+10. Settings
+
+Create the following screens:
+1. Home / Landing
+2. Workspace List
+3. Workspace Detail
+4. Upload Data
+5. Data Understanding
+6. Data Quality
+7. Join Studio
+8. Metric Builder
+9. Dashboard Gallery
+10. Dashboard Viewer
+11. Ask Gen-BI Full Page
+12. Insight Library
+13. Report Builder
+14. Governance Center
+
+The primary user journey should be:
+Home → Create Workspace → Upload Data → Data Understanding → Data Quality Review → Join Studio → Metric Builder → Generate Dashboard → Dashboard Viewer → Ask Gen-BI → Create New Dashboard from Answer → Save Dashboard → Generate Report.
+
+Show this journey as a visible stepper:
+Upload → Understand → Clean → Join → Metrics → Dashboard → Ask → Report.
+
+Important wow features to include:
+1. Smart Data Understanding
+2. Data Readiness Score
+3. Intelligent Join Studio
+4. Auto KPI Detection
+5. Question-to-Dashboard generation
+6. Explain every AI answer with formula, filters, source file, and confidence
+7. Insight Cards
+8. Dashboard Trust Panel
+9. PDF/PPT Report Generation
+10. Workspace Memory
+
+Dashboard Viewer layout:
+- Top bar with dashboard title, workspace name, status, data quality score, last refreshed date, export, publish
+- Main area with KPI cards, trend charts, supporting charts, AI narrative, insight cards
+- Right-side Gen-BI Copilot panel
+- Collapsible Trust Drawer named “Why can I trust this?”
+
+Use a professional enterprise UI style:
+- dark navy left sidebar
+- white/light main canvas
+- rounded cards
+- clean KPI cards
+- blue accent color
+- subtle shadows
+- clear spacing
+- modern SaaS layout
+- responsive design
+
+Use mock data for now, but structure the code so APIs can be connected later.
+
+Important:
+- Keep the UX guided.
+- Do not make upload a minor side action.
+- The user should always know what step they are in.
+- Every AI-generated answer should show source, formula, filters, and confidence.
+- Every dashboard should have status: Draft, Reviewed, Published, Archived.
+- Every insight should be saveable and reusable.
+```
+
+---
+
+# 11. Final Recommended Navigation Structure
+
+Use this final navigation:
+
+```text
+Gen-BI Asset
+
+Home
+
+Workspace
+- All Workspaces
+- Create Workspace
+
+Data
+- Uploads
+- Data Understanding
+- Data Quality
+- Join Studio
+- Metric Builder
+
+Analytics
+- Dashboards
+- Ask Gen-BI
+- Insights
+
+Outputs
+- Reports
+- Exports
+
+Governance
+- Data Lineage
+- Metric Registry
+- Audit Trail
+- Approval Center
+
+Settings
+```
+
+This is better than only showing dashboards in the sidebar.
+
+---
+
