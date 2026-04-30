@@ -285,7 +285,7 @@ Make each chart reveal a unique insight. Think like a data analyst presenting to
     const dashboardConfig = JSON.parse(content);
     res.json(dashboardConfig);
   } catch (error: any) {
-    console.error("Dashboard generation error:", error);
+    req.log.error({ err: error }, "Dashboard generation error");
     res.status(500).json({ error: "Failed to generate dashboard: " + (error.message || "Unknown error") });
   }
 });
