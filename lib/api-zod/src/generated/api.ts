@@ -438,6 +438,109 @@ export const GetTenantConfigResponse = zod.object({
 });
 
 /**
+ * @summary List all workspaces
+ */
+export const ListWorkspacesResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  packId: zod.string(),
+  description: zod.string().nullish(),
+  ownerName: zod.string(),
+  status: zod.string(),
+  readinessScore: zod.number(),
+  fileCount: zod.number(),
+  dashboardCount: zod.number(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListWorkspacesResponse = zod.array(ListWorkspacesResponseItem);
+
+/**
+ * @summary Create a new workspace
+ */
+
+export const CreateWorkspaceBody = zod.object({
+  name: zod.string().min(1),
+  packId: zod.string().min(1),
+  description: zod.string().optional(),
+});
+
+/**
+ * @summary Get a workspace by id
+ */
+export const GetWorkspaceParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetWorkspaceResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  packId: zod.string(),
+  description: zod.string().nullish(),
+  ownerName: zod.string(),
+  status: zod.string(),
+  readinessScore: zod.number(),
+  fileCount: zod.number(),
+  dashboardCount: zod.number(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Get user settings (auto-creates default row if missing)
+ */
+export const GetSettingsResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  organizationName: zod.string().nullish(),
+  profileName: zod.string().nullish(),
+  profileEmail: zod.string().nullish(),
+  timezone: zod.string(),
+  theme: zod.string(),
+  fileSizeLimitMb: zod.number(),
+  defaultPackId: zod.string().nullish(),
+  aiTone: zod.string(),
+  aiModel: zod.string(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Patch user settings
+ */
+export const updateSettingsBodyFileSizeLimitMbMax = 500;
+
+export const UpdateSettingsBody = zod.object({
+  organizationName: zod.string().nullish(),
+  profileName: zod.string().nullish(),
+  profileEmail: zod.string().nullish(),
+  timezone: zod.string().optional(),
+  theme: zod.enum(["light", "dark", "system"]).optional(),
+  fileSizeLimitMb: zod
+    .number()
+    .min(1)
+    .max(updateSettingsBodyFileSizeLimitMbMax)
+    .optional(),
+  defaultPackId: zod.string().nullish(),
+  aiTone: zod.enum(["concise", "balanced", "detailed"]).optional(),
+  aiModel: zod.string().optional(),
+});
+
+export const UpdateSettingsResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  organizationName: zod.string().nullish(),
+  profileName: zod.string().nullish(),
+  profileEmail: zod.string().nullish(),
+  timezone: zod.string(),
+  theme: zod.string(),
+  fileSizeLimitMb: zod.number(),
+  defaultPackId: zod.string().nullish(),
+  aiTone: zod.string(),
+  aiModel: zod.string(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
  * @summary Get data for a specific dashboard section by config-driven section ID
  */
 export const GetDashboardSectionParams = zod.object({
