@@ -74,7 +74,13 @@ export const NAV: NavItem[] = [
     icon: LineChart,
     items: [
       { type: "placeholder", label: "Metrics", icon: Hash },
-      { type: "placeholder", label: "Dashboards", icon: LayoutDashboard },
+      {
+        type: "leaf",
+        href: "/dashboards",
+        label: "Dashboards",
+        icon: LayoutDashboard,
+        matchPrefix: "/dashboards",
+      },
       { type: "placeholder", label: "Ask Gen-BI", icon: MessageSquare },
     ],
   },

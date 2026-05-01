@@ -91,7 +91,7 @@ export function resolveIcon(name: string): LucideIcon {
   return ICON_MAP[name] || LayoutDashboard;
 }
 
-interface SectionConfig {
+export interface SectionConfig {
   id: string;
   label: string;
   route: string;
@@ -165,4 +165,4 @@ export function useTenantConfig() {
   return useContext(TenantConfigContext);
 }
 
-export type { TenantClientConfig, SectionConfig };
+export type { TenantClientConfig };

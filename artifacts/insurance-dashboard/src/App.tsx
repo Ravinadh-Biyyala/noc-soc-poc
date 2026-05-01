@@ -16,6 +16,7 @@ import Home from "@/pages/Home";
 import WorkspacesList from "@/pages/WorkspacesList";
 import WorkspaceDetail from "@/pages/WorkspaceDetail";
 import Settings from "@/pages/Settings";
+import Dashboards from "@/pages/Dashboards";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShieldCheck } from "lucide-react";
 
@@ -66,15 +67,26 @@ function ConfigDrivenRoutes() {
       <Route path="/settings" component={Settings} />
       <Route path="/governance" component={GovernancePlaceholder} />
       <Route path="/upload" component={() => <UploadPage onDashboardGenerated={addDashboard} />} />
-      {/* Legacy tenant section routes still work; they are reachable from the
-          Workspace Dashboards tab once we link them in. */}
+      <Route path="/dashboards" component={Dashboards} />
+      {/* Every tenant section is also reachable under /dashboards/:id so the
+          executive section (whose legacy route is "/") doesn't collide with
+          Home. The legacy routes still work for any non-root paths. */}
       {config.sections.map((section) => (
         <Route
-          key={section.id}
-          path={section.route}
+          key={`dash-${section.id}`}
+          path={`/dashboards/${section.id}`}
           component={() => <DashboardSection sectionId={section.id} />}
         />
       ))}
+      {config.sections
+        .filter((s) => s.route && s.route !== "/")
+        .map((section) => (
+          <Route
+            key={section.id}
+            path={section.route}
+            component={() => <DashboardSection sectionId={section.id} />}
+          />
+        ))}
       {dashboards.map((db) => (
         <Route
           key={db.id}

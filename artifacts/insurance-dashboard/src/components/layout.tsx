@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useCopilot } from "@/lib/copilot-context";
-import { useTenantConfig } from "@/lib/tenant-config";
+import { useTenantConfig, resolveIcon } from "@/lib/tenant-config";
 import { useGeneratedDashboards } from "@/lib/generated-dashboards";
 import { NAV } from "@/lib/nav-config";
 import { useActiveWorkspace } from "@/lib/active-workspace";
@@ -44,18 +44,38 @@ function pageTitle(location: string): string {
   if (location === "/upload") return "Upload Data";
   if (location === "/settings") return "Settings";
   if (location === "/governance") return "Governance";
+  if (location === "/dashboards") return "Dashboards";
+  if (location.startsWith("/dashboards/")) return "Dashboard";
   return "Dashboard";
 }
 
 function SidebarNav() {
   const [location] = useLocation();
+  const { config } = useTenantConfig();
+  const sectionItems = (config?.sections || []).map((s) => ({
+    id: s.id,
+    label: s.label,
+    href: s.route === "/" ? `/dashboards/${s.id}` : s.route,
+    icon: resolveIcon(s.icon),
+  }));
   // Auto-expand the group whose sub-items contain the active route so users
   // never lose context when navigating from a sub-page back to the sidebar.
   const initialOpen: Record<string, boolean> = {};
   for (const item of NAV) {
     if (item.type === "group") {
-      const hasActive = item.items.some((s) => s.type === "leaf" && location === s.href);
-      initialOpen[item.id] = hasActive;
+      const hasActive = item.items.some(
+        (s) =>
+          s.type === "leaf" &&
+          (location === s.href ||
+            (s.matchPrefix && location.startsWith(s.matchPrefix + "/"))),
+      );
+      // Analytics auto-opens whenever the user is on any dashboard route.
+      const analyticsHit =
+        item.id === "analytics" &&
+        (location === "/dashboards" ||
+          location.startsWith("/dashboards/") ||
+          sectionItems.some((s) => s.href === location));
+      initialOpen[item.id] = hasActive || analyticsHit;
     }
   }
   const [open, setOpen] = useState<Record<string, boolean>>(initialOpen);
@@ -104,22 +124,53 @@ function SidebarNav() {
                 {item.items.map((sub, i) => {
                   const SubIcon = sub.icon;
                   if (sub.type === "leaf") {
-                    const isActive = location === sub.href;
+                    const isActive =
+                      location === sub.href ||
+                      (sub.matchPrefix && (location === sub.matchPrefix || location.startsWith(sub.matchPrefix + "/")));
                     return (
-                      <Link key={sub.href} href={sub.href}>
-                        <div
-                          className={cn(
-                            "flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12px] transition-all cursor-pointer",
-                            isActive
-                              ? "bg-sidebar-accent text-white font-medium"
-                              : "text-sidebar-foreground/60 hover:bg-sidebar-accent/40 hover:text-white",
-                          )}
-                          data-testid={`nav-sub-${sub.label.toLowerCase()}`}
-                        >
-                          <SubIcon className={cn("w-3.5 h-3.5", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/40")} />
-                          {sub.label}
-                        </div>
-                      </Link>
+                      <div key={sub.href}>
+                        <Link href={sub.href}>
+                          <div
+                            className={cn(
+                              "flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12px] transition-all cursor-pointer",
+                              isActive
+                                ? "bg-sidebar-accent text-white font-medium"
+                                : "text-sidebar-foreground/60 hover:bg-sidebar-accent/40 hover:text-white",
+                            )}
+                            data-testid={`nav-sub-${sub.label.toLowerCase()}`}
+                          >
+                            <SubIcon className={cn("w-3.5 h-3.5", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/40")} />
+                            {sub.label}
+                          </div>
+                        </Link>
+                        {/* When the user is on a Dashboards route, expose every
+                            built-in section as a quick sub-link so the demo
+                            can jump straight to Claims, Sales, etc. */}
+                        {item.id === "analytics" && sub.href === "/dashboards" && sectionItems.length > 0 && (
+                          <div className="ml-5 mt-0.5 space-y-0.5 border-l border-sidebar-border/50 pl-2">
+                            {sectionItems.map((sec) => {
+                              const SecIcon = sec.icon;
+                              const secActive = location === sec.href;
+                              return (
+                                <Link key={sec.id} href={sec.href}>
+                                  <div
+                                    className={cn(
+                                      "flex items-center gap-2 px-2 py-1 rounded-md text-[11.5px] transition-all cursor-pointer",
+                                      secActive
+                                        ? "bg-sidebar-accent text-white font-medium"
+                                        : "text-sidebar-foreground/55 hover:bg-sidebar-accent/40 hover:text-white",
+                                    )}
+                                    data-testid={`nav-section-${sec.id}`}
+                                  >
+                                    <SecIcon className={cn("w-3 h-3", secActive ? "text-sidebar-primary" : "text-sidebar-foreground/40")} />
+                                    {sec.label}
+                                  </div>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     );
                   }
                   return (
