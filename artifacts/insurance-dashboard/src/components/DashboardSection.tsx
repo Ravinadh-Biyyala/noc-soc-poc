@@ -1,4 +1,4 @@
-import { useGetDashboardSection, getGetDashboardSectionQueryKey } from "@workspace/api-client-react";
+import { useGetDashboardSection } from "@workspace/api-client-react";
 import { useTenantConfig, resolveIcon, type SectionConfig } from "@/lib/tenant-config";
 import { useCopilot } from "@/lib/copilot-context";
 import CustomChartsSection from "@/components/custom-charts-section";
@@ -495,7 +495,7 @@ export default function DashboardSection({ sectionId }: { sectionId: string }) {
   const section = config?.sections.find((s) => s.id === sectionId);
 
   const { data, isLoading } = useGetDashboardSection(sectionId, {
-    query: { enabled: !!section, queryKey: getGetDashboardSectionQueryKey(sectionId) },
+    query: { enabled: !!section },
   });
 
   if (!section) {

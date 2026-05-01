@@ -6,17 +6,16 @@ import {
   Bot,
   Send,
   ChevronRight,
-  ChevronDown,
   BrainCircuit,
   Loader2,
-  Sparkles as SparklesNav,
+  Upload,
+  FileSpreadsheet,
+  X,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useCopilot } from "@/lib/copilot-context";
-import { useTenantConfig } from "@/lib/tenant-config";
+import { useTenantConfig, resolveIcon } from "@/lib/tenant-config";
 import { useGeneratedDashboards } from "@/lib/generated-dashboards";
-import { NAV } from "@/lib/nav-config";
-import { useActiveWorkspace } from "@/lib/active-workspace";
 import {
   useListOpenaiConversations,
   useCreateOpenaiConversation,
@@ -36,134 +35,102 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip,
 } from "recharts";
 
-function pageTitle(location: string): string {
-  // Quick lookups so the header reads sensibly on every route.
-  if (location === "/") return "Home";
-  if (location === "/workspaces") return "Workspaces";
-  if (location.startsWith("/workspaces/")) return "Workspace";
-  if (location === "/upload") return "Upload Data";
-  if (location === "/settings") return "Settings";
-  if (location === "/governance") return "Governance";
-  return "Dashboard";
-}
-
-function SidebarNav() {
-  const [location] = useLocation();
-  // Auto-expand the group whose sub-items contain the active route so users
-  // never lose context when navigating from a sub-page back to the sidebar.
-  const initialOpen: Record<string, boolean> = {};
-  for (const item of NAV) {
-    if (item.type === "group") {
-      const hasActive = item.items.some((s) => s.type === "leaf" && location === s.href);
-      initialOpen[item.id] = hasActive;
-    }
-  }
-  const [open, setOpen] = useState<Record<string, boolean>>(initialOpen);
-
-  return (
-    <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
-      {NAV.map((item) => {
-        if (item.type === "leaf") {
-          const isActive = item.matchPrefix
-            ? location === item.href || location.startsWith(item.matchPrefix + "/")
-            : location === item.href;
-          return (
-            <Link key={item.href} href={item.href}>
-              <div
-                className={cn(
-                  "flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] transition-all cursor-pointer",
-                  isActive
-                    ? "bg-sidebar-accent text-white font-medium"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-white",
-                )}
-                data-testid={`nav-${item.label.toLowerCase()}`}
-              >
-                <item.icon className={cn("w-4 h-4", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/50")} />
-                {item.label}
-              </div>
-            </Link>
-          );
-        }
-        // Group
-        const isOpen = !!open[item.id];
-        const Icon = item.icon;
-        return (
-          <div key={item.id} className="space-y-0.5">
-            <button
-              type="button"
-              onClick={() => setOpen((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
-              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-white transition-all"
-              data-testid={`nav-group-${item.id}`}
-            >
-              <Icon className="w-4 h-4 text-sidebar-foreground/50" />
-              <span className="flex-1 text-left">{item.label}</span>
-              <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", isOpen ? "rotate-0" : "-rotate-90")} />
-            </button>
-            {isOpen && (
-              <div className="pl-3 space-y-0.5">
-                {item.items.map((sub, i) => {
-                  const SubIcon = sub.icon;
-                  if (sub.type === "leaf") {
-                    const isActive = location === sub.href;
-                    return (
-                      <Link key={sub.href} href={sub.href}>
-                        <div
-                          className={cn(
-                            "flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12px] transition-all cursor-pointer",
-                            isActive
-                              ? "bg-sidebar-accent text-white font-medium"
-                              : "text-sidebar-foreground/60 hover:bg-sidebar-accent/40 hover:text-white",
-                          )}
-                          data-testid={`nav-sub-${sub.label.toLowerCase()}`}
-                        >
-                          <SubIcon className={cn("w-3.5 h-3.5", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/40")} />
-                          {sub.label}
-                        </div>
-                      </Link>
-                    );
-                  }
-                  return (
-                    <div
-                      key={`${item.id}-ph-${i}`}
-                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12px] text-sidebar-foreground/40 cursor-not-allowed"
-                      title="Coming soon"
-                    >
-                      <SubIcon className="w-3.5 h-3.5 text-sidebar-foreground/30" />
-                      {sub.label}
-                      <span className="ml-auto text-[9px] uppercase tracking-wider text-sidebar-foreground/40">soon</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </nav>
-  );
-}
-
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { config } = useTenantConfig();
-  const { workspace } = useActiveWorkspace();
-  const brandName = config?.branding?.name || "Gen-BI";
-  const headerTitle = workspace?.name && location.startsWith("/workspaces/") ? workspace.name : pageTitle(location);
+  const { dashboards, removeDashboard } = useGeneratedDashboards();
+
+  const navItems = (config?.sections || []).map((s) => ({
+    href: s.route,
+    label: s.label,
+    icon: resolveIcon(s.icon),
+  }));
+
+  const brandName = config?.branding?.name || "Gen-BI Asset";
+  const FirstIcon = navItems[0]?.icon || resolveIcon("LayoutDashboard");
 
   return (
     <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
       <aside className="w-60 flex-shrink-0 border-r border-sidebar-border bg-sidebar flex flex-col">
         <div className="h-14 flex items-center px-5 border-b border-sidebar-border">
-          <Link href="/">
-            <div className="flex items-center gap-2.5 text-white font-bold text-base tracking-tight cursor-pointer">
-              <div className="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center">
-                <SparklesNav className="w-4 h-4 text-sidebar-primary" />
-              </div>
-              {brandName}
+          <div className="flex items-center gap-2.5 text-white font-bold text-base tracking-tight">
+            <div className="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center">
+              <FirstIcon className="w-4 h-4 text-sidebar-primary" />
             </div>
-          </Link>
+            {brandName}
+          </div>
         </div>
-        <SidebarNav />
+        <nav className="flex-1 py-4 px-2.5 space-y-0.5 overflow-y-auto">
+          <div className="text-[10px] font-semibold text-sidebar-foreground/50 uppercase tracking-[0.1em] mb-3 px-2.5">
+            Dashboards
+          </div>
+          {navItems.map((item) => {
+            const isActive = location === item.href;
+            return (
+              <Link key={item.href} href={item.href}>
+                <div
+                  className={cn(
+                    "flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] transition-all cursor-pointer",
+                    isActive
+                      ? "bg-sidebar-accent text-white font-medium"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-white"
+                  )}
+                >
+                  <item.icon className={cn("w-4 h-4", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/50")} />
+                  {item.label}
+                </div>
+              </Link>
+            );
+          })}
+
+          {dashboards.length > 0 && (
+            <>
+              <div className="text-[10px] font-semibold text-sidebar-foreground/50 uppercase tracking-[0.1em] mt-5 mb-3 px-2.5">
+                Your Data
+              </div>
+              {dashboards.map((db) => {
+                const isActive = location === db.route;
+                return (
+                  <div key={db.id} className="group relative">
+                    <Link href={db.route}>
+                      <div
+                        className={cn(
+                          "flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] transition-all cursor-pointer",
+                          isActive
+                            ? "bg-sidebar-accent text-white font-medium"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-white"
+                        )}
+                      >
+                        <FileSpreadsheet className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/50")} />
+                        <span className="truncate">{db.title}</span>
+                      </div>
+                    </Link>
+                    <button
+                      onClick={() => removeDashboard(db.id)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-white/10"
+                    >
+                      <X className="w-3 h-3 text-sidebar-foreground/50 hover:text-white" />
+                    </button>
+                  </div>
+                );
+              })}
+            </>
+          )}
+
+          <div className="mt-4 px-1">
+            <Link href="/upload">
+              <div className={cn(
+                "flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-[12px] font-medium transition-all cursor-pointer border border-dashed",
+                location === "/upload"
+                  ? "border-sidebar-primary bg-sidebar-accent/50 text-white"
+                  : "border-sidebar-foreground/20 text-sidebar-foreground/60 hover:border-sidebar-primary/50 hover:text-white hover:bg-sidebar-accent/30"
+              )}>
+                <Upload className="w-4 h-4" />
+                Upload Data
+              </div>
+            </Link>
+          </div>
+        </nav>
         <div className="p-3 border-t border-sidebar-border text-[10px] text-sidebar-foreground/40">
           {brandName} {new Date().getFullYear()}
         </div>
@@ -171,8 +138,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="h-14 flex items-center justify-between px-6 border-b border-border bg-white z-10 sticky top-0">
-          <h1 className="text-base font-semibold text-foreground" data-testid="page-title">
-            {headerTitle}
+          <h1 className="text-base font-semibold text-foreground">
+            {navItems.find((i) => i.href === location)?.label
+              || dashboards.find((d) => d.route === location)?.title
+              || (location === "/upload" ? "Upload Data" : "Dashboard")}
           </h1>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
@@ -314,46 +283,19 @@ function ChatPanel() {
   const [input, setInput] = useState("");
   const [streamingMessage, setStreamingMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [highlightInput, setHighlightInput] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const [_, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { registerHandler } = useCopilot();
   const pendingQuestionRef = useRef<string | null>(null);
   const { config } = useTenantConfig();
-  const { pack, workspace } = useActiveWorkspace();
 
-  // Listen for the global "copilot:focus" event (dispatched, for example,
-  // by the Home "Ask Gen-BI" quick action) and visibly bring the chat
-  // input into focus with a brief highlight ring so the user has clear
-  // feedback that the Copilot is ready.
-  useEffect(() => {
-    const onFocus = () => {
-      const el = inputRef.current;
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        el.focus({ preventScroll: false });
-      }
-      setHighlightInput(true);
-      window.setTimeout(() => setHighlightInput(false), 1400);
-    };
-    window.addEventListener("copilot:focus", onFocus);
-    return () => window.removeEventListener("copilot:focus", onFocus);
-  }, []);
-
-  // When the user is inside a workspace, prefer that workspace's pack copy.
-  // Falls back to the global tenant config (legacy insurance content) and
-  // finally to safe generic prompts.
-  const copilotName =
-    pack?.copilotName || config?.branding?.copilotName || "Gen-BI Copilot";
-  const suggestedPrompts =
-    pack?.suggestedPrompts.slice(0, 3) ||
-    config?.suggestedPrompts?.slice(0, 3) || [
-      "Summarize my data",
-      "What patterns are in the data?",
-      "Show the top 10 records",
-    ];
+  const copilotName = config?.branding?.copilotName || "Broker Copilot";
+  const suggestedPrompts = config?.suggestedPrompts?.slice(0, 3) || [
+    "Compare top 5 states by premium",
+    "Show premium trend 2022-2026",
+    "What's the policy mix breakdown?",
+  ];
 
   const { data: conversations } = useListOpenaiConversations();
   const createConv = useCreateOpenaiConversation();
@@ -420,10 +362,7 @@ function ChatPanel() {
       const response = await fetch(`${base}api/openai/conversations/${activeConvId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: userMsg,
-          ...(workspace?.id ? { workspaceId: workspace.id } : {}),
-        }),
+        body: JSON.stringify({ content: userMsg }),
       });
 
       if (!response.ok) throw new Error("Failed to send message");
@@ -599,16 +538,11 @@ function ChatPanel() {
           onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}
           className="relative flex items-center"
         >
-          <Input
-            ref={inputRef}
-            data-testid="copilot-input"
+          <Input 
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask anything about your data..."
-            className={cn(
-              "pr-10 bg-muted/50 border-border focus-visible:ring-primary h-9 rounded-lg text-sm placeholder:text-muted-foreground/60 transition-shadow",
-              highlightInput && "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md",
-            )}
+            className="pr-10 bg-muted/50 border-border focus-visible:ring-primary h-9 rounded-lg text-sm placeholder:text-muted-foreground/60"
             disabled={isTyping}
           />
           <Button 

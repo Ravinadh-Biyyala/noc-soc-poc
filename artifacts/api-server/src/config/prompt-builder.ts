@@ -1,11 +1,5 @@
-import { db, metrics as metricsTable } from "@workspace/db";
-import { and, eq, inArray } from "drizzle-orm";
-
-import type { logger as appLogger } from "../lib/logger.js";
 import { getTenantConfig, buildDataContext } from "./index.js";
 import type { TenantConfig } from "./types.js";
-
-type LoggerLike = Pick<typeof appLogger, "warn">;
 
 function interpolateBranding(template: string, config: TenantConfig): string {
   return template
@@ -64,44 +58,7 @@ const RESPONSE_RULES = `ADDITIONAL RESPONSE RULES:
 4. When the user asks to "Summarize" or "Analyze" a specific metric (these are auto-triggered from clicking a KPI card), give a SHORT 2-3 sentence insight with 1-2 bold key facts, then a small chart showing the trend or breakdown. Keep it concise — this is a quick tooltip-style summary, not a full analysis.
 6. If asked about a specific time range, filter the data and build the chart from it.`;
 
-async function buildBlessedMetricsBlock(
-  workspaceId: number,
-  log?: LoggerLike,
-): Promise<string> {
-  try {
-    const blessed = await db
-      .select()
-      .from(metricsTable)
-      .where(
-        and(
-          eq(metricsTable.workspaceId, workspaceId),
-          inArray(metricsTable.status, ["user_approved", "certified"]),
-        ),
-      );
-    if (blessed.length === 0) return "";
-    const lines = blessed.map(
-      (m) =>
-        `- ${m.name} [${m.status}, ${m.format}]: ${m.formula}` +
-        (m.description ? ` — ${m.description}` : ""),
-    );
-    return `\nUSER-APPROVED METRICS (prefer these for KPIs and chart titles; reuse the exact formulas/units):\n${lines.join("\n")}`;
-  } catch (err) {
-    log?.warn(
-      { err, workspaceId },
-      "Failed to load workspace metrics for prompt",
-    );
-    return "";
-  }
-}
-
-export interface BuildSystemPromptOptions {
-  workspaceId?: number | null;
-  log?: LoggerLike;
-}
-
-export async function buildSystemPrompt(
-  opts: BuildSystemPromptOptions = {},
-): Promise<string> {
+export async function buildSystemPrompt(): Promise<string> {
   const config = getTenantConfig();
   const dataContext = await buildDataContext();
 
@@ -109,11 +66,6 @@ export async function buildSystemPrompt(
   const dashboards = buildDashboardList(config);
   const terminology = buildTerminologyBlock(config);
   const fewShot = buildFewShotBlock(config);
-
-  const blessedMetricsBlock =
-    typeof opts.workspaceId === "number" && Number.isFinite(opts.workspaceId)
-      ? await buildBlessedMetricsBlock(opts.workspaceId, opts.log)
-      : "";
 
   const parts = [
     persona,
@@ -129,8 +81,7 @@ export async function buildSystemPrompt(
     RESPONSE_RULES,
     terminology ? `\n${terminology}` : "",
     `You have data from ${config.branding.dateRange}. Reference the most relevant periods.`,
-    blessedMetricsBlock,
   ];
 
-  return parts.filter(Boolean).join("\n");
+  return parts.filter(Boolean).join('\n');
 }

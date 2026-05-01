@@ -2,8 +2,6 @@ import { Router, type Request, type Response, type NextFunction } from "express"
 import multer from "multer";
 import * as XLSX from "xlsx";
 import { openai } from "@workspace/integrations-openai-ai-server";
-import { db, metrics as metricsTable } from "@workspace/db";
-import { and, eq, inArray } from "drizzle-orm";
 
 const router = Router();
 const MAX_UPLOAD_BYTES = 60 * 1024 * 1024; // 60 MB
@@ -184,41 +182,11 @@ const VIZ_TYPES = [
 
 router.post("/generate-dashboard", async (req: Request, res: Response) => {
   try {
-    const { sheets, fileName, workspaceId } = req.body as {
-      sheets: SheetSummary[];
-      fileName: string;
-      workspaceId?: number;
-    };
+    const { sheets, fileName } = req.body as { sheets: SheetSummary[]; fileName: string };
 
     if (!sheets || sheets.length === 0) {
       res.status(400).json({ error: "No sheet data provided" });
       return;
-    }
-
-    // Optionally fetch user-blessed metrics for this workspace and inject into prompt
-    let blessedMetricsBlock = "";
-    if (typeof workspaceId === "number" && Number.isFinite(workspaceId)) {
-      try {
-        const blessed = await db
-          .select()
-          .from(metricsTable)
-          .where(
-            and(
-              eq(metricsTable.workspaceId, workspaceId),
-              inArray(metricsTable.status, ["user_approved", "certified"]),
-            ),
-          );
-        if (blessed.length > 0) {
-          const lines = blessed.map(
-            (m) =>
-              `- ${m.name} [${m.status}, ${m.format}]: ${m.formula}` +
-              (m.description ? ` — ${m.description}` : ""),
-          );
-          blessedMetricsBlock = `\n\nUSER-APPROVED METRICS (prefer these for KPIs and chart titles; reuse the exact formulas/units):\n${lines.join("\n")}`;
-        }
-      } catch (e) {
-        req.log.warn({ err: e, workspaceId }, "Failed to load workspace metrics for prompt");
-      }
     }
 
     const MAX_ROWS_IN_PROMPT = 150;
@@ -294,7 +262,7 @@ Respond with ONLY valid JSON (no markdown, no backticks) in this exact format:
 
 IMPORTANT: Aggregate and transform the raw data into meaningful visualizations. Don't just dump raw rows.
 For example: group by category and sum values, compute percentages, find top N items, calculate trends.
-Make each chart reveal a unique insight. Think like a data analyst presenting to executives.${blessedMetricsBlock}`;
+Make each chart reveal a unique insight. Think like a data analyst presenting to executives.`;
 
     const userMessage = `Analyze this dataset and generate a creative, diverse dashboard:\n\nFile: ${fileName}\n\n${sheetsContext.join("\n\n---\n\n")}`;
 
