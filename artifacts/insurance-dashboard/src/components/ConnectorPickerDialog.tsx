@@ -89,8 +89,9 @@ export function ConnectorPickerDialog({ open, onOpenChange }: Props) {
       setPendingFile(file);
       onOpenChange(false);
       setLocation("/upload");
-    } catch (err: any) {
-      setError(err?.message || "Pull failed");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Pull failed";
+      setError(msg);
       setStage("tested");
     }
   };
