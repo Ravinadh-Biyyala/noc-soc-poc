@@ -65,6 +65,21 @@ export interface DqFinding {
 }
 
 // ---------------------------------------------------------------------------
+// Presentation helpers — turn raw column ids into plain-English labels
+// before they hit the chat. Business users never see backticks, snake_case,
+// or stats jargon.
+// ---------------------------------------------------------------------------
+
+function prettyCol(col: string): string {
+  const cleaned = col
+    .replace(/[_\-.]+/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .trim();
+  if (!cleaned) return col;
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase();
+}
+
+// ---------------------------------------------------------------------------
 // Type inference helpers (parallel to backend, but kept dependency-free here
 // so the engine runs purely in the browser).
 // ---------------------------------------------------------------------------
@@ -144,9 +159,9 @@ function ruleMissingValues(table: string, rows: Row[], cfg: DataQualityConfig): 
         id: `${table}::missing::${col}`,
         rule: "missing-values",
         severity: rate > 0.3 ? "critical" : "warn",
-        title: `${nulls.toLocaleString()} missing values in \`${col}\``,
-        rationale: `${(rate * 100).toFixed(1)}% of rows in \`${table}.${col}\` are blank — above the ${(cfg.nullRateThreshold * 100).toFixed(0)}% threshold.`,
-        applyLabel: rate > 0.5 ? "Drop column" : "Fill with median / mode",
+        title: `${prettyCol(col)} is blank in ${nulls.toLocaleString()} rows`,
+        rationale: `About ${(rate * 100).toFixed(0)}% of rows have no value for ${prettyCol(col)}. That can skew totals and averages.`,
+        applyLabel: rate > 0.5 ? `Remove the ${prettyCol(col)} column` : `Fill in the gaps in ${prettyCol(col)}`,
         scope: { table, columns: [col] },
         evidence: { count: nulls, total: rows.length },
       });
@@ -175,13 +190,15 @@ function ruleTypeCoercion(table: string, rows: Row[], cfg: DataQualityConfig): D
     const denom = values.filter((v) => v != null && v !== "").length || 1;
     const rate = bad / denom;
     if (bad > 0 && rate <= 0.5 && rate > cfg.coerceRateThreshold) {
+      const friendlyType =
+        inferred === "currency" ? "money amount" : inferred === "date" ? "date" : inferred;
       out.push({
         id: `${table}::coerce::${col}`,
         rule: "type-coercion",
         severity: "warn",
-        title: `${bad.toLocaleString()} malformed ${inferred} value${bad === 1 ? "" : "s"} in \`${col}\``,
-        rationale: `\`${col}\` looks like a ${inferred} column but ${(rate * 100).toFixed(1)}% of values don't parse cleanly (e.g. ${samples.map((s) => JSON.stringify(s)).join(", ")}).`,
-        applyLabel: `Coerce \`${col}\` → ${inferred}`,
+        title: `${bad.toLocaleString()} ${prettyCol(col)} entr${bad === 1 ? "y looks" : "ies look"} wrong`,
+        rationale: `${prettyCol(col)} should be a ${friendlyType}, but some entries don't look right — for example ${samples.map((s) => `"${String(s)}"`).join(", ")}. Cleaning these up makes the column usable in charts and filters.`,
+        applyLabel: `Clean up ${prettyCol(col)}`,
         scope: { table, columns: [col] },
         evidence: { count: bad, total: denom, sample: samples },
       });
@@ -206,9 +223,9 @@ function ruleDuplicates(table: string, rows: Row[], cfg: DataQualityConfig): DqF
         id: `${table}::dupes`,
         rule: "duplicate-rows",
         severity: rate > 0.05 ? "critical" : "warn",
-        title: `${dupes.toLocaleString()} duplicate row${dupes === 1 ? "" : "s"}`,
-        rationale: `${(rate * 100).toFixed(2)}% of rows in \`${table}\` are exact duplicates — Databricks/Tableau best practice is to drop them before analysis.`,
-        applyLabel: `Drop ${dupes.toLocaleString()} duplicate row${dupes === 1 ? "" : "s"}`,
+        title: `${dupes.toLocaleString()} duplicate row${dupes === 1 ? "" : "s"} found`,
+        rationale: `${dupes.toLocaleString()} row${dupes === 1 ? " is an exact copy" : "s are exact copies"} of another row. Leaving them in will double-count totals.`,
+        applyLabel: `Remove the duplicate${dupes === 1 ? "" : "s"}`,
         scope: { table },
         evidence: { count: dupes, total: rows.length },
       },
@@ -240,13 +257,15 @@ function ruleOutliers(table: string, rows: Row[], cfg: DataQualityConfig): DqFin
     if (outliers.length > 0) {
       const sample = outliers.slice(0, 3);
       const rate = outliers.length / nums.length;
+      const fmt = (n: number) =>
+        Math.abs(n) >= 1000 ? n.toLocaleString(undefined, { maximumFractionDigits: 0 }) : n.toFixed(1);
       out.push({
         id: `${table}::outliers::${col}`,
         rule: "outliers",
         severity: rate > 0.05 ? "critical" : "info",
-        title: `${outliers.length.toLocaleString()} outlier${outliers.length === 1 ? "" : "s"} in \`${col}\``,
-        rationale: `Values beyond ${cfg.outlierZScore}σ from the mean (${mean.toFixed(2)} ± ${sd.toFixed(2)}) — e.g. ${sample.map((n) => n.toLocaleString()).join(", ")}.`,
-        applyLabel: `Winsorize \`${col}\` at ${cfg.outlierZScore}σ`,
+        title: `${outliers.length.toLocaleString()} unusual value${outliers.length === 1 ? "" : "s"} in ${prettyCol(col)}`,
+        rationale: `Most ${prettyCol(col)} values sit around ${fmt(mean)}, but a few are very different — for example ${sample.map(fmt).join(", ")}. These extremes can distort averages and trends.`,
+        applyLabel: `Cap the extreme ${prettyCol(col)} values`,
         scope: { table, columns: [col] },
         evidence: { count: outliers.length, total: nums.length, sample },
       });
@@ -307,9 +326,9 @@ function ruleJoinCandidates(tables: { name: string; rows: Row[] }[]): DqFinding[
             id: `join::${a.name}.${colA}::${b.name}.${colB}`,
             rule: "join-candidate",
             severity: "info",
-            title: `\`${a.name}.${colA}\` matches \`${b.name}.${colB}\``,
-            rationale: `${(rate * 100).toFixed(0)}% of values in \`${a.name}.${colA}\` (${small.size.toLocaleString()} unique) appear in \`${b.name}.${colB}\` — looks like a foreign-key relationship.`,
-            applyLabel: `Join on ${colA} = ${colB}`,
+            title: `${a.name} and ${b.name} look related`,
+            rationale: `${(rate * 100).toFixed(0)}% of the ${prettyCol(colA)} values in ${a.name} also appear in ${b.name}. We can combine the two so you can analyse them together.`,
+            applyLabel: `Combine ${a.name} with ${b.name}`,
             scope: { table: a.name, columns: [colA], otherTable: b.name },
             evidence: { count: overlap, total: small.size },
           });
