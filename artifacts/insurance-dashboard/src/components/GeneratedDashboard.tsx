@@ -1,7 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AnimatedNumber } from "@/lib/animated-number";
 import { Sparkles } from "lucide-react";
+import { ExplainPanel, ExplainButton } from "@/components/ExplainPanel";
+import type { ExplainContext } from "@/lib/explain";
 import {
   ResponsiveContainer,
   AreaChart, Area,
@@ -97,39 +99,59 @@ function KPICard({ kpi, index = 0 }: { kpi: any; index?: number }) {
   const isNumeric = !isNaN(numericValue) && Number.isFinite(numericValue);
   const animStyle = { animationDelay: `${index * 70}ms`, animationFillMode: "both" as const };
 
+  const [explainOpen, setExplainOpen] = useState(false);
+  const explainCtx: ExplainContext = {
+    kind: "kpi",
+    title: kpi.label,
+    value: kpi.value,
+    format: kpi.format,
+    source: "Generated dashboard · prepared dataset",
+    notes: kpi.trend ? [`Trend reported by Gen-BI: ${kpi.trend}`] : undefined,
+  };
+
   return (
-    <Card
-      className="shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 animate-in fade-in slide-in-from-bottom-3 duration-500"
-      style={animStyle}
-    >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div className="space-y-1 min-w-0">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider truncate">{kpi.label}</p>
-            <p className="text-2xl font-bold text-foreground tracking-tight tabular-nums truncate">
-              {isNumeric ? (
-                <AnimatedNumber value={numericValue} format={(n) => formatValue(n, kpi.format)} />
-              ) : (
-                formatValue(kpi.value, kpi.format)
+    <>
+      <Card
+        className="shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 animate-in fade-in slide-in-from-bottom-3 duration-500 group"
+        style={animStyle}
+      >
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="space-y-1 min-w-0">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider truncate">{kpi.label}</p>
+              <p className="text-2xl font-bold text-foreground tracking-tight tabular-nums truncate">
+                {isNumeric ? (
+                  <AnimatedNumber value={numericValue} format={(n) => formatValue(n, kpi.format)} />
+                ) : (
+                  formatValue(kpi.value, kpi.format)
+                )}
+              </p>
+              {kpi.trend && (
+                <div className={cn("flex items-center gap-1 text-[11px] font-medium", isPositive ? "text-emerald-600" : "text-red-500")}>
+                  {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  {kpi.trend}
+                </div>
               )}
-            </p>
-            {kpi.trend && (
-              <div className={cn("flex items-center gap-1 text-[11px] font-medium", isPositive ? "text-emerald-600" : "text-red-500")}>
-                {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                {kpi.trend}
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <ExplainButton
+                onClick={() => setExplainOpen(true)}
+                className="opacity-0 group-hover:opacity-100"
+              />
+              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Icon className="w-4.5 h-4.5 text-primary" />
               </div>
-            )}
+            </div>
           </div>
-          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-            <Icon className="w-4.5 h-4.5 text-primary" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+      <ExplainPanel open={explainOpen} onOpenChange={setExplainOpen} context={explainCtx} />
+    </>
   );
 }
 
 function ChartCard({ chart }: { chart: any }) {
+  const [explainOpen, setExplainOpen] = useState(false);
   const data = chart.data || [];
   const xKey = chart.xKey || Object.keys(data[0] || {})[0] || "name";
   const yKey = chart.yKey || Object.keys(data[0] || {})[1] || "value";
@@ -353,24 +375,41 @@ function ChartCard({ chart }: { chart: any }) {
 
   const isWide = ["treemap", "heatmap", "stacked-area", "stacked-bar", "waterfall", "scatter", "bubble"].includes(chart.type);
 
+  const explainCtx: ExplainContext = {
+    kind: "chart",
+    title: chart.title,
+    chartType: chart.type,
+    xKey,
+    yKeys: Array.isArray(yKey) ? yKey : [yKey],
+    data,
+    source: "Generated dashboard · prepared dataset",
+    notes: chart.subtitle ? [chart.subtitle] : undefined,
+  };
+
   return (
-    <Card className={cn("shadow-sm hover:shadow-md transition-shadow", isWide ? "col-span-2" : "")}>
-      <CardHeader className="pb-1">
-        <CardTitle className="text-sm font-semibold text-foreground">{chart.title}</CardTitle>
-        {chart.subtitle && <CardDescription className="text-xs">{chart.subtitle}</CardDescription>}
-      </CardHeader>
-      <CardContent>
-        <div className={cn("w-full", chart.type === "progress-bar" ? "" : "h-[280px]")}>
-          {chart.type === "progress-bar" || chart.type === "gauge" || chart.type === "heatmap" || chart.type === "waterfall" ? (
-            renderChart()
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              {renderChart() as any}
-            </ResponsiveContainer>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+    <>
+      <Card className={cn("shadow-sm hover:shadow-md transition-shadow", isWide ? "col-span-2" : "")}>
+        <CardHeader className="pb-1">
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-sm font-semibold text-foreground truncate">{chart.title}</CardTitle>
+            <ExplainButton onClick={() => setExplainOpen(true)} />
+          </div>
+          {chart.subtitle && <CardDescription className="text-xs">{chart.subtitle}</CardDescription>}
+        </CardHeader>
+        <CardContent>
+          <div className={cn("w-full", chart.type === "progress-bar" ? "" : "h-[280px]")}>
+            {chart.type === "progress-bar" || chart.type === "gauge" || chart.type === "heatmap" || chart.type === "waterfall" ? (
+              renderChart()
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                {renderChart() as any}
+              </ResponsiveContainer>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      <ExplainPanel open={explainOpen} onOpenChange={setExplainOpen} context={explainCtx} />
+    </>
   );
 }
 

@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { useGetDashboardSection, getGetDashboardSectionQueryKey } from "@workspace/api-client-react";
 import { useTenantConfig, resolveIcon, type SectionConfig } from "@/lib/tenant-config";
 import { useCopilot } from "@/lib/copilot-context";
+import { ExplainPanel, ExplainButton } from "@/components/ExplainPanel";
+import type { ExplainContext } from "@/lib/explain";
 import CustomChartsSection from "@/components/custom-charts-section";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -90,53 +93,80 @@ function ConfigKPICard({
   // Stagger entrance — each card animates in 70ms after the previous one.
   const animStyle = { animationDelay: `${index * 70}ms`, animationFillMode: "both" as const };
 
+  const [explainOpen, setExplainOpen] = useState(false);
+  const explainCtx: ExplainContext = {
+    kind: "kpi",
+    title: label,
+    value,
+    format,
+    changePct: changeValue,
+    source: "Tenant configuration · live data adapter",
+    notes: [`Click "Ask Copilot to dig in" for a deeper analysis using ${copilotQuestion ? `"${copilotQuestion}"` : "the configured prompt"}.`],
+  };
+
   if (variant === "secondary") {
     const isAlert = format === "percent" && typeof value === "number" && label.toLowerCase().includes("loss") && value > 0.5;
     return (
-      <Card
-        className="shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 duration-500"
-        style={animStyle}
-        onClick={() => askCopilot(copilotQuestion)}
-      >
-        <CardContent className="p-3 flex items-center gap-2.5">
-          <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${isAlert ? 'bg-red-50 text-red-500' : 'bg-primary/8 text-primary'}`}>
-            <Icon className="w-3.5 h-3.5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] text-muted-foreground truncate">{label}</p>
-            <p className={`text-sm font-bold tabular-nums ${isAlert ? 'text-red-500' : changeValue && changeValue > 0 ? 'text-emerald-600' : 'text-foreground'}`}>
-              {isNumeric ? <AnimatedNumber value={numericValue} format={(n) => formatValue(n, format)} /> : formatted}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <>
+        <Card
+          className="shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 duration-500 relative group"
+          style={animStyle}
+          onClick={() => askCopilot(copilotQuestion)}
+        >
+          <ExplainButton
+            onClick={() => setExplainOpen(true)}
+            className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100"
+          />
+          <CardContent className="p-3 flex items-center gap-2.5">
+            <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${isAlert ? 'bg-red-50 text-red-500' : 'bg-primary/8 text-primary'}`}>
+              <Icon className="w-3.5 h-3.5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground truncate">{label}</p>
+              <p className={`text-sm font-bold tabular-nums ${isAlert ? 'text-red-500' : changeValue && changeValue > 0 ? 'text-emerald-600' : 'text-foreground'}`}>
+                {isNumeric ? <AnimatedNumber value={numericValue} format={(n) => formatValue(n, format)} /> : formatted}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        <ExplainPanel open={explainOpen} onOpenChange={setExplainOpen} context={explainCtx} />
+      </>
     );
   }
 
   return (
-    <Card
-      className="shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group animate-in fade-in slide-in-from-bottom-3 duration-500"
-      style={animStyle}
-      onClick={() => askCopilot(copilotQuestion)}
-    >
-      <CardContent className="p-4 relative overflow-hidden">
-        <div className="flex justify-between items-start mb-2 gap-2">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider truncate">{label}</p>
-          <div className="w-7 h-7 rounded-md bg-primary/8 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/15 transition-colors">
-            <Icon className="w-3.5 h-3.5 text-primary" />
+    <>
+      <Card
+        className="shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group animate-in fade-in slide-in-from-bottom-3 duration-500"
+        style={animStyle}
+        onClick={() => askCopilot(copilotQuestion)}
+      >
+        <CardContent className="p-4 relative overflow-hidden">
+          <div className="flex justify-between items-start mb-2 gap-2">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider truncate">{label}</p>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <ExplainButton
+                onClick={() => setExplainOpen(true)}
+                className="opacity-0 group-hover:opacity-100"
+              />
+              <div className="w-7 h-7 rounded-md bg-primary/8 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
+                <Icon className="w-3.5 h-3.5 text-primary" />
+              </div>
+            </div>
           </div>
-        </div>
-        <p className="text-xl font-bold text-foreground mb-0.5 tabular-nums truncate">
-          {isNumeric ? <AnimatedNumber value={numericValue} format={(n) => formatValue(n, format)} /> : formatted}
-        </p>
-        {changeValue !== undefined && (
-          <div className={`flex items-center gap-1 text-[10px] font-medium ${isPositive ? 'text-emerald-600' : 'text-red-500'}`}>
-            {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-            {isPositive ? '+' : ''}{changeValue.toFixed(1)}% YoY
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          <p className="text-xl font-bold text-foreground mb-0.5 tabular-nums truncate">
+            {isNumeric ? <AnimatedNumber value={numericValue} format={(n) => formatValue(n, format)} /> : formatted}
+          </p>
+          {changeValue !== undefined && (
+            <div className={`flex items-center gap-1 text-[10px] font-medium ${isPositive ? 'text-emerald-600' : 'text-red-500'}`}>
+              {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+              {isPositive ? '+' : ''}{changeValue.toFixed(1)}% YoY
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      <ExplainPanel open={explainOpen} onOpenChange={setExplainOpen} context={explainCtx} />
+    </>
   );
 }
 
@@ -146,10 +176,31 @@ function ConfigChart({
   chart: SectionConfig["charts"][0];
   data: unknown[];
 }) {
+  const [explainOpen, setExplainOpen] = useState(false);
   if (!data || !Array.isArray(data) || data.length === 0) return null;
 
   const { type, title, xKey, yKeys } = chart;
   const primaryYKey = yKeys[0]?.key || "value";
+
+  const explainCtx: ExplainContext = {
+    kind: "chart",
+    title,
+    chartType: type,
+    xKey,
+    yKeys: yKeys.map((y) => y.key),
+    data,
+    source: `Tenant configuration · chart "${chart.id}"`,
+  };
+
+  const titleRow = (
+    <div className="flex items-center justify-between gap-2">
+      <CardTitle className="text-sm font-semibold text-foreground truncate">{title}</CardTitle>
+      <ExplainButton onClick={() => setExplainOpen(true)} />
+    </div>
+  );
+  const panel = (
+    <ExplainPanel open={explainOpen} onOpenChange={setExplainOpen} context={explainCtx} />
+  );
 
   const chartFormatter = (val: number) => {
     if (val >= 1000000) return `$${(val / 1000000).toFixed(0)}M`;
@@ -168,9 +219,9 @@ function ConfigChart({
 
   if (type === "pie") {
     return (
-      <Card className="shadow-sm">
+      <><Card className="shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold text-foreground">{title}</CardTitle>
+          {titleRow}
         </CardHeader>
         <CardContent>
           <div className="h-[220px] flex items-center justify-center">
@@ -202,6 +253,7 @@ function ConfigChart({
           </div>
         </CardContent>
       </Card>
+      {panel}</>
     );
   }
 
@@ -210,9 +262,9 @@ function ConfigChart({
 
   if (type === "area") {
     return (
-      <Card className="shadow-sm">
+      <><Card className="shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold text-foreground">{title}</CardTitle>
+          {titleRow}
         </CardHeader>
         <CardContent>
           <div className="h-[280px] w-full">
@@ -249,14 +301,15 @@ function ConfigChart({
           </div>
         </CardContent>
       </Card>
+      {panel}</>
     );
   }
 
   if (type === "bar") {
     return (
-      <Card className="shadow-sm">
+      <><Card className="shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold text-foreground">{title}</CardTitle>
+          {titleRow}
         </CardHeader>
         <CardContent>
           <div className="h-[280px] w-full">
@@ -276,14 +329,15 @@ function ConfigChart({
           </div>
         </CardContent>
       </Card>
+      {panel}</>
     );
   }
 
   if (type === "line") {
     return (
-      <Card className="shadow-sm">
+      <><Card className="shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold text-foreground">{title}</CardTitle>
+          {titleRow}
         </CardHeader>
         <CardContent>
           <div className="h-[280px] w-full">
@@ -301,6 +355,7 @@ function ConfigChart({
           </div>
         </CardContent>
       </Card>
+      {panel}</>
     );
   }
 
