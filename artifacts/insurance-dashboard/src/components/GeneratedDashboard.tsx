@@ -1,8 +1,13 @@
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AnimatedNumber } from "@/lib/animated-number";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Maximize2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ExplainPanel, ExplainButton } from "@/components/ExplainPanel";
+
+// Lazy so the presenter overlay (with its portal + extra deps) doesn't
+// inflate the initial dashboard render.
+const PresenterMode = lazy(() => import("@/components/PresenterMode"));
 import type { ExplainContext } from "@/lib/explain";
 import {
   ResponsiveContainer,
@@ -616,7 +621,15 @@ function DataTable({ table }: { table: any }) {
   );
 }
 
-export default function GeneratedDashboard({ config }: { config: any }) {
+interface GeneratedDashboardProps {
+  config: any;
+  /** Hide the "Present" toggle — used inside PresenterMode itself to avoid recursion. */
+  hidePresenter?: boolean;
+}
+
+export default function GeneratedDashboard({ config, hidePresenter }: GeneratedDashboardProps) {
+  const [presenting, setPresenting] = useState(false);
+
   if (!config) return null;
 
   const kpis = config.kpis || [];
@@ -639,6 +652,18 @@ export default function GeneratedDashboard({ config }: { config: any }) {
             <h1 className="text-xl font-bold text-foreground tracking-tight">{config.title || "Generated Dashboard"}</h1>
             {config.subtitle && <p className="text-sm text-muted-foreground mt-0.5">{config.subtitle}</p>}
           </div>
+          {!hidePresenter && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setPresenting(true)}
+              className="flex-shrink-0 gap-1.5 h-8 text-xs bg-card hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+              data-testid="presenter-mode-button"
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+              Present
+            </Button>
+          )}
         </div>
       </div>
 
@@ -674,6 +699,15 @@ export default function GeneratedDashboard({ config }: { config: any }) {
             </div>
           ))}
         </div>
+      )}
+
+      {presenting && (
+        <Suspense fallback={null}>
+          <PresenterMode
+            config={{ ...config, __presenting: true }}
+            onClose={() => setPresenting(false)}
+          />
+        </Suspense>
       )}
     </div>
   );

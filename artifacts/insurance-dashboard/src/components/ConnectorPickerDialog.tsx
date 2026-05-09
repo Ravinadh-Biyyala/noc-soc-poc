@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, CheckCircle2, Database, Loader2, ShieldCheck, Sparkles, ArrowRight, Search, FileSpreadsheet } from "lucide-react";
 import { CONNECTORS, type ConnectorConfig, type ConnectorField } from "@/lib/connectors.config";
 import { setPendingFile } from "@/lib/pending-file";
+import { cn } from "@/lib/utils";
 
 interface DriveFile {
   id: string;
@@ -330,12 +331,18 @@ interface PickerProps {
   onClose: () => void;
 }
 
+type ConnectPhase = "auth" | "drive" | "ready";
+
 function GoogleSheetsPicker({ apiBase, onPicked }: PickerProps) {
   const [files, setFiles] = useState<DriveFile[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [pickingId, setPickingId] = useState<string | null>(null);
+  // Theatrical "connecting…" sequence so the demo audience can see Gen-BI
+  // actually reach into Google. The real fetch fires immediately in parallel,
+  // and we gate the UI on whichever finishes last (timers OR fetch).
+  const [phase, setPhase] = useState<ConnectPhase>("auth");
   // Track mount state so a late fetch resolution after the user closes the
   // dialog (or starts a second pick) cannot push stale state / fire onPicked.
   const aliveRef = useRef(true);
@@ -371,8 +378,13 @@ function GoogleSheetsPicker({ apiBase, onPicked }: PickerProps) {
 
   useEffect(() => {
     load("");
+    const t1 = window.setTimeout(() => { if (aliveRef.current) setPhase("drive"); }, 750);
+    const t2 = window.setTimeout(() => { if (aliveRef.current) setPhase("ready"); }, 1550);
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const connecting = phase !== "ready";
 
   const pick = async (file: DriveFile) => {
     setPickingId(file.id);
@@ -400,8 +412,44 @@ function GoogleSheetsPicker({ apiBase, onPicked }: PickerProps) {
     }
   };
 
+  if (connecting) {
+    return (
+      <div className="mt-1">
+        <div className="rounded-md border border-border bg-muted/20 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-7 h-7 rounded-md bg-white border border-border flex items-center justify-center">
+              <FileSpreadsheet className="w-4 h-4 text-green-700" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-foreground leading-tight">
+                Connecting to Google Sheets
+              </div>
+              <div className="text-[11px] text-muted-foreground leading-tight">
+                Establishing a secure session via your Google account
+              </div>
+            </div>
+          </div>
+          <ul className="space-y-2.5">
+            <ConnectStep
+              label="Authenticating with Google"
+              state={phase === "auth" ? "active" : "done"}
+            />
+            <ConnectStep
+              label="Reading your Drive"
+              state={phase === "auth" ? "pending" : phase === "drive" ? "active" : "done"}
+            />
+          </ul>
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-4 pt-3 border-t border-border">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Read-only OAuth scope. Gen-BI never modifies your sheets.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="mt-1 space-y-3">
+    <div className="mt-1 space-y-3 animate-in fade-in duration-300">
       <form
         className="relative"
         onSubmit={(e) => {
@@ -477,5 +525,33 @@ function GoogleSheetsPicker({ apiBase, onPicked }: PickerProps) {
         Read-only via your Google account. Pick a sheet — Gen-BI imports and builds the dashboard.
       </div>
     </div>
+  );
+}
+
+function ConnectStep({
+  label,
+  state,
+}: {
+  label: string;
+  state: "pending" | "active" | "done";
+}) {
+  return (
+    <li className="flex items-center gap-2.5 text-[12.5px]">
+      <span className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+        {state === "done" && <CheckCircle2 className="w-4 h-4 text-green-600" />}
+        {state === "active" && <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />}
+        {state === "pending" && <span className="w-2 h-2 rounded-full bg-muted-foreground/30" />}
+      </span>
+      <span
+        className={cn(
+          "transition-colors",
+          state === "done" && "text-foreground",
+          state === "active" && "text-foreground font-medium",
+          state === "pending" && "text-muted-foreground/70",
+        )}
+      >
+        {label}
+      </span>
+    </li>
   );
 }
