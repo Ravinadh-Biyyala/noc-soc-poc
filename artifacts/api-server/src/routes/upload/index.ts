@@ -682,12 +682,27 @@ ${JSON.stringify(sampleRows, null, 1)}`;
       // Final guard: empty data must never reach the client.
       .filter((c) => Array.isArray(c.data) && c.data.length > 0);
 
+    // Pass the prepared rows + column metadata back to the client so the
+    // Data-Scientist agent surface (correlation / forecast / clusters /
+    // anomalies) can run client-side without a second round-trip. Cap the
+    // payload to ~2 000 rows to keep the response under a megabyte even on
+    // wide tables — that's still plenty for statistical signal.
+    const dsRows = (primary.rows ?? primary.sampleRows).slice(0, 2000);
+    const dsColumns = primary.columns.map((c) => ({
+      name: c.name,
+      type: c.type,
+      uniqueCount: c.uniqueCount,
+      min: c.min,
+      max: c.max,
+    }));
+
     res.json({
       title: narrative?.title || fileName.replace(/\.[^.]+$/, "") || "Dataset overview",
       subtitle: narrative?.subtitle || `${primary.rowCount} records analyzed`,
       kpis,
       charts,
       tables: [],
+      dataScience: { rows: dsRows, columns: dsColumns },
     });
   } catch (error: any) {
     req.log.error({ err: error }, "Dashboard generation error");

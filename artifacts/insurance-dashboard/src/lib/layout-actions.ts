@@ -127,7 +127,14 @@ const CLOSE = "[[/LAYOUT_ACTIONS]]";
 /**
  * Pull every layout-actions block out of an assistant message, returning the
  * parsed actions and the human-readable text with the blocks stripped out.
- * Tolerant of malformed JSON — bad blocks are just dropped, not thrown.
+ *
+ * Tolerant on purpose — the LLM is inconsistent about exactly how it wraps
+ * the JSON, so we accept all of:
+ *   1. [[LAYOUT_ACTIONS]] {...} [[/LAYOUT_ACTIONS]]   (preferred)
+ *   2. [LAYOUT_ACTIONS] {...} [/LAYOUT_ACTIONS]       (single brackets)
+ *   3. ```json {...} ```                              (markdown fences)
+ *   4. A bare top-level {"actions":[...]} block       (last-resort fallback)
+ * Bad JSON is dropped silently rather than thrown.
  */
 export function parseLayoutActions(text: string): {
   actions: LayoutAction[];
@@ -135,10 +142,8 @@ export function parseLayoutActions(text: string): {
 } {
   const actions: LayoutAction[] = [];
   let cleanText = text;
-  // Greedy across newlines, non-greedy on content so multiple blocks parse
-  // independently.
-  const re = /\[\[LAYOUT_ACTIONS\]\]([\s\S]*?)\[\[\/LAYOUT_ACTIONS\]\]/g;
-  cleanText = cleanText.replace(re, (_match, body: string) => {
+
+  const consume = (body: string) => {
     try {
       const parsed = JSON.parse(body.trim());
       const list: unknown[] = Array.isArray(parsed)
@@ -146,16 +151,38 @@ export function parseLayoutActions(text: string): {
         : Array.isArray((parsed as { actions?: unknown }).actions)
         ? (parsed as { actions: unknown[] }).actions
         : [];
+      let added = 0;
       for (const a of list) {
-        if (a && typeof a === "object" && "type" in a) actions.push(a as LayoutAction);
+        if (a && typeof a === "object" && "type" in a) { actions.push(a as LayoutAction); added++; }
       }
+      return added > 0;
     } catch {
-      /* swallow malformed JSON */
+      return false;
     }
-    return "";
+  };
+
+  // 1 + 2: bracket-delimited blocks (single OR double).
+  const bracketRe = /\[\[?LAYOUT_ACTIONS\]?\]([\s\S]*?)\[\[?\/LAYOUT_ACTIONS\]?\]/g;
+  cleanText = cleanText.replace(bracketRe, (_m, body: string) => { consume(body); return ""; });
+
+  // 3: ```json ... ``` fences that contain an "actions" key. We don't
+  // strip every fence indiscriminately — only ones that actually parse as
+  // a layout-actions payload — so prose-y code samples are left alone.
+  const fenceRe = /```(?:json)?\s*([\s\S]*?)```/g;
+  cleanText = cleanText.replace(fenceRe, (m, body: string) => {
+    const trimmed = body.trim();
+    if (!/"actions"\s*:/.test(trimmed)) return m;
+    return consume(trimmed) ? "" : m;
   });
 
-  // Tidy up double blank lines created by stripping the blocks.
+  // 4: bare {"actions":[...]} at top level. Only run this if we have not
+  // already harvested actions via the structured forms — otherwise a polite
+  // narration like '{"actions":["resize"]}' inside prose would double-fire.
+  if (actions.length === 0) {
+    const bareRe = /\{[^{}]*"actions"\s*:\s*\[[\s\S]*?\][^{}]*\}/g;
+    cleanText = cleanText.replace(bareRe, (m) => (consume(m) ? "" : m));
+  }
+
   cleanText = cleanText.replace(/\n{3,}/g, "\n\n").trim();
   return { actions, cleanText };
 }

@@ -26,7 +26,10 @@ import {
   FileSpreadsheet,
   Database,
   SendHorizonal,
+  FlaskConical,
+  Loader2,
 } from "lucide-react";
+import { buildCustomer360, buildCustomer360DashboardConfig } from "@/lib/demo-customer360";
 
 function EmptyState({
   icon: Icon,
@@ -55,7 +58,27 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [, setLocation] = useLocation();
   const { data: workspaces, isLoading: wsLoading, error: wsError } = useListWorkspaces();
-  const { dashboards } = useGeneratedDashboards();
+  const { dashboards, addDashboard } = useGeneratedDashboards();
+  const [demoLoading, setDemoLoading] = useState(false);
+
+  // Build the synthetic Customer-360 dataset (3 source tables, ~5K joined
+  // rows), generate a dashboard config, register it, and jump straight in.
+  // Wrapped in a microtask deferral so the button gets a loading state and
+  // the synth work doesn't block the click animation.
+  const launchAdvancedDemo = () => {
+    if (demoLoading) return;
+    setDemoLoading(true);
+    setTimeout(() => {
+      try {
+        const result = buildCustomer360();
+        const cfg = buildCustomer360DashboardConfig(result);
+        const entry = addDashboard(cfg);
+        setLocation(entry.route);
+      } finally {
+        setDemoLoading(false);
+      }
+    }, 30);
+  };
 
   const openCreate = (packId?: string) => {
     setSamplePackId(packId);
@@ -217,6 +240,31 @@ export default function Home() {
               <SendHorizonal className="w-4 h-4" />
             </button>
           </form>
+
+          {/* Advanced demo CTA — generates a 5K-row joined dataset entirely
+              in-browser and routes into the Data-Scientist agent surface. */}
+          <button
+            type="button"
+            onClick={launchAdvancedDemo}
+            disabled={demoLoading}
+            className="w-full flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 px-4 py-3 text-left transition-colors disabled:opacity-60"
+            data-testid="hero-advanced-demo"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-md bg-primary/15 flex items-center justify-center flex-shrink-0">
+                {demoLoading ? <Loader2 className="w-4 h-4 text-primary animate-spin" /> : <FlaskConical className="w-4 h-4 text-primary" />}
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-foreground">
+                  Try the Data-Scientist demo
+                </div>
+                <div className="text-[11.5px] text-muted-foreground truncate">
+                  Joins 5,000 orders × 800 customers × 200 products and runs forecast, correlation, clustering & anomaly detection.
+                </div>
+              </div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
+          </button>
 
           {/* Sample chips */}
           <div className="flex items-center gap-2 flex-wrap pt-1">

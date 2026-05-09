@@ -207,11 +207,17 @@ function PresenterCopilot({
     // it forward through the conversation thread, so we don't pay the token
     // cost again, and follow-up messages stay clean. When the host provided
     // an onConfigChange callback we also teach the model the layout tools.
-    const layoutTools = onConfigChangeRef.current
-      ? buildLayoutToolPrompt((config?.charts ?? []).map((c: any) => ({ id: c.id, type: c.type, title: c.title })))
+    //
+    // ALSO re-inject the layout tools whenever the user's message looks like
+    // a layout intent ("resize", "tidy", "wider", "hide", "reorder", …), even
+    // mid-conversation. The model otherwise tends to forget the protocol
+    // after a few turns and starts apologising about not being able to edit.
+    const isLayoutIntent = /\b(tidy|tidies|tidy[- ]?up|beautify|resize|wider|narrower|full[- ]?width|half[- ]?width|reorder|rearrange|swap|hide|show|remove|cleanup|clean[- ]?up|layout)\b/i.test(trimmed);
+    const layoutTools = onConfigChangeRef.current && (!sentContextRef.current || isLayoutIntent)
+      ? buildLayoutToolPrompt((configRef.current?.charts ?? []).map((c: any) => ({ id: c.id, type: c.type, title: c.title })))
       : "";
     const payload = sentContextRef.current
-      ? trimmed
+      ? (layoutTools ? `${layoutTools}\n[USER QUESTION]\n${trimmed}` : trimmed)
       : `You are observing the user's currently displayed dashboard. Use it as ground truth when answering. If a question can't be answered from the on-screen data, say so plainly.\n\n[ON-SCREEN DASHBOARD]\n${summary}\n${layoutTools}\n[USER QUESTION]\n${trimmed}`;
     sentContextRef.current = true;
 
@@ -271,14 +277,21 @@ function PresenterCopilot({
         if (actions.length && onConfigChangeRef.current) {
           onConfigChangeRef.current(applyActions(configRef.current, actions));
         }
-        const display = cleanText || acc || "(no response)";
+        const display = cleanText || acc;
         const tag = actions.length ? `\n\n_Applied ${actions.length} layout change${actions.length === 1 ? "" : "s"}._` : "";
-        setMessages((m) => [...m, { role: "assistant", content: display + tag }]);
+        // Empty stream = something went wrong upstream. Show a real error
+        // instead of "(no response)" so users don't think they typed something
+        // wrong. Most common cause: rate limit / model hiccup.
+        if (!display.trim() && !actions.length) {
+          setError("The Copilot didn't return anything. Try asking again — if it keeps happening, the model may be rate-limited.");
+        } else {
+          setMessages((m) => [...m, { role: "assistant", content: (display || "Done.") + tag }]);
+        }
       }
     } catch (err: unknown) {
       // Aborts on unmount are expected — don't surface to the UI.
       if (!aliveRef.current || (err instanceof DOMException && err.name === "AbortError")) return;
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(err instanceof Error ? `Copilot error: ${err.message}` : "Something went wrong while talking to the Copilot.");
     } finally {
       if (aliveRef.current) {
         setBusy(false);

@@ -12,6 +12,7 @@ import UploadPage from "@/components/UploadPage";
 import GeneratedDashboard from "@/components/GeneratedDashboard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GeneratedDashboardProvider, useGeneratedDashboards } from "@/lib/generated-dashboards";
+import { ChatObserverProvider } from "@/lib/chat-observer";
 import Home from "@/pages/Home";
 import WorkspacesList from "@/pages/WorkspacesList";
 import WorkspaceDetail from "@/pages/WorkspaceDetail";
@@ -119,12 +120,14 @@ function App() {
         <CopilotProvider>
           <CustomDashboardsProvider>
             <GeneratedDashboardProvider>
-              <TooltipProvider>
-                <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-                  <Router />
-                </WouterRouter>
-                <Toaster />
-              </TooltipProvider>
+              <ChatObserverProvider>
+                <TooltipProvider>
+                  <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                    <Router />
+                  </WouterRouter>
+                  <Toaster />
+                </TooltipProvider>
+              </ChatObserverProvider>
             </GeneratedDashboardProvider>
           </CustomDashboardsProvider>
         </CopilotProvider>

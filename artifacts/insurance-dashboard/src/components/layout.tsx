@@ -15,6 +15,8 @@ import { cn, formatCurrency } from "@/lib/utils";
 import { useCopilot } from "@/lib/copilot-context";
 import { useTenantConfig, resolveIcon } from "@/lib/tenant-config";
 import { useGeneratedDashboards } from "@/lib/generated-dashboards";
+import { useChatObserver } from "@/lib/chat-observer";
+import { Eye } from "lucide-react";
 import { NAV } from "@/lib/nav-config";
 import { useActiveWorkspace } from "@/lib/active-workspace";
 import {
@@ -374,6 +376,15 @@ function ChatPanel() {
   const pendingQuestionRef = useRef<string | null>(null);
   const { config } = useTenantConfig();
   const { pack } = useActiveWorkspace();
+  const { observation } = useChatObserver();
+  // Conversations into which we've already injected the page-context block
+  // (so we don't re-pay the prompt cost on every turn). Cleared when the
+  // observation label changes — next message in the same conversation will
+  // re-seed against the new view.
+  const seededConvIds = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    if (activeConvId != null) seededConvIds.current.delete(activeConvId);
+  }, [observation.label, activeConvId]);
 
   // Listen for the global "copilot:focus" event (dispatched, for example,
   // by the Home "Ask Gen-BI" quick action) and visibly bring the chat
@@ -403,12 +414,17 @@ function ChatPanel() {
   // finally to safe generic prompts.
   const copilotName =
     pack?.copilotName || config?.branding?.copilotName || "Gen-BI Copilot";
+  // Page-aware suggestions take precedence over pack defaults — when a
+  // page (e.g. a generated dashboard) registers its own chips via
+  // useRegisterObservation, the Copilot reflects what the user is actually
+  // looking at instead of generic "Show top 10 records" prompts.
   const suggestedPrompts =
+    observation.suggestions?.slice(0, 4) ||
     pack?.suggestedPrompts.slice(0, 3) ||
     config?.suggestedPrompts?.slice(0, 3) || [
-      "Summarize my data",
-      "What patterns are in the data?",
-      "Show the top 10 records",
+      "Summarize what's on this page",
+      "What should I do next?",
+      "Show me the most interesting metric",
     ];
 
   const { data: conversations } = useListOpenaiConversations();
@@ -470,13 +486,23 @@ function ChatPanel() {
     setInput("");
     setIsTyping(true);
     setStreamingMessage("");
-    
+
+    // Inject the current observation as ground truth on the FIRST send of
+    // each conversation (or after the user navigates to a different view).
+    // The model carries it forward through the thread so we don't pay the
+    // token cost again until the observation actually changes.
+    const needsContext = observation.summary && !seededConvIds.current.has(activeConvId);
+    const payload = needsContext
+      ? `You are the user's right-rail data Copilot. They are currently looking at: **${observation.label}** (${observation.kind}).\n\n[CONTEXT — what's on screen]\n${observation.summary}\n\nAnswer with that view in mind. If they ask about something off-screen, say so plainly and offer where to look.\n\n[USER]\n${userMsg}`
+      : userMsg;
+    seededConvIds.current.add(activeConvId);
+
     try {
       const base = import.meta.env.BASE_URL || '/';
       const response = await fetch(`${base}api/openai/conversations/${activeConvId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: userMsg }),
+        body: JSON.stringify({ content: payload }),
       });
 
       if (!response.ok) throw new Error("Failed to send message");
@@ -578,6 +604,14 @@ function ChatPanel() {
         </Button>
       </div>
 
+      {/* Live "what I'm looking at" pill — proves the Copilot is page-aware
+          on every screen, not just a generic global chat. */}
+      <div className="px-3 py-1.5 border-b border-border bg-primary/5 flex items-center gap-1.5 text-[11px]" data-testid="copilot-observation-pill">
+        <Eye className="w-3 h-3 text-primary flex-shrink-0" />
+        <span className="text-muted-foreground">Observing</span>
+        <span className="font-medium text-foreground truncate flex-1 min-w-0">{observation.label}</span>
+      </div>
+
       <div className="flex-1 overflow-y-auto p-4 space-y-5 bg-muted/30" ref={scrollRef}>
         {messages.length === 0 && !isTyping && !streamingMessage && (
           <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground space-y-3 px-4">
@@ -585,8 +619,12 @@ function ChatPanel() {
               <BrainCircuit className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <p className="font-semibold text-foreground mb-0.5 text-sm">Generative BI</p>
-              <p className="text-xs text-muted-foreground leading-relaxed max-w-[240px]">Ask any data question and get instant visualizations.</p>
+              <p className="font-semibold text-foreground mb-0.5 text-sm">Watching {observation.label}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed max-w-[240px]">
+                {observation.summary
+                  ? `I can see what's on screen — ask me anything about it, or pick a starter:`
+                  : `Ask any data question and get instant visualizations.`}
+              </p>
             </div>
             <div className="grid grid-cols-1 gap-1.5 w-full max-w-[260px] mt-2">
               {suggestedPrompts.map((q) => (

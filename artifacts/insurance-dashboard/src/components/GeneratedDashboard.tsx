@@ -5,6 +5,8 @@ import { Sparkles, Maximize2, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExplainPanel, ExplainButton } from "@/components/ExplainPanel";
 import { autoTidy } from "@/lib/layout-actions";
+import AdvancedAnalytics from "@/components/AdvancedAnalytics";
+import { useRegisterObservation } from "@/lib/chat-observer";
 
 // Lazy so the presenter overlay (with its portal + extra deps) doesn't
 // inflate the initial dashboard render.
@@ -645,6 +647,20 @@ export default function GeneratedDashboard({ config, hidePresenter, onConfigChan
   const kpiStaggerEnd = kpis.length * 70;
   const canEdit = typeof onConfigChange === "function";
 
+  // Tell the right-rail Copilot what we're showing so it can answer with
+  // ground-truth context (chart titles, KPI labels) instead of generic prose.
+  useRegisterObservation(hidePresenter ? null : {
+    label: config.title || "Generated dashboard",
+    kind: "dashboard",
+    summary: `Dashboard "${config.title}" with ${kpis.length} KPIs and ${charts.length} charts. KPIs: ${kpis.map((k: any) => k.label).join(", ")}. Charts: ${charts.map((c: any) => `${c.title} (${c.type})`).join("; ")}.`,
+    suggestions: [
+      `What's the headline insight on "${config.title}"?`,
+      charts[0] ? `Explain the "${charts[0].title}" chart` : "Explain the trends",
+      "Which KPI deserves the most attention right now?",
+      kpis[0] ? `Is the ${kpis[0].label} good or bad versus benchmark?` : "Are these numbers normal?",
+    ].filter(Boolean) as string[],
+  });
+
   return (
     <div className="space-y-5">
       <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-br from-primary/5 via-background to-background p-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -724,6 +740,17 @@ export default function GeneratedDashboard({ config, hidePresenter, onConfigChan
             </div>
           ))}
         </div>
+      )}
+
+      {/* Data-Scientist agent surface — only renders when the dataset has
+          enough rows / columns / variance to be worth it. The fitness gate
+          and all the heavy compute live inside the panel itself. */}
+      {!hidePresenter && config.dataScience?.rows?.length > 0 && (
+        <AdvancedAnalytics
+          rows={config.dataScience.rows}
+          columns={config.dataScience.columns ?? []}
+          defaultOpen={!!config.dataScience.defaultOpen}
+        />
       )}
 
       {presenting && (
