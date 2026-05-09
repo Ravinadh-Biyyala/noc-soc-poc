@@ -380,12 +380,17 @@ function ChatPanel() {
   // input into focus with a brief highlight ring so the user has clear
   // feedback that the Copilot is ready.
   useEffect(() => {
-    const onFocus = () => {
+    const onFocus = (ev: Event) => {
       const el = inputRef.current;
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "nearest" });
         el.focus({ preventScroll: false });
       }
+      // If the dispatcher passed a seed prompt (e.g. the chat-first hero on
+      // Home), prefill the input so the user can review/edit before sending.
+      const detail = (ev as CustomEvent).detail as { seed?: string } | undefined;
+      const seed = detail?.seed?.trim();
+      if (seed) setInput(seed);
       setHighlightInput(true);
       window.setTimeout(() => setHighlightInput(false), 1400);
     };

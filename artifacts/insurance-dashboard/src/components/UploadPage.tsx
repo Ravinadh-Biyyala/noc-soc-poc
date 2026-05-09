@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import DataPrep from "@/components/DataPrep";
 import type { Table } from "@/lib/data-operations";
+import { consumePendingFile } from "@/lib/pending-file";
 
 interface SheetSummary {
   name: string;
@@ -114,6 +115,15 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
       });
     }
   }, [apiBase]);
+
+  // When the user drops a file or pulls from a connector on the Home
+  // front door, that file is parked in the pending-file module and we
+  // navigate here. Consume it on mount so the rest of the existing
+  // pipeline runs unchanged.
+  useEffect(() => {
+    const queued = consumePendingFile();
+    if (queued) handleFile(queued);
+  }, [handleFile]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
