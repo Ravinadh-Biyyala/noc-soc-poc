@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -336,6 +336,15 @@ function GoogleSheetsPicker({ apiBase, onPicked }: PickerProps) {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [pickingId, setPickingId] = useState<string | null>(null);
+  // Track mount state so a late fetch resolution after the user closes the
+  // dialog (or starts a second pick) cannot push stale state / fire onPicked.
+  const aliveRef = useRef(true);
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+    };
+  }, []);
 
   const load = async (q: string) => {
     setLoading(true);
@@ -343,17 +352,20 @@ function GoogleSheetsPicker({ apiBase, onPicked }: PickerProps) {
     try {
       const url = `${apiBase}/api/connectors/google-sheets/files${q ? `?q=${encodeURIComponent(q)}` : ""}`;
       const res = await fetch(url);
+      if (!aliveRef.current) return;
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `Listing failed (HTTP ${res.status})`);
       }
       const data = (await res.json()) as { files: DriveFile[] };
+      if (!aliveRef.current) return;
       setFiles(data.files);
     } catch (err: unknown) {
+      if (!aliveRef.current) return;
       setError(err instanceof Error ? err.message : "Could not list files");
       setFiles([]);
     } finally {
-      setLoading(false);
+      if (aliveRef.current) setLoading(false);
     }
   };
 
@@ -369,17 +381,20 @@ function GoogleSheetsPicker({ apiBase, onPicked }: PickerProps) {
       const res = await fetch(
         `${apiBase}/api/connectors/google-sheets/download?fileId=${encodeURIComponent(file.id)}`,
       );
+      if (!aliveRef.current) return;
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `Download failed (HTTP ${res.status})`);
       }
       const blob = await res.blob();
+      if (!aliveRef.current) return;
       const safe = file.name.replace(/[^\w. -]/g, "_");
       const f = new File([blob], `${safe}.xlsx`, {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
       onPicked(f);
     } catch (err: unknown) {
+      if (!aliveRef.current) return;
       setError(err instanceof Error ? err.message : "Could not import file");
       setPickingId(null);
     }

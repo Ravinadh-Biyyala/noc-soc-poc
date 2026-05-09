@@ -18,12 +18,18 @@ router.get(
   "/connectors/google-sheets/files",
   async (req: Request, res: Response) => {
     try {
-      const q = String(req.query.q ?? "").trim();
-      const escaped = q.replace(/['\\]/g, "\\$&");
+      // Aggressively sanitize: keep only chars that are safe inside a Drive
+      // `name contains 'X'` literal — letters, digits, spaces, dot, dash,
+      // underscore. This rules out the special chars (', \, parens, etc.)
+      // that could break out of the quoted literal or its enclosing group.
+      const q = String(req.query.q ?? "")
+        .trim()
+        .slice(0, 80)
+        .replace(/[^\p{L}\p{N} ._-]/gu, "");
       const driveQuery = [
         "mimeType='application/vnd.google-apps.spreadsheet'",
         "trashed=false",
-        ...(escaped ? [`name contains '${escaped}'`] : []),
+        ...(q ? [`name contains '${q}'`] : []),
       ].join(" and ");
 
       const params = new URLSearchParams({
@@ -35,7 +41,7 @@ router.get(
       });
 
       const resp = await connectors.proxy(
-        "google-sheet",
+        "google-drive",
         `/drive/v3/files?${params.toString()}`,
         { method: "GET" },
       );
@@ -55,9 +61,8 @@ router.get(
       const data = (await resp.json()) as { files?: DriveFile[] };
       res.json({ files: data.files ?? [] });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to list files";
       req.log.error({ err }, "google sheets list error");
-      res.status(500).json({ error: msg });
+      res.status(500).json({ error: "Could not list spreadsheets" });
     }
   },
 );
@@ -76,7 +81,7 @@ router.get(
         fileId,
       )}/export?mimeType=${encodeURIComponent(XLSX_MIME)}`;
 
-      const resp = await connectors.proxy("google-sheet", path, {
+      const resp = await connectors.proxy("google-drive", path, {
         method: "GET",
       });
 
@@ -92,14 +97,31 @@ router.get(
         return;
       }
 
+      // Trust-but-verify: Drive's export endpoint should hand us the xlsx
+      // mime we asked for, but pass through whatever it actually returned
+      // so the client never gets a mislabeled body. (E.g. a sheet larger
+      // than the export size limit returns a JSON error doc with 200 OK.)
+      const upstreamType = resp.headers.get("content-type") ?? "";
+      if (!upstreamType.toLowerCase().includes("spreadsheet")) {
+        const text = await resp.text();
+        req.log.warn(
+          { upstreamType, body: text.slice(0, 500), fileId },
+          "drive export returned non-xlsx body",
+        );
+        res.status(502).json({
+          error:
+            "Google Drive returned an unexpected response — the sheet may be too large to export.",
+        });
+        return;
+      }
+
       const buf = Buffer.from(await resp.arrayBuffer());
       res.setHeader("Content-Type", XLSX_MIME);
       res.setHeader("Cache-Control", "no-store");
       res.send(buf);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to download";
       req.log.error({ err }, "google sheets download error");
-      res.status(500).json({ error: msg });
+      res.status(500).json({ error: "Could not import spreadsheet" });
     }
   },
 );
