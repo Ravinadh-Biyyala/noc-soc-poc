@@ -373,6 +373,11 @@ function ChartCard({ chart }: { chart: any }) {
 
   if (chart.type === "number-card") return null;
 
+  // Hard guard: a chart with no data must never render as an empty axis grid.
+  // The server already filters these out, but a client-side guard keeps the
+  // UI honest if a stale dashboard is loaded from localStorage.
+  const hasData = Array.isArray(data) && data.length > 0;
+
   const isWide = ["treemap", "heatmap", "stacked-area", "stacked-bar", "waterfall", "scatter", "bubble"].includes(chart.type);
 
   const explainCtx: ExplainContext = {
@@ -398,7 +403,9 @@ function ChartCard({ chart }: { chart: any }) {
         </CardHeader>
         <CardContent>
           <div className={cn("w-full", chart.type === "progress-bar" ? "" : "h-[280px]")}>
-            {chart.type === "progress-bar" || chart.type === "gauge" || chart.type === "heatmap" || chart.type === "waterfall" ? (
+            {!hasData ? (
+              <EmptyChartState message="No data available for this view" />
+            ) : chart.type === "progress-bar" || chart.type === "gauge" || chart.type === "heatmap" || chart.type === "waterfall" ? (
               renderChart()
             ) : (
               <ResponsiveContainer width="100%" height="100%">
