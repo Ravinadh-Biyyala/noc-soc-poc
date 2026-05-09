@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import DataPrep from "@/components/DataPrep";
 import type { Table } from "@/lib/data-operations";
 import { consumePendingFile } from "@/lib/pending-file";
+import { useChatObserver } from "@/lib/chat-observer";
+import { profile, type DqInput } from "@/lib/data-quality";
 
 interface SheetSummary {
   name: string;
@@ -53,6 +55,7 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
   const [loadingSamples, setLoadingSamples] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [_, setLocation] = useLocation();
+  const { pushAgentSuggestion, dismissAgentSuggestion } = useChatObserver();
 
   const apiBase = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -101,7 +104,39 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
 
       const parsed = await res.json();
       const result: UploadResult = { ...parsed, uploadId: newUploadId() };
-      setUploadedFiles((prev) => [...prev, result]);
+      setUploadedFiles((prev) => {
+        const next = [...prev, result];
+        // Run the deterministic data-quality engine across everything
+        // we've uploaded so far (so cross-file join candidates surface
+        // automatically) and push each finding into the right-rail
+        // Copilot as an actionable agent suggestion.
+        try {
+          const tables: DqInput[] = next.flatMap((f) =>
+            f.sheets.map((s) => ({
+              name: tableNameFor(f.fileName, s.name, f.sheets.length > 1),
+              rows: s.rows || s.sampleRows || [],
+            })),
+          );
+          const findings = profile(tables);
+          for (const fnd of findings) {
+            pushAgentSuggestion({
+              id: fnd.id,
+              title: fnd.title,
+              rationale: fnd.rationale,
+              applyLabel: fnd.applyLabel,
+              severity: fnd.severity,
+              // The "apply" hook is a no-op stub for now — the
+              // materialisation lives in DataPrep / the prepared-table
+              // pipeline. The card still proves the agent is the one
+              // driving cleansing/joins instead of a buried nav page.
+              onApply: () => dismissAgentSuggestion(fnd.id),
+            });
+          }
+        } catch {
+          // Profiling is best-effort; never block the upload flow.
+        }
+        return next;
+      });
       setStage("prep");
     } catch (err: any) {
       const msg = err?.name === "TypeError"

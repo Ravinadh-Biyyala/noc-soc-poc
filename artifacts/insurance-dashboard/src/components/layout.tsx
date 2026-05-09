@@ -16,7 +16,7 @@ import { useCopilot } from "@/lib/copilot-context";
 import { useTenantConfig, resolveIcon } from "@/lib/tenant-config";
 import { useGeneratedDashboards } from "@/lib/generated-dashboards";
 import { useChatObserver } from "@/lib/chat-observer";
-import { Eye } from "lucide-react";
+import { Eye, AlertTriangle, Info, AlertOctagon, Check, XCircle } from "lucide-react";
 import { NAV } from "@/lib/nav-config";
 import { useActiveWorkspace } from "@/lib/active-workspace";
 import {
@@ -54,43 +54,31 @@ function pageTitle(location: string): string {
 function SidebarNav() {
   const [location] = useLocation();
   const { config } = useTenantConfig();
+  // Built-in tenant sections render as nested quick-links under Dashboards
+  // so the user can still jump straight to e.g. Claims or Sales without
+  // a separate top-level entry.
   const sectionItems = (config?.sections || []).map((s) => ({
     id: s.id,
     label: s.label,
     href: s.route === "/" ? `/dashboards/${s.id}` : s.route,
     icon: resolveIcon(s.icon),
   }));
-  // Auto-expand the group whose sub-items contain the active route so users
-  // never lose context when navigating from a sub-page back to the sidebar.
-  const initialOpen: Record<string, boolean> = {};
-  for (const item of NAV) {
-    if (item.type === "group") {
-      const hasActive = item.items.some(
-        (s) =>
-          s.type === "leaf" &&
-          (location === s.href ||
-            (s.matchPrefix && location.startsWith(s.matchPrefix + "/"))),
-      );
-      // Analytics auto-opens whenever the user is on any dashboard route.
-      const analyticsHit =
-        item.id === "analytics" &&
-        (location === "/dashboards" ||
-          location.startsWith("/dashboards/") ||
-          sectionItems.some((s) => s.href === location));
-      initialOpen[item.id] = hasActive || analyticsHit;
-    }
-  }
-  const [open, setOpen] = useState<Record<string, boolean>>(initialOpen);
 
   return (
     <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
       {NAV.map((item) => {
-        if (item.type === "leaf") {
-          const isActive = item.matchPrefix
-            ? location === item.href || location.startsWith(item.matchPrefix + "/")
-            : location === item.href;
-          return (
-            <Link key={item.href} href={item.href}>
+        const isActive = item.matchPrefix
+          ? location === item.href || location.startsWith(item.matchPrefix + "/")
+          : location === item.href;
+        const showDashboardSections =
+          item.href === "/dashboards" &&
+          (location === "/dashboards" ||
+            location.startsWith("/dashboards/") ||
+            sectionItems.some((s) => s.href === location)) &&
+          sectionItems.length > 0;
+        return (
+          <div key={item.href}>
+            <Link href={item.href}>
               <div
                 className={cn(
                   "flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] transition-all cursor-pointer",
@@ -104,87 +92,26 @@ function SidebarNav() {
                 {item.label}
               </div>
             </Link>
-          );
-        }
-        // Group
-        const isOpen = !!open[item.id];
-        const Icon = item.icon;
-        return (
-          <div key={item.id} className="space-y-0.5">
-            <button
-              type="button"
-              onClick={() => setOpen((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
-              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-white transition-all"
-              data-testid={`nav-group-${item.id}`}
-            >
-              <Icon className="w-4 h-4 text-sidebar-foreground/50" />
-              <span className="flex-1 text-left">{item.label}</span>
-              <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", isOpen ? "rotate-0" : "-rotate-90")} />
-            </button>
-            {isOpen && (
-              <div className="pl-3 space-y-0.5">
-                {item.items.map((sub, i) => {
-                  const SubIcon = sub.icon;
-                  if (sub.type === "leaf") {
-                    const isActive =
-                      location === sub.href ||
-                      (sub.matchPrefix && (location === sub.matchPrefix || location.startsWith(sub.matchPrefix + "/")));
-                    return (
-                      <div key={sub.href}>
-                        <Link href={sub.href}>
-                          <div
-                            className={cn(
-                              "flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12px] transition-all cursor-pointer",
-                              isActive
-                                ? "bg-sidebar-accent text-white font-medium"
-                                : "text-sidebar-foreground/60 hover:bg-sidebar-accent/40 hover:text-white",
-                            )}
-                            data-testid={`nav-sub-${sub.label.toLowerCase()}`}
-                          >
-                            <SubIcon className={cn("w-3.5 h-3.5", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/40")} />
-                            {sub.label}
-                          </div>
-                        </Link>
-                        {/* When the user is on a Dashboards route, expose every
-                            built-in section as a quick sub-link so the demo
-                            can jump straight to Claims, Sales, etc. */}
-                        {item.id === "analytics" && sub.href === "/dashboards" && sectionItems.length > 0 && (
-                          <div className="ml-5 mt-0.5 space-y-0.5 border-l border-sidebar-border/50 pl-2">
-                            {sectionItems.map((sec) => {
-                              const SecIcon = sec.icon;
-                              const secActive = location === sec.href;
-                              return (
-                                <Link key={sec.id} href={sec.href}>
-                                  <div
-                                    className={cn(
-                                      "flex items-center gap-2 px-2 py-1 rounded-md text-[11.5px] transition-all cursor-pointer",
-                                      secActive
-                                        ? "bg-sidebar-accent text-white font-medium"
-                                        : "text-sidebar-foreground/55 hover:bg-sidebar-accent/40 hover:text-white",
-                                    )}
-                                    data-testid={`nav-section-${sec.id}`}
-                                  >
-                                    <SecIcon className={cn("w-3 h-3", secActive ? "text-sidebar-primary" : "text-sidebar-foreground/40")} />
-                                    {sec.label}
-                                  </div>
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
+            {showDashboardSections && (
+              <div className="ml-5 mt-0.5 space-y-0.5 border-l border-sidebar-border/50 pl-2">
+                {sectionItems.map((sec) => {
+                  const SecIcon = sec.icon;
+                  const secActive = location === sec.href;
                   return (
-                    <div
-                      key={`${item.id}-ph-${i}`}
-                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12px] text-sidebar-foreground/40 cursor-not-allowed"
-                      title="Coming soon"
-                    >
-                      <SubIcon className="w-3.5 h-3.5 text-sidebar-foreground/30" />
-                      {sub.label}
-                      <span className="ml-auto text-[9px] uppercase tracking-wider text-sidebar-foreground/40">soon</span>
-                    </div>
+                    <Link key={sec.id} href={sec.href}>
+                      <div
+                        className={cn(
+                          "flex items-center gap-2 px-2 py-1 rounded-md text-[11.5px] transition-all cursor-pointer",
+                          secActive
+                            ? "bg-sidebar-accent text-white font-medium"
+                            : "text-sidebar-foreground/55 hover:bg-sidebar-accent/40 hover:text-white",
+                        )}
+                        data-testid={`nav-section-${sec.id}`}
+                      >
+                        <SecIcon className={cn("w-3 h-3", secActive ? "text-sidebar-primary" : "text-sidebar-foreground/40")} />
+                        {sec.label}
+                      </div>
+                    </Link>
                   );
                 })}
               </div>
@@ -376,7 +303,7 @@ function ChatPanel() {
   const pendingQuestionRef = useRef<string | null>(null);
   const { config } = useTenantConfig();
   const { pack } = useActiveWorkspace();
-  const { observation } = useChatObserver();
+  const { observation, agentSuggestions, dismissAgentSuggestion } = useChatObserver();
   // Conversations into which we've already injected the page-context block
   // (so we don't re-pay the prompt cost on every turn). Cleared when the
   // observation label changes — next message in the same conversation will
@@ -611,6 +538,70 @@ function ChatPanel() {
         <span className="text-muted-foreground">Observing</span>
         <span className="font-medium text-foreground truncate flex-1 min-w-0">{observation.label}</span>
       </div>
+
+      {/* Proactive agent suggestions — replaces the dead "Cleaning" /
+          "Joins" nav pages. When the data-quality engine flags something
+          on upload, it lands here as an actionable card. */}
+      {agentSuggestions.length > 0 && (
+        <div className="px-2 py-2 border-b border-border bg-amber-50/40 space-y-1.5" data-testid="agent-suggestions-tray">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1">
+            Agent suggestions ({agentSuggestions.length})
+          </p>
+          {agentSuggestions.map((s) => {
+            const SevIcon = s.severity === "critical" ? AlertOctagon : s.severity === "warn" ? AlertTriangle : Info;
+            const tone =
+              s.severity === "critical"
+                ? "border-red-200 bg-red-50"
+                : s.severity === "warn"
+                ? "border-amber-200 bg-amber-50"
+                : "border-blue-200 bg-blue-50";
+            const iconTone =
+              s.severity === "critical" ? "text-red-600" : s.severity === "warn" ? "text-amber-600" : "text-blue-600";
+            return (
+              <div
+                key={s.id}
+                className={cn("rounded-md border p-2 text-[11px] space-y-1.5", tone)}
+                data-testid={`agent-suggestion-${s.id}`}
+              >
+                <div className="flex items-start gap-1.5">
+                  <SevIcon className={cn("w-3 h-3 mt-0.5 flex-shrink-0", iconTone)} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-foreground leading-tight">{s.title}</p>
+                    <p className="text-muted-foreground mt-0.5 leading-snug">{s.rationale}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 pl-4">
+                  {s.onApply && (
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="h-6 px-2 text-[10px] gap-1"
+                      onClick={() => {
+                        s.onApply?.();
+                        dismissAgentSuggestion(s.id);
+                      }}
+                      data-testid={`agent-suggestion-apply-${s.id}`}
+                    >
+                      <Check className="w-2.5 h-2.5" />
+                      {s.applyLabel || "Apply"}
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 px-2 text-[10px] gap-1 text-muted-foreground"
+                    onClick={() => dismissAgentSuggestion(s.id)}
+                    data-testid={`agent-suggestion-skip-${s.id}`}
+                  >
+                    <XCircle className="w-2.5 h-2.5" />
+                    Skip
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto p-4 space-y-5 bg-muted/30" ref={scrollRef}>
         {messages.length === 0 && !isTyping && !streamingMessage && (

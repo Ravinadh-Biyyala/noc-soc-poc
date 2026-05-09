@@ -2,19 +2,9 @@ import {
   Home,
   Briefcase,
   Database,
-  LineChart,
-  FileOutput,
+  LayoutDashboard,
   ShieldCheck,
   Settings as SettingsIcon,
-  Upload,
-  Files,
-  Link2,
-  Sparkles as SparklesIcon,
-  Hash,
-  LayoutDashboard,
-  MessageSquare,
-  FileText,
-  Send,
   type LucideIcon,
 } from "lucide-react";
 
@@ -27,24 +17,23 @@ export interface NavLeaf {
   matchPrefix?: string;
 }
 
-export interface NavGroup {
-  type: "group";
-  id: string;
-  label: string;
-  icon: LucideIcon;
-  /** Sub-items shown when the group is expanded. */
-  items: Array<NavLeaf | { type: "placeholder"; label: string; icon: LucideIcon }>;
-}
-
-export type NavItem = NavLeaf | NavGroup;
+export type NavItem = NavLeaf;
 
 /**
- * The permanent 10-item Gen-BI shell navigation. Items either route directly
- * (Home, Workspaces, Governance, Settings) or expand to expose the workflow
- * inside a domain (Data ingestion, Analytics surfaces, Outputs).
+ * The Gen-BI shell navigation. Six top-level destinations, all real.
  *
- * Sub-items marked as placeholder render but are non-interactive — they
- * advertise upcoming surfaces without breaking the routing graph.
+ * Deliberately flat: every prep step (file inspection, joins, cleansing,
+ * outlier handling, metric definition, exports) is driven from the
+ * right-rail Copilot — the agent proactively surfaces issues, asks for
+ * confirmation, and applies deterministic rules. Burying those as nav
+ * items would contradict the chat-first model and create dead ends.
+ *
+ * - Home         — front door + recent activity
+ * - Workspaces   — projects (list + detail with Upload→…→Report stepper)
+ * - Data         — single landing for ingestion (drop / connect / browse)
+ * - Dashboards   — generated dashboards
+ * - Governance   — lineage / approvals (placeholder destination, not a SOON pill)
+ * - Settings     — org / theme / limits / packs / AI behaviour
  */
 export const NAV: NavItem[] = [
   { type: "leaf", href: "/", label: "Home", icon: Home },
@@ -55,45 +44,13 @@ export const NAV: NavItem[] = [
     icon: Briefcase,
     matchPrefix: "/workspaces",
   },
+  { type: "leaf", href: "/upload", label: "Data", icon: Database, matchPrefix: "/upload" },
   {
-    type: "group",
-    id: "data",
-    label: "Data",
-    icon: Database,
-    items: [
-      { type: "leaf", href: "/upload", label: "Upload", icon: Upload },
-      { type: "placeholder", label: "Files", icon: Files },
-      { type: "placeholder", label: "Joins", icon: Link2 },
-      { type: "placeholder", label: "Cleaning", icon: SparklesIcon },
-    ],
-  },
-  {
-    type: "group",
-    id: "analytics",
-    label: "Analytics",
-    icon: LineChart,
-    items: [
-      { type: "placeholder", label: "Metrics", icon: Hash },
-      {
-        type: "leaf",
-        href: "/dashboards",
-        label: "Dashboards",
-        icon: LayoutDashboard,
-        matchPrefix: "/dashboards",
-      },
-      { type: "placeholder", label: "Ask Gen-BI", icon: MessageSquare },
-    ],
-  },
-  {
-    type: "group",
-    id: "outputs",
-    label: "Outputs",
-    icon: FileOutput,
-    items: [
-      { type: "placeholder", label: "Reports", icon: FileText },
-      { type: "placeholder", label: "Boards", icon: LayoutDashboard },
-      { type: "placeholder", label: "Exports", icon: Send },
-    ],
+    type: "leaf",
+    href: "/dashboards",
+    label: "Dashboards",
+    icon: LayoutDashboard,
+    matchPrefix: "/dashboards",
   },
   { type: "leaf", href: "/governance", label: "Governance", icon: ShieldCheck },
   { type: "leaf", href: "/settings", label: "Settings", icon: SettingsIcon },

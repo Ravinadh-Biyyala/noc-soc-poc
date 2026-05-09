@@ -30,6 +30,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { buildCustomer360, buildCustomer360DashboardConfig } from "@/lib/demo-customer360";
+import { useChatObserver } from "@/lib/chat-observer";
+import { profile } from "@/lib/data-quality";
 
 function EmptyState({
   icon: Icon,
@@ -59,6 +61,7 @@ export default function Home() {
   const [, setLocation] = useLocation();
   const { data: workspaces, isLoading: wsLoading, error: wsError } = useListWorkspaces();
   const { dashboards, addDashboard } = useGeneratedDashboards();
+  const { pushAgentSuggestion, dismissAgentSuggestion } = useChatObserver();
   const [demoLoading, setDemoLoading] = useState(false);
 
   // Build the synthetic Customer-360 dataset (3 source tables, ~5K joined
@@ -73,6 +76,25 @@ export default function Home() {
         const result = buildCustomer360();
         const cfg = buildCustomer360DashboardConfig(result);
         const entry = addDashboard(cfg);
+        // Run the deterministic data-quality engine on the joined rows
+        // and push any findings to the right-rail Copilot. The synthetic
+        // dataset deliberately seeds ~3% outliers, so the user sees the
+        // agent flag them automatically with no nav hop required.
+        try {
+          const findings = profile([{ name: "customer360", rows: result.rows }]);
+          for (const fnd of findings.slice(0, 4)) {
+            pushAgentSuggestion({
+              id: fnd.id,
+              title: fnd.title,
+              rationale: fnd.rationale,
+              applyLabel: fnd.applyLabel,
+              severity: fnd.severity,
+              onApply: () => dismissAgentSuggestion(fnd.id),
+            });
+          }
+        } catch {
+          /* profiling is best-effort */
+        }
         setLocation(entry.route);
       } finally {
         setDemoLoading(false);
