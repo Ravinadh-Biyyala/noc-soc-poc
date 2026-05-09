@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import {
   Plus, Trash2, Database, GitMerge, Filter as FilterIcon, Layers, Calculator,
-  ChevronDown, ChevronRight, ArrowRight, Sparkles, X, Eye,
+  ChevronDown, ChevronRight, ArrowRight, Sparkles, X, Eye, ShieldCheck, History, AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,6 +12,11 @@ import {
   type JoinType, type FilterOp, type AggFunc, type JoinSuggestion,
   executePipeline, getOperationInputs, suggestJoins,
 } from "@/lib/data-operations";
+import {
+  detectQualityIssues, buildFixOperation, logDecision, getDecisions,
+  type QualityIssue, type QualityFix, type AuditEntry,
+} from "@/lib/prep-insights";
+import { useActiveWorkspace } from "@/lib/active-workspace";
 import { Lightbulb } from "lucide-react";
 
 interface DataPrepProps {
@@ -30,6 +35,15 @@ export default function DataPrep({ sourceTables, onAddMoreFiles, onGenerateDashb
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set(sourceTables.slice(0, 1).map((t) => t.id)));
   const [seedJoinSuggestion, setSeedJoinSuggestion] = useState<JoinSuggestion | null>(null);
   const [dismissedSuggestions, setDismissedSuggestions] = useState(false);
+  const [dismissedIssueIds, setDismissedIssueIds] = useState<Set<string>>(new Set());
+  // Scope the audit log to the active workspace so decisions don't bleed
+  // across tenants/workspaces in the same browser. The standalone /upload
+  // route has no workspace yet — those decisions land in the "draft"
+  // bucket and stay isolated from any saved workspace.
+  const { workspaceId } = useActiveWorkspace();
+  const auditScope = workspaceId !== null ? `ws-${workspaceId}` : "draft";
+  const [decisions, setDecisions] = useState<AuditEntry[]>(() => getDecisions(auditScope));
+  const [decisionsOpen, setDecisionsOpen] = useState(false);
 
   const { tables, tablesById } = useMemo(
     () => executePipeline(sourceTables, operations),
@@ -136,12 +150,86 @@ export default function DataPrep({ sourceTables, onAddMoreFiles, onGenerateDashb
       rightKey: s.rightKey,
       joinType: "inner",
     });
+    logDecision(
+      "join_apply",
+      `Joined ${s.leftTableName}.${s.leftKey} → ${s.rightTableName}.${s.rightKey} (${Math.round(s.overlap * 100)}% match)`,
+      { suggestion: s as unknown as Record<string, unknown> },
+      auditScope,
+    );
   };
 
   const openJoinModalWithSuggestion = (s: JoinSuggestion) => {
     setSeedJoinSuggestion(s);
     setAddingOp("join");
+    logDecision(
+      "join_customize",
+      `Opened join customizer for ${s.leftTableName}.${s.leftKey} → ${s.rightTableName}.${s.rightKey}`,
+      { suggestion: s as unknown as Record<string, unknown> },
+      auditScope,
+    );
   };
+
+  const dismissJoinSuggestions = () => {
+    setDismissedSuggestions(true);
+    logDecision(
+      "join_dismiss",
+      `Dismissed ${visibleSuggestions.length} join suggestion${visibleSuggestions.length === 1 ? "" : "s"}`,
+      undefined,
+      auditScope,
+    );
+  };
+
+  // ---- Quality issues ----
+  const qualityIssues = useMemo(() => detectQualityIssues(sourceTables), [sourceTables]);
+  const visibleIssues = useMemo(
+    () => qualityIssues.filter((q) => !dismissedIssueIds.has(q.id)),
+    [qualityIssues, dismissedIssueIds],
+  );
+
+  const dismissIssue = (id: string) => {
+    setDismissedIssueIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  };
+
+  const applyIssueFix = (issue: QualityIssue, fix: QualityFix) => {
+    if (fix.kind === "ignore") {
+      logDecision(
+        "quality_ignore",
+        `Ignored quality flag: ${issue.headline} (${issue.tableName})`,
+        { issue: issue as unknown as Record<string, unknown> },
+        auditScope,
+      );
+      dismissIssue(issue.id);
+      return;
+    }
+    const op = buildFixOperation(issue, fix);
+    if (!op) return;
+    addOperation(op);
+    logDecision(
+      "quality_fix",
+      `${fix.label}: ${issue.tableName}.${issue.column} (${issue.headline})`,
+      { issue: issue as unknown as Record<string, unknown>, fix: fix as unknown as Record<string, unknown> },
+      auditScope,
+    );
+    dismissIssue(issue.id);
+  };
+
+  // Refresh the decisions log when an entry is appended for THIS workspace
+  // scope. Filtering by detail.workspaceId prevents cross-workspace bleed.
+  useEffect(() => {
+    setDecisions(getDecisions(auditScope));
+    const onAudit = (ev: Event) => {
+      const detail = (ev as CustomEvent).detail as { workspaceId?: string } | undefined;
+      if (!detail || detail.workspaceId === auditScope) {
+        setDecisions(getDecisions(auditScope));
+      }
+    };
+    window.addEventListener("gen-bi:audit", onAudit);
+    return () => window.removeEventListener("gen-bi:audit", onAudit);
+  }, [auditScope]);
 
   return (
     <div className="flex h-full min-h-0 animate-in fade-in duration-300">
@@ -267,13 +355,77 @@ export default function DataPrep({ sourceTables, onAddMoreFiles, onGenerateDashb
                 </div>
               </div>
               <button
-                onClick={() => setDismissedSuggestions(true)}
+                onClick={dismissJoinSuggestions}
                 className="text-amber-600/60 hover:text-amber-800 transition-colors flex-shrink-0"
                 title="Dismiss suggestions"
                 aria-label="Dismiss join suggestions"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Quality issues banner — Copilot-flavored, one-click fixes that
+            translate into real pipeline operations and get logged to the
+            decisions audit trail. */}
+        {visibleIssues.length > 0 && (
+          <div className="px-6 py-3 border-b border-rose-200 bg-gradient-to-r from-rose-50 to-amber-50/40">
+            <div className="flex items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <ShieldCheck className="w-3.5 h-3.5 text-rose-700" />
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-rose-900">
+                    Data Quality
+                  </h4>
+                  <span className="text-[10px] text-rose-700/70">
+                    Gen-BI flagged {visibleIssues.length} issue{visibleIssues.length === 1 ? "" : "s"} — one click to fix
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {visibleIssues.map((q) => (
+                    <div
+                      key={q.id}
+                      className="flex items-center gap-2 bg-white/85 border border-rose-200/60 rounded-md px-2.5 py-1.5"
+                      data-testid={`quality-issue-${q.kind}`}
+                    >
+                      <AlertTriangle
+                        className={cn(
+                          "w-3.5 h-3.5 flex-shrink-0",
+                          q.severity === "high" ? "text-rose-600" : "text-amber-600",
+                        )}
+                      />
+                      <div className="flex-1 min-w-0 text-[11px]">
+                        <div className="flex items-center gap-1.5 font-medium text-foreground">
+                          <span className="px-1.5 py-0.5 bg-muted rounded text-[10px]">{q.tableName}</span>
+                          <span className="text-muted-foreground">.{q.column}</span>
+                          <span className="ml-1 truncate">{q.headline}</span>
+                        </div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5 truncate" title={q.why}>
+                          {q.why}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {q.fixes.map((f, i) => (
+                          <button
+                            key={`${q.id}-${f.kind}`}
+                            onClick={() => applyIssueFix(q, f)}
+                            className={cn(
+                              "text-[10px] px-2 py-1 rounded transition-colors font-medium",
+                              i === 0 && f.kind !== "ignore"
+                                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                                : "border border-border hover:border-primary hover:bg-primary/5 hover:text-primary text-muted-foreground",
+                            )}
+                            data-testid={`quality-fix-${f.kind}`}
+                          >
+                            {f.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -352,6 +504,40 @@ export default function DataPrep({ sourceTables, onAddMoreFiles, onGenerateDashb
           )}
         </div>
       </main>
+
+      {/* Decisions log — collapsible audit trail of every Copilot
+          decision the user accepted, customized, or ignored. Persisted
+          to localStorage so the demo survives a refresh. */}
+      {decisions.length > 0 && (
+        <aside className="w-72 flex-shrink-0 border-l border-border bg-muted/10 flex flex-col">
+          <button
+            onClick={() => setDecisionsOpen((v) => !v)}
+            className="px-4 py-3 border-b border-border flex items-center justify-between text-left hover:bg-muted/30 transition-colors"
+            data-testid="decisions-toggle"
+          >
+            <div className="flex items-center gap-1.5">
+              <History className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Decisions
+              </span>
+              <span className="text-[10px] text-muted-foreground/70">({decisions.length})</span>
+            </div>
+            {decisionsOpen ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+          </button>
+          {decisionsOpen && (
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {decisions.slice().reverse().map((d) => (
+                <div key={d.id} className="text-[11px] border-l-2 border-primary/40 pl-2 py-1">
+                  <div className="text-foreground leading-snug">{d.summary}</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                    {new Date(d.ts).toLocaleTimeString()} · {d.category.replace(/_/g, " ")}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </aside>
+      )}
 
       {/* Add operation modal */}
       {addingOp && (
