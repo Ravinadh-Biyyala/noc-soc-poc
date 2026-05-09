@@ -1,4 +1,4 @@
-import { Cloud, Database, FolderOpen, Snowflake, Layers, type LucideIcon } from "lucide-react";
+import { Cloud, Database, FolderOpen, Snowflake, Layers, Sheet, type LucideIcon } from "lucide-react";
 
 export type ConnectorFieldType = "text" | "url" | "password" | "select" | "multiselect" | "textarea";
 
@@ -24,9 +24,24 @@ export interface ConnectorConfig {
   sampleLabel: string;
   /** Plausible "discovered" preview shown after Test connection succeeds. */
   discovery: string;
+  /** When true, the dialog renders a real picker for this connector instead
+   *  of the demo credential form. */
+  live?: boolean;
 }
 
 export const CONNECTORS: ConnectorConfig[] = [
+  {
+    id: "google-sheets",
+    label: "Google Sheets",
+    description: "Browse your Google Drive and pull a real spreadsheet into Gen-BI.",
+    icon: Sheet,
+    accent: "text-green-700 bg-green-50 border-green-200",
+    fields: [],
+    sampleFile: "",
+    sampleLabel: "Google Sheets",
+    discovery: "Signed in to Google. Listing spreadsheets you can read.",
+    live: true,
+  },
   {
     id: "salesforce",
     label: "Salesforce",

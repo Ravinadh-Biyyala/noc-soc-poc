@@ -7,9 +7,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, CheckCircle2, Database, Loader2, ShieldCheck, Sparkles, ArrowRight } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Database, Loader2, ShieldCheck, Sparkles, ArrowRight, Search, FileSpreadsheet } from "lucide-react";
 import { CONNECTORS, type ConnectorConfig, type ConnectorField } from "@/lib/connectors.config";
 import { setPendingFile } from "@/lib/pending-file";
+
+interface DriveFile {
+  id: string;
+  name: string;
+  modifiedTime?: string;
+  owners?: { displayName?: string }[];
+}
 
 type Stage = "idle" | "testing" | "tested" | "pulling";
 
@@ -231,17 +238,29 @@ export function ConnectorPickerDialog({ open, onOpenChange }: Props) {
               <DialogDescription>{active.description}</DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-3 mt-1">
-              {active.fields.map((f) => (
-                <div key={f.key} className="space-y-1.5">
-                  <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                    {f.label}
-                    {f.required && <span className="text-destructive ml-1">*</span>}
-                  </Label>
-                  {renderField(f)}
-                </div>
-              ))}
-            </div>
+            {active.live && active.id === "google-sheets" ? (
+              <GoogleSheetsPicker
+                apiBase={apiBase}
+                onClose={() => onOpenChange(false)}
+                onPicked={(file) => {
+                  setPendingFile(file);
+                  onOpenChange(false);
+                  setLocation("/upload");
+                }}
+              />
+            ) : (
+              <div className="space-y-3 mt-1">
+                {active.fields.map((f) => (
+                  <div key={f.key} className="space-y-1.5">
+                    <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                      {f.label}
+                      {f.required && <span className="text-destructive ml-1">*</span>}
+                    </Label>
+                    {renderField(f)}
+                  </div>
+                ))}
+              </div>
+            )}
 
             {stage === "tested" && (
               <div className="flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-900">
@@ -260,6 +279,7 @@ export function ConnectorPickerDialog({ open, onOpenChange }: Props) {
               <div className="text-[12px] text-destructive">{error}</div>
             )}
 
+            {!active.live && (
             <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
               <Badge variant="outline" className="text-[10px] font-normal">
                 <Sparkles className="w-3 h-3 mr-1" /> Demo
@@ -296,9 +316,151 @@ export function ConnectorPickerDialog({ open, onOpenChange }: Props) {
                 )}
               </div>
             </div>
+            )}
           </>
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+interface PickerProps {
+  apiBase: string;
+  onPicked: (file: File) => void;
+  onClose: () => void;
+}
+
+function GoogleSheetsPicker({ apiBase, onPicked }: PickerProps) {
+  const [files, setFiles] = useState<DriveFile[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [pickingId, setPickingId] = useState<string | null>(null);
+
+  const load = async (q: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const url = `${apiBase}/api/connectors/google-sheets/files${q ? `?q=${encodeURIComponent(q)}` : ""}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Listing failed (HTTP ${res.status})`);
+      }
+      const data = (await res.json()) as { files: DriveFile[] };
+      setFiles(data.files);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not list files");
+      setFiles([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const pick = async (file: DriveFile) => {
+    setPickingId(file.id);
+    setError(null);
+    try {
+      const res = await fetch(
+        `${apiBase}/api/connectors/google-sheets/download?fileId=${encodeURIComponent(file.id)}`,
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Download failed (HTTP ${res.status})`);
+      }
+      const blob = await res.blob();
+      const safe = file.name.replace(/[^\w. -]/g, "_");
+      const f = new File([blob], `${safe}.xlsx`, {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      onPicked(f);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not import file");
+      setPickingId(null);
+    }
+  };
+
+  return (
+    <div className="mt-1 space-y-3">
+      <form
+        className="relative"
+        onSubmit={(e) => {
+          e.preventDefault();
+          load(query.trim());
+        }}
+      >
+        <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search your Google Sheets…"
+          className="h-9 pl-8 text-sm"
+        />
+      </form>
+
+      <div className="rounded-md border border-border max-h-[360px] overflow-y-auto">
+        {loading && (
+          <div className="flex items-center gap-2 p-4 text-[12px] text-muted-foreground">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading your spreadsheets…
+          </div>
+        )}
+        {!loading && files && files.length === 0 && !error && (
+          <div className="p-4 text-[12px] text-muted-foreground">
+            No spreadsheets found{query ? ` matching "${query}"` : ""}.
+          </div>
+        )}
+        {!loading && files && files.length > 0 && (
+          <ul className="divide-y divide-border">
+            {files.map((f) => {
+              const busy = pickingId === f.id;
+              const owner = f.owners?.[0]?.displayName;
+              const when = f.modifiedTime
+                ? new Date(f.modifiedTime).toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })
+                : "";
+              return (
+                <li key={f.id}>
+                  <button
+                    type="button"
+                    disabled={pickingId !== null}
+                    onClick={() => pick(f)}
+                    className="w-full text-left flex items-center gap-3 px-3 py-2.5 hover:bg-muted/60 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    data-testid={`gsheet-file-${f.id}`}
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-green-700 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm text-foreground truncate">{f.name}</div>
+                      <div className="text-[11px] text-muted-foreground truncate">
+                        {[owner, when].filter(Boolean).join(" • ")}
+                      </div>
+                    </div>
+                    {busy ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+                    ) : (
+                      <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" />
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      {error && <div className="text-[12px] text-destructive">{error}</div>}
+
+      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <ShieldCheck className="w-3.5 h-3.5" />
+        Read-only via your Google account. Pick a sheet — Gen-BI imports and builds the dashboard.
+      </div>
+    </div>
   );
 }

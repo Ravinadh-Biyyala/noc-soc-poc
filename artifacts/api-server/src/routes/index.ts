@@ -5,6 +5,7 @@ import dashboardRouter from "./dashboard";
 import uploadRouter from "./upload";
 import workspacesRouter from "./workspaces";
 import settingsRouter from "./settings";
+import connectorsRouter from "./connectors";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(dashboardRouter);
 router.use(uploadRouter);
 router.use(workspacesRouter);
 router.use(settingsRouter);
+router.use(connectorsRouter);
 
 export default router;
