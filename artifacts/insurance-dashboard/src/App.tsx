@@ -45,7 +45,7 @@ function GovernancePlaceholder() {
 
 function ConfigDrivenRoutes() {
   const { config, isLoading } = useTenantConfig();
-  const { dashboards, addDashboard } = useGeneratedDashboards();
+  const { dashboards, addDashboard, updateDashboardConfig } = useGeneratedDashboards();
 
   if (isLoading || !config) {
     return (
@@ -91,7 +91,12 @@ function ConfigDrivenRoutes() {
         <Route
           key={db.id}
           path={db.route}
-          component={() => <GeneratedDashboard config={db.config} />}
+          component={() => (
+            <GeneratedDashboard
+              config={db.config}
+              onConfigChange={(next) => updateDashboardConfig(db.id, next)}
+            />
+          )}
         />
       ))}
       <Route component={NotFound} />

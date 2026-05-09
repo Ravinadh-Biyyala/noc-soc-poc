@@ -1,9 +1,10 @@
 import { lazy, Suspense, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AnimatedNumber } from "@/lib/animated-number";
-import { Sparkles, Maximize2 } from "lucide-react";
+import { Sparkles, Maximize2, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExplainPanel, ExplainButton } from "@/components/ExplainPanel";
+import { autoTidy } from "@/lib/layout-actions";
 
 // Lazy so the presenter overlay (with its portal + extra deps) doesn't
 // inflate the initial dashboard render.
@@ -625,19 +626,24 @@ interface GeneratedDashboardProps {
   config: any;
   /** Hide the "Present" toggle — used inside PresenterMode itself to avoid recursion. */
   hidePresenter?: boolean;
+  /** Persist layout edits (Tidy button, Copilot actions) back to the source. */
+  onConfigChange?: (next: any) => void;
 }
 
-export default function GeneratedDashboard({ config, hidePresenter }: GeneratedDashboardProps) {
+export default function GeneratedDashboard({ config, hidePresenter, onConfigChange }: GeneratedDashboardProps) {
   const [presenting, setPresenting] = useState(false);
 
   if (!config) return null;
 
   const kpis = config.kpis || [];
-  const charts = config.charts || [];
+  // Hidden charts stay in storage so the Copilot can re-show them, but they
+  // never render in the grid.
+  const charts = (config.charts || []).filter((c: any) => !c?.hidden);
   const tables = config.tables || [];
 
   // Stagger chart cards in after the KPIs land for a polished entrance.
   const kpiStaggerEnd = kpis.length * 70;
+  const canEdit = typeof onConfigChange === "function";
 
   return (
     <div className="space-y-5">
@@ -653,16 +659,31 @@ export default function GeneratedDashboard({ config, hidePresenter }: GeneratedD
             {config.subtitle && <p className="text-sm text-muted-foreground mt-0.5">{config.subtitle}</p>}
           </div>
           {!hidePresenter && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setPresenting(true)}
-              className="flex-shrink-0 gap-1.5 h-8 text-xs bg-card hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
-              data-testid="presenter-mode-button"
-            >
-              <Maximize2 className="w-3.5 h-3.5" />
-              Present
-            </Button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {canEdit && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onConfigChange!(autoTidy(config))}
+                  className="gap-1.5 h-8 text-xs bg-card hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+                  data-testid="tidy-layout-button"
+                  title="Auto-arrange charts: trends full-width, comparisons paired, scatters expanded"
+                >
+                  <Wand2 className="w-3.5 h-3.5" />
+                  Tidy
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setPresenting(true)}
+                className="gap-1.5 h-8 text-xs bg-card hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+                data-testid="presenter-mode-button"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+                Present
+              </Button>
+            </div>
           )}
         </div>
       </div>
@@ -679,7 +700,11 @@ export default function GeneratedDashboard({ config, hidePresenter }: GeneratedD
         {charts.map((chart: any, i: number) => (
           <div
             key={chart.id}
-            className="animate-in fade-in slide-in-from-bottom-3 duration-500"
+            className={cn(
+              "animate-in fade-in slide-in-from-bottom-3 duration-500",
+              // colSpan=2 → take both columns at xl breakpoint and above.
+              chart.colSpan === 2 && "xl:col-span-2",
+            )}
             style={{ animationDelay: `${kpiStaggerEnd + i * 80}ms`, animationFillMode: "both" }}
           >
             <ChartCard chart={chart} />
@@ -704,8 +729,9 @@ export default function GeneratedDashboard({ config, hidePresenter }: GeneratedD
       {presenting && (
         <Suspense fallback={null}>
           <PresenterMode
-            config={{ ...config, __presenting: true }}
+            config={config}
             onClose={() => setPresenting(false)}
+            onConfigChange={onConfigChange}
           />
         </Suspense>
       )}

@@ -2,13 +2,21 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sparkles, X, Send, Loader2, BrainCircuit, BarChart3 } from "lucide-react";
+import { Sparkles, X, Send, Loader2, BrainCircuit, BarChart3, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import GeneratedDashboard from "@/components/GeneratedDashboard";
+import {
+  applyActions,
+  autoTidy,
+  buildLayoutToolPrompt,
+  parseLayoutActions,
+} from "@/lib/layout-actions";
 
 interface Props {
   config: any;
   onClose: () => void;
+  /** When provided, the Copilot can mutate the dashboard layout. */
+  onConfigChange?: (next: any) => void;
 }
 
 interface Msg {
@@ -52,7 +60,7 @@ function summarizeDashboard(config: any): string {
   return lines.join("\n");
 }
 
-export default function PresenterMode({ config, onClose }: Props) {
+export default function PresenterMode({ config, onClose, onConfigChange }: Props) {
   const closeBtnRef = useRef<HTMLButtonElement>(null);
 
   // Esc-to-exit + lock background scroll for the duration of the overlay so
@@ -91,9 +99,22 @@ export default function PresenterMode({ config, onClose }: Props) {
             <span className="opacity-50">·</span>
             <span className="truncate max-w-[40vw]">{config?.title ?? "Dashboard"}</span>
           </div>
-          <Button ref={closeBtnRef} variant="ghost" size="sm" onClick={onClose} className="h-8 gap-1.5 text-xs">
-            <X className="w-3.5 h-3.5" /> Exit (Esc)
-          </Button>
+          <div className="flex items-center gap-1.5">
+            {onConfigChange && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onConfigChange(autoTidy(config))}
+                className="h-8 gap-1.5 text-xs"
+                title="Auto-arrange charts"
+              >
+                <Wand2 className="w-3.5 h-3.5" /> Tidy
+              </Button>
+            )}
+            <Button ref={closeBtnRef} variant="ghost" size="sm" onClick={onClose} className="h-8 gap-1.5 text-xs">
+              <X className="w-3.5 h-3.5" /> Exit (Esc)
+            </Button>
+          </div>
         </div>
         <ScrollArea className="flex-1 min-h-0">
           <div className="px-8 py-6 max-w-[1600px] mx-auto">
@@ -102,14 +123,25 @@ export default function PresenterMode({ config, onClose }: Props) {
         </ScrollArea>
       </div>
 
-      <PresenterCopilot config={config} />
+      <PresenterCopilot config={config} onConfigChange={onConfigChange} />
     </div>,
     document.body,
   );
 }
 
-function PresenterCopilot({ config }: { config: any }) {
+function PresenterCopilot({
+  config,
+  onConfigChange,
+}: {
+  config: any;
+  onConfigChange?: (next: any) => void;
+}) {
   const summary = useMemo(() => summarizeDashboard(config), [config]);
+  // Read latest config inside async streaming code without re-creating send().
+  const configRef = useRef(config);
+  useEffect(() => { configRef.current = config; }, [config]);
+  const onConfigChangeRef = useRef(onConfigChange);
+  useEffect(() => { onConfigChangeRef.current = onConfigChange; }, [onConfigChange]);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState("");
@@ -173,10 +205,14 @@ function PresenterCopilot({ config }: { config: any }) {
 
     // Inject the dashboard summary on the FIRST send only — the model carries
     // it forward through the conversation thread, so we don't pay the token
-    // cost again, and follow-up messages stay clean.
+    // cost again, and follow-up messages stay clean. When the host provided
+    // an onConfigChange callback we also teach the model the layout tools.
+    const layoutTools = onConfigChangeRef.current
+      ? buildLayoutToolPrompt((config?.charts ?? []).map((c: any) => ({ id: c.id, type: c.type, title: c.title })))
+      : "";
     const payload = sentContextRef.current
       ? trimmed
-      : `You are observing the user's currently displayed dashboard. Use it as ground truth when answering. If a question can't be answered from the on-screen data, say so plainly.\n\n[ON-SCREEN DASHBOARD]\n${summary}\n\n[USER QUESTION]\n${trimmed}`;
+      : `You are observing the user's currently displayed dashboard. Use it as ground truth when answering. If a question can't be answered from the on-screen data, say so plainly.\n\n[ON-SCREEN DASHBOARD]\n${summary}\n${layoutTools}\n[USER QUESTION]\n${trimmed}`;
     sentContextRef.current = true;
 
     setMessages((m) => [...m, { role: "user", content: trimmed }]);
@@ -227,7 +263,17 @@ function PresenterCopilot({ config }: { config: any }) {
         }
       }
       if (aliveRef.current) {
-        setMessages((m) => [...m, { role: "assistant", content: acc || "(no response)" }]);
+        // Strip layout-action blocks out of what the user sees, then apply
+        // them to the live dashboard config. Note: we apply against the LATEST
+        // config (via ref), not a closure over the value at send-time, so two
+        // back-to-back layout asks compose correctly.
+        const { actions, cleanText } = parseLayoutActions(acc);
+        if (actions.length && onConfigChangeRef.current) {
+          onConfigChangeRef.current(applyActions(configRef.current, actions));
+        }
+        const display = cleanText || acc || "(no response)";
+        const tag = actions.length ? `\n\n_Applied ${actions.length} layout change${actions.length === 1 ? "" : "s"}._` : "";
+        setMessages((m) => [...m, { role: "assistant", content: display + tag }]);
       }
     } catch (err: unknown) {
       // Aborts on unmount are expected — don't surface to the UI.
@@ -245,11 +291,11 @@ function PresenterCopilot({ config }: { config: any }) {
     const out: string[] = [];
     const charts = Array.isArray(config?.charts) ? config.charts : [];
     if (charts[0]) out.push(`What stands out in "${charts[0].title}"?`);
+    if (onConfigChange) out.push("Tidy up the layout for me");
     if (charts[1]) out.push(`Walk me through "${charts[1].title}"`);
-    out.push("What's the top insight on this dashboard?");
     out.push("Any outliers I should worry about?");
     return out.slice(0, 4);
-  }, [config]);
+  }, [config, onConfigChange]);
 
   return (
     <aside className="w-[380px] xl:w-[420px] border-l border-border bg-card flex flex-col flex-shrink-0">

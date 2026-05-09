@@ -12,12 +12,15 @@ interface GeneratedDashboardsContextType {
   dashboards: GeneratedDashboard[];
   addDashboard: (config: any) => GeneratedDashboard;
   removeDashboard: (id: string) => void;
+  /** Replace the stored config for a dashboard (e.g. after a layout edit). */
+  updateDashboardConfig: (id: string, config: any) => void;
 }
 
 const GeneratedDashboardsContext = createContext<GeneratedDashboardsContextType>({
   dashboards: [],
   addDashboard: () => ({ id: "", title: "", route: "", config: null, createdAt: 0 }),
   removeDashboard: () => {},
+  updateDashboardConfig: () => {},
 });
 
 const STORAGE_KEY = "genbi-generated-dashboards";
@@ -53,8 +56,12 @@ export function GeneratedDashboardProvider({ children }: { children: React.React
     setDashboards((prev) => prev.filter((d) => d.id !== id));
   }, []);
 
+  const updateDashboardConfig = useCallback((id: string, config: any) => {
+    setDashboards((prev) => prev.map((d) => (d.id === id ? { ...d, config } : d)));
+  }, []);
+
   return (
-    <GeneratedDashboardsContext.Provider value={{ dashboards, addDashboard, removeDashboard }}>
+    <GeneratedDashboardsContext.Provider value={{ dashboards, addDashboard, removeDashboard, updateDashboardConfig }}>
       {children}
     </GeneratedDashboardsContext.Provider>
   );
