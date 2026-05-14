@@ -4,27 +4,21 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
-const rawPort = process.env.PORT;
-
-if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
-}
-
+// On Replit the workflow injects PORT + BASE_PATH. For local dev (plain
+// `pnpm dev` on a laptop) we fall back to sensible defaults so contributors
+// don't have to export env vars by hand.
+const rawPort = process.env.PORT ?? "5173";
 const port = Number(rawPort);
-
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
+const basePath = process.env.BASE_PATH ?? "/";
 
-const basePath = process.env.BASE_PATH;
-
-if (!basePath) {
-  throw new Error(
-    "BASE_PATH environment variable is required but was not provided.",
-  );
-}
+// In local dev the dashboard and the API server run on different ports.
+// We proxy `/api/*` from the Vite dev server to the API so all client
+// code can keep using relative URLs (matches the Replit shared-proxy
+// behaviour). Override with API_PROXY_TARGET if your API runs elsewhere.
+const apiProxyTarget = process.env.API_PROXY_TARGET ?? "http://localhost:8080";
 
 export default defineConfig({
   base: basePath,
@@ -65,6 +59,12 @@ export default defineConfig({
     fs: {
       strict: true,
       deny: ["**/.*"],
+    },
+    proxy: {
+      "/api": {
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
     },
   },
   preview: {
