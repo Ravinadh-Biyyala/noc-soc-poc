@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, CheckCircle2, Database, Loader2, ShieldCheck, Sparkles, ArrowRight, Search, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Database, Loader2, ShieldCheck, Sparkles, ArrowRight, Search, FileSpreadsheet, LogIn } from "lucide-react";
 import { CONNECTORS, type ConnectorConfig, type ConnectorField } from "@/lib/connectors.config";
 import { setPendingFile } from "@/lib/pending-file";
 import { cn } from "@/lib/utils";
@@ -16,7 +16,11 @@ interface DriveFile {
   id: string;
   name: string;
   modifiedTime?: string;
-  owners?: { displayName?: string }[];
+}
+
+interface SheetTab {
+  sheetId: number;
+  title: string;
 }
 
 type Stage = "idle" | "testing" | "tested" | "pulling";
@@ -24,14 +28,24 @@ type Stage = "idle" | "testing" | "tested" | "pulling";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** If set, pre-select Google Sheets when dialog opens */
+  autoOpenGoogleSheets?: boolean;
 }
 
-export function ConnectorPickerDialog({ open, onOpenChange }: Props) {
+export function ConnectorPickerDialog({ open, onOpenChange, autoOpenGoogleSheets }: Props) {
   const [active, setActive] = useState<ConnectorConfig | null>(null);
   const [values, setValues] = useState<Record<string, string | string[]>>({});
   const [stage, setStage] = useState<Stage>("idle");
   const [error, setError] = useState<string | null>(null);
   const [, setLocation] = useLocation();
+
+  // Auto-select Google Sheets if requested (e.g. after OAuth callback redirect)
+  useEffect(() => {
+    if (open && autoOpenGoogleSheets) {
+      const gsheets = CONNECTORS.find((c) => c.id === "google-sheets");
+      if (gsheets) setActive(gsheets);
+    }
+  }, [open, autoOpenGoogleSheets]);
 
   // Reset whenever the dialog reopens or the active connector changes.
   useEffect(() => {
@@ -66,9 +80,6 @@ export function ConnectorPickerDialog({ open, onOpenChange }: Props) {
       setError(`Please fill required fields: ${missingRequired.map((f) => f.label).join(", ")}`);
       return;
     }
-    // Capture the connector at the start so a late completion (e.g. user
-    // switched connectors or closed the dialog) cannot push a stale "tested"
-    // state onto a different connector.
     const startedFor = active.id;
     setStage("testing");
     setError(null);
@@ -89,9 +100,6 @@ export function ConnectorPickerDialog({ open, onOpenChange }: Props) {
       const res = await fetch(`${apiBase}/samples/${active.sampleFile}`);
       if (!res.ok) throw new Error(`Could not fetch sample data (HTTP ${res.status})`);
       const blob = await res.blob();
-      // Name the file after the connector dataset so the rest of the app
-      // displays "Snowflake — ANALYTICS.PUBLIC.CUSTOMERS.csv" rather than
-      // a raw "customers.csv" filename.
       const safeLabel = active.sampleLabel.replace(/[^\w. -]/g, "_");
       const file = new File([blob], `${safeLabel}.csv`, { type: "text/csv" });
       setPendingFile(file);
@@ -243,10 +251,18 @@ export function ConnectorPickerDialog({ open, onOpenChange }: Props) {
               <GoogleSheetsPicker
                 apiBase={apiBase}
                 onClose={() => onOpenChange(false)}
-                onPicked={(file) => {
-                  setPendingFile(file);
+                onSynced={(datasetIds) => {
                   onOpenChange(false);
-                  setLocation("/upload");
+                  setLocation(`/google-sheets-browser?datasetIds=${datasetIds.join(",")}`);
+                }}
+              />
+            ) : active.live && active.id === "postgres" ? (
+              <PostgresPicker
+                apiBase={apiBase}
+                onClose={() => onOpenChange(false)}
+                onConnected={() => {
+                  onOpenChange(false);
+                  setLocation("/postgres-browser");
                 }}
               />
             ) : (
@@ -327,92 +343,173 @@ export function ConnectorPickerDialog({ open, onOpenChange }: Props) {
 
 interface PickerProps {
   apiBase: string;
-  onPicked: (file: File) => void;
+  onSynced: (datasetIds: number[]) => void;
   onClose: () => void;
 }
 
-type ConnectPhase = "auth" | "drive" | "ready";
+type PickerPhase =
+  | "checking"
+  | "unauthenticated"
+  | "listing"
+  | "configure"
+  | "syncing";
 
-function GoogleSheetsPicker({ apiBase, onPicked }: PickerProps) {
-  const [files, setFiles] = useState<DriveFile[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+interface SyncResultWithPreview {
+  datasetId: number;
+  table: string;
+  rowCount: number;
+  columns: { name: string; originalName: string; type: string }[];
+  sampleRows: string[][];
+  columnNames: string[];
+  fileName: string;
+  sheetName: string;
+}
+
+function GoogleSheetsPicker({ apiBase, onSynced, onClose }: PickerProps) {
+  const [phase, setPhase] = useState<PickerPhase>("checking");
+  const [authEmail, setAuthEmail] = useState<string | null>(null);
+  const [files, setFiles] = useState<DriveFile[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
   const [query, setQuery] = useState("");
-  const [pickingId, setPickingId] = useState<string | null>(null);
-  // Theatrical "connecting…" sequence so the demo audience can see Gen-BI
-  // actually reach into Google. The real fetch fires immediately in parallel,
-  // and we gate the UI on whichever finishes last (timers OR fetch).
-  const [phase, setPhase] = useState<ConnectPhase>("auth");
-  // Track mount state so a late fetch resolution after the user closes the
-  // dialog (or starts a second pick) cannot push stale state / fire onPicked.
+  const [error, setError] = useState<string | null>(null);
+
+  // Multi-select state
+  const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
+  const [fileTabsMap, setFileTabsMap] = useState<Map<string, SheetTab[]>>(new Map());
+  const [fileTabsLoading, setFileTabsLoading] = useState<Set<string>>(new Set());
+  const [selectedTabsMap, setSelectedTabsMap] = useState<Map<string, string>>(new Map());
+
+  const [syncError, setSyncError] = useState<string | null>(null);
+
   const aliveRef = useRef(true);
   useEffect(() => {
     aliveRef.current = true;
-    return () => {
-      aliveRef.current = false;
-    };
+    return () => { aliveRef.current = false; };
   }, []);
 
-  const load = async (q: string) => {
-    setLoading(true);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${apiBase}/auth/status`, { credentials: "include" });
+        if (!aliveRef.current) return;
+        const data = await res.json() as { authenticated: boolean; email?: string };
+        if (data.authenticated && data.email) {
+          setAuthEmail(data.email);
+          setPhase("listing");
+          loadFiles("");
+        } else {
+          setPhase("unauthenticated");
+        }
+      } catch {
+        if (aliveRef.current) setPhase("unauthenticated");
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadFiles = async (q: string) => {
+    setLoadingFiles(true);
     setError(null);
     try {
-      const url = `${apiBase}/api/connectors/google-sheets/files${q ? `?q=${encodeURIComponent(q)}` : ""}`;
-      const res = await fetch(url);
+      const url = `${apiBase}/api/sheets${q ? `?q=${encodeURIComponent(q)}` : ""}`;
+      const res = await fetch(url, { credentials: "include" });
       if (!aliveRef.current) return;
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `Listing failed (HTTP ${res.status})`);
+        const body = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(body.error ?? `Listing failed (HTTP ${res.status})`);
       }
-      const data = (await res.json()) as { files: DriveFile[] };
+      const data = await res.json() as { files: DriveFile[] };
       if (!aliveRef.current) return;
       setFiles(data.files);
     } catch (err: unknown) {
       if (!aliveRef.current) return;
       setError(err instanceof Error ? err.message : "Could not list files");
-      setFiles([]);
     } finally {
-      if (aliveRef.current) setLoading(false);
+      if (aliveRef.current) setLoadingFiles(false);
     }
   };
 
-  useEffect(() => {
-    load("");
-    const t1 = window.setTimeout(() => { if (aliveRef.current) setPhase("drive"); }, 750);
-    const t2 = window.setTimeout(() => { if (aliveRef.current) setPhase("ready"); }, 1550);
-    return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const connecting = phase !== "ready";
-
-  const pick = async (file: DriveFile) => {
-    setPickingId(file.id);
-    setError(null);
+  const fetchTabsForFile = async (file: DriveFile) => {
+    setFileTabsLoading((prev) => new Set([...prev, file.id]));
     try {
-      const res = await fetch(
-        `${apiBase}/api/connectors/google-sheets/download?fileId=${encodeURIComponent(file.id)}`,
-      );
+      const res = await fetch(`${apiBase}/api/sheets/${encodeURIComponent(file.id)}/tabs`, {
+        credentials: "include",
+      });
+      if (!aliveRef.current) return;
+      if (!res.ok) return;
+      const data = await res.json() as { tabs: SheetTab[] };
+      if (!aliveRef.current) return;
+      setFileTabsMap((prev) => new Map([...prev, [file.id, data.tabs]]));
+      setSelectedTabsMap((prev) => {
+        if (prev.has(file.id) || data.tabs.length === 0) return prev;
+        return new Map([...prev, [file.id, data.tabs[0].title]]);
+      });
+    } finally {
+      if (aliveRef.current) {
+        setFileTabsLoading((prev) => { const n = new Set(prev); n.delete(file.id); return n; });
+      }
+    }
+  };
+
+  const toggleFile = (file: DriveFile) => {
+    setSelectedFileIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(file.id)) {
+        next.delete(file.id);
+      } else {
+        next.add(file.id);
+        if (!fileTabsMap.has(file.id) && !fileTabsLoading.has(file.id)) {
+          fetchTabsForFile(file);
+        }
+      }
+      return next;
+    });
+  };
+
+  const handleBatchSync = async () => {
+    setPhase("syncing");
+    setSyncError(null);
+    const sheetsToSync = Array.from(selectedFileIds).map((fileId) => ({
+      spreadsheetId: fileId,
+      sheetName: selectedTabsMap.get(fileId) ?? "",
+    })).filter((s) => s.sheetName);
+
+    try {
+      const res = await fetch(`${apiBase}/api/sync/batch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ sheets: sheetsToSync }),
+      });
       if (!aliveRef.current) return;
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `Download failed (HTTP ${res.status})`);
+        const body = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(body.error ?? `Sync failed (HTTP ${res.status})`);
       }
-      const blob = await res.blob();
+      const data = await res.json() as { results: SyncResultWithPreview[] };
       if (!aliveRef.current) return;
-      const safe = file.name.replace(/[^\w. -]/g, "_");
-      const f = new File([blob], `${safe}.xlsx`, {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      onPicked(f);
+      onSynced(data.results.map((r) => r.datasetId));
     } catch (err: unknown) {
       if (!aliveRef.current) return;
-      setError(err instanceof Error ? err.message : "Could not import file");
-      setPickingId(null);
+      setSyncError(err instanceof Error ? err.message : "Sync failed");
+      setPhase("configure");
     }
   };
 
-  if (connecting) {
+  // ── Phase: checking ──────────────────────────────────────────────────────────
+
+  if (phase === "checking") {
+    return (
+      <div className="mt-4 flex items-center gap-2 text-[13px] text-muted-foreground">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Checking Google connection…
+      </div>
+    );
+  }
+
+  // ── Phase: unauthenticated ───────────────────────────────────────────────────
+
+  if (phase === "unauthenticated") {
     return (
       <div className="mt-1">
         <div className="rounded-md border border-border bg-muted/20 p-5">
@@ -422,23 +519,17 @@ function GoogleSheetsPicker({ apiBase, onPicked }: PickerProps) {
             </div>
             <div>
               <div className="text-sm font-semibold text-foreground leading-tight">
-                Connecting to Google Sheets
+                Connect your Google account
               </div>
               <div className="text-[11px] text-muted-foreground leading-tight">
-                Establishing a secure session via your Google account
+                Sign in to import your Google Sheets into Gen-BI
               </div>
             </div>
           </div>
-          <ul className="space-y-2.5">
-            <ConnectStep
-              label="Authenticating with Google"
-              state={phase === "auth" ? "active" : "done"}
-            />
-            <ConnectStep
-              label="Reading your Drive"
-              state={phase === "auth" ? "pending" : phase === "drive" ? "active" : "done"}
-            />
-          </ul>
+          <Button onClick={() => { window.location.href = "/auth"; }} className="w-full" size="sm">
+            <LogIn className="w-4 h-4 mr-2" />
+            Sign in with Google
+          </Button>
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-4 pt-3 border-t border-border">
             <ShieldCheck className="w-3.5 h-3.5" />
             Read-only OAuth scope. Gen-BI never modifies your sheets.
@@ -448,85 +539,359 @@ function GoogleSheetsPicker({ apiBase, onPicked }: PickerProps) {
     );
   }
 
+  // ── Phase: listing (multi-select) ────────────────────────────────────────────
+
+  if (phase === "listing") {
+    const selectedCount = selectedFileIds.size;
+    return (
+      <div className="mt-1 space-y-3 animate-in fade-in duration-300">
+        {authEmail && (
+          <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+            Connected as <span className="font-medium text-foreground">{authEmail}</span>
+          </div>
+        )}
+
+        <form
+          className="relative"
+          onSubmit={(e) => { e.preventDefault(); loadFiles(query.trim()); }}
+        >
+          <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search your Google Sheets…"
+            className="h-9 pl-8 text-sm"
+          />
+        </form>
+
+        <div className="rounded-md border border-border max-h-[320px] overflow-y-auto">
+          {loadingFiles && (
+            <div className="flex items-center gap-2 p-4 text-[12px] text-muted-foreground">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading your spreadsheets…
+            </div>
+          )}
+          {!loadingFiles && files.length === 0 && !error && (
+            <div className="p-4 text-[12px] text-muted-foreground">
+              No spreadsheets found{query ? ` matching "${query}"` : ""}.
+            </div>
+          )}
+          {!loadingFiles && files.length > 0 && (
+            <ul className="divide-y divide-border">
+              {files.map((f) => {
+                const isSelected = selectedFileIds.has(f.id);
+                const when = f.modifiedTime
+                  ? new Date(f.modifiedTime).toLocaleDateString(undefined, {
+                      year: "numeric", month: "short", day: "numeric",
+                    })
+                  : "";
+                return (
+                  <li key={f.id}>
+                    <button
+                      type="button"
+                      onClick={() => toggleFile(f)}
+                      className={cn(
+                        "w-full text-left flex items-center gap-3 px-3 py-2.5 transition-colors",
+                        isSelected
+                          ? "bg-primary/5 hover:bg-primary/10"
+                          : "hover:bg-muted/60",
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        readOnly
+                        checked={isSelected}
+                        className="w-3.5 h-3.5 rounded accent-primary flex-shrink-0"
+                        tabIndex={-1}
+                      />
+                      <FileSpreadsheet className="w-4 h-4 text-green-700 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm text-foreground truncate">{f.name}</div>
+                        {when && <div className="text-[11px] text-muted-foreground">{when}</div>}
+                      </div>
+                      {fileTabsLoading.has(f.id) && (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground flex-shrink-0" />
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        {error && <div className="text-[12px] text-destructive">{error}</div>}
+
+        <div className="flex items-center justify-between pt-2 border-t border-border">
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            {selectedCount > 0
+              ? `${selectedCount} file${selectedCount > 1 ? "s" : ""} selected`
+              : "Select one or more files"}
+          </div>
+          <Button
+            onClick={() => setPhase("configure")}
+            disabled={selectedCount === 0}
+            size="sm"
+          >
+            Configure tabs <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Phase: configure (pick a tab per file) ───────────────────────────────────
+
+  if (phase === "configure") {
+    const selectedFiles = files.filter((f) => selectedFileIds.has(f.id));
+    const anyLoading = selectedFiles.some((f) => fileTabsLoading.has(f.id));
+    const allTabsReady = selectedFiles.every(
+      (f) => !fileTabsLoading.has(f.id) && (fileTabsMap.get(f.id)?.length ?? 0) > 0,
+    );
+
+    return (
+      <div className="mt-1 space-y-4 animate-in fade-in duration-300">
+        <button
+          onClick={() => setPhase("listing")}
+          className="flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Back to file list
+        </button>
+
+        <div className="space-y-3">
+          {selectedFiles.map((f) => {
+            const tabs = fileTabsMap.get(f.id) ?? [];
+            const isLoadingTabs = fileTabsLoading.has(f.id);
+            const selectedTab = selectedTabsMap.get(f.id) ?? "";
+
+            return (
+              <div key={f.id} className="rounded-md border border-border p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-green-700 flex-shrink-0" />
+                  <span className="text-sm font-medium text-foreground truncate flex-1">{f.name}</span>
+                  {isLoadingTabs && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
+                </div>
+
+                {!isLoadingTabs && tabs.length === 0 && (
+                  <div className="text-[11px] text-muted-foreground">No tabs found</div>
+                )}
+                {!isLoadingTabs && tabs.length > 0 && (
+                  <Select
+                    value={selectedTab}
+                    onValueChange={(v) =>
+                      setSelectedTabsMap((prev) => new Map([...prev, [f.id, v]]))
+                    }
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Select a tab…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tabs.map((t) => (
+                        <SelectItem key={t.sheetId} value={t.title ?? ""}>
+                          {t.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {syncError && <div className="text-[12px] text-destructive">{syncError}</div>}
+
+        <div className="flex items-center justify-between pt-2 border-t border-border">
+          <div className="text-[11px] text-muted-foreground">
+            {anyLoading ? "Loading tabs…" : `${selectedFiles.length} sheet${selectedFiles.length > 1 ? "s" : ""} ready to sync`}
+          </div>
+          <Button
+            onClick={handleBatchSync}
+            disabled={anyLoading || !allTabsReady}
+            size="sm"
+          >
+            Sync &amp; Browse <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Phase: syncing ───────────────────────────────────────────────────────────
+
+  if (phase === "syncing") {
+    const selectedFiles = files.filter((f) => selectedFileIds.has(f.id));
+    return (
+      <div className="mt-4">
+        <div className="rounded-md border border-border bg-muted/20 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-7 h-7 rounded-md bg-white border border-border flex items-center justify-center">
+              <FileSpreadsheet className="w-4 h-4 text-green-700" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-foreground leading-tight">
+                Syncing {selectedFiles.length} sheet{selectedFiles.length > 1 ? "s" : ""}…
+              </div>
+              <div className="text-[11px] text-muted-foreground leading-tight">
+                Importing rows and creating database tables
+              </div>
+            </div>
+          </div>
+          <ul className="space-y-2.5">
+            <ConnectStep label="Fetching rows from Google Sheets" state="done" />
+            <ConnectStep label="Creating database tables" state="active" />
+            <ConnectStep label="Inserting data" state="pending" />
+          </ul>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+// ── PostgresPicker ─────────────────────────────────────────────────────────────
+
+interface PostgresPickerProps {
+  apiBase: string;
+  onConnected: () => void;
+  onClose: () => void;
+}
+
+type PgPhase = "idle" | "connecting" | "connected";
+
+function PostgresPicker({ apiBase, onConnected }: PostgresPickerProps) {
+  const [phase, setPhase] = useState<PgPhase>("idle");
+  const [error, setError] = useState<string | null>(null);
+  const [dbName, setDbName] = useState("");
+  const [tableCount, setTableCount] = useState(0);
+
+  const [host, setHost] = useState("localhost");
+  const [port, setPort] = useState("5432");
+  const [database, setDatabase] = useState("");
+  const [username, setUsername] = useState("postgres");
+  const [password, setPassword] = useState("");
+  const [ssl, setSsl] = useState("disable");
+
+  const handleConnect = async () => {
+    if (!host.trim() || !database.trim() || !username.trim()) {
+      setError("Host, database, and username are required.");
+      return;
+    }
+    setPhase("connecting");
+    setError(null);
+    try {
+      const res = await fetch(`${apiBase}/api/postgres/connect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ host: host.trim(), port: parseInt(port) || 5432, database: database.trim(), username: username.trim(), password, ssl }),
+      });
+      const data = await res.json() as { ok?: boolean; database?: string; tableCount?: number; error?: string };
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error ?? `Server returned ${res.status}`);
+      }
+      setDbName(data.database ?? database);
+      setTableCount(data.tableCount ?? 0);
+      setPhase("connected");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Connection failed");
+      setPhase("idle");
+    }
+  };
+
+  if (phase === "connecting") {
+    return (
+      <div className="mt-4 flex items-center gap-2 text-[13px] text-muted-foreground">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Connecting to Postgres…
+      </div>
+    );
+  }
+
+  if (phase === "connected") {
+    return (
+      <div className="mt-1 space-y-4 animate-in fade-in duration-300">
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3.5">
+          <div className="flex items-start gap-2">
+            <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600 flex-shrink-0" />
+            <div>
+              <div className="text-sm font-semibold text-emerald-900">Connected to <span className="font-mono">{dbName}</span></div>
+              <div className="text-[12px] text-emerald-800 mt-0.5">
+                Found <span className="font-medium">{tableCount}</span> table{tableCount !== 1 ? "s" : ""} ready to browse.
+              </div>
+            </div>
+          </div>
+        </div>
+        <Button onClick={onConnected} className="w-full" size="sm">
+          Browse Tables <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-1 space-y-3 animate-in fade-in duration-300">
-      <form
-        className="relative"
-        onSubmit={(e) => {
-          e.preventDefault();
-          load(query.trim());
-        }}
-      >
-        <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search your Google Sheets…"
-          className="h-9 pl-8 text-sm"
-        />
-      </form>
-
-      <div className="rounded-md border border-border max-h-[360px] overflow-y-auto">
-        {loading && (
-          <div className="flex items-center gap-2 p-4 text-[12px] text-muted-foreground">
-            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading your spreadsheets…
-          </div>
-        )}
-        {!loading && files && files.length === 0 && !error && (
-          <div className="p-4 text-[12px] text-muted-foreground">
-            No spreadsheets found{query ? ` matching "${query}"` : ""}.
-          </div>
-        )}
-        {!loading && files && files.length > 0 && (
-          <ul className="divide-y divide-border">
-            {files.map((f) => {
-              const busy = pickingId === f.id;
-              const owner = f.owners?.[0]?.displayName;
-              const when = f.modifiedTime
-                ? new Date(f.modifiedTime).toLocaleDateString(undefined, {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })
-                : "";
-              return (
-                <li key={f.id}>
-                  <button
-                    type="button"
-                    disabled={pickingId !== null}
-                    onClick={() => pick(f)}
-                    className="w-full text-left flex items-center gap-3 px-3 py-2.5 hover:bg-muted/60 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    data-testid={`gsheet-file-${f.id}`}
-                  >
-                    <FileSpreadsheet className="w-4 h-4 text-green-700 flex-shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm text-foreground truncate">{f.name}</div>
-                      <div className="text-[11px] text-muted-foreground truncate">
-                        {[owner, when].filter(Boolean).join(" • ")}
-                      </div>
-                    </div>
-                    {busy ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
-                    ) : (
-                      <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" />
-                    )}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Host <span className="text-destructive">*</span></Label>
+          <Input value={host} onChange={(e) => setHost(e.target.value)} placeholder="localhost" className="h-9 text-sm" />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Port</Label>
+          <Input value={port} onChange={(e) => setPort(e.target.value)} placeholder="5432" className="h-9 text-sm" />
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Database <span className="text-destructive">*</span></Label>
+        <Input value={database} onChange={(e) => setDatabase(e.target.value)} placeholder="mydb" className="h-9 text-sm" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Username <span className="text-destructive">*</span></Label>
+          <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="postgres" className="h-9 text-sm" />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Password</Label>
+          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="h-9 text-sm" />
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">SSL mode</Label>
+        <Select value={ssl} onValueChange={setSsl}>
+          <SelectTrigger className="h-9 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="disable">Disable</SelectItem>
+            <SelectItem value="prefer">Prefer</SelectItem>
+            <SelectItem value="require">Require</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {error && <div className="text-[12px] text-destructive">{error}</div>}
 
-      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-        <ShieldCheck className="w-3.5 h-3.5" />
-        Read-only via your Google account. Pick a sheet — Gen-BI imports and builds the dashboard.
+      <div className="flex items-center justify-between pt-2 border-t border-border">
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <ShieldCheck className="w-3.5 h-3.5" />
+          Credentials stay in your session only.
+        </div>
+        <Button
+          onClick={handleConnect}
+          disabled={!host.trim() || !database.trim() || !username.trim()}
+          size="sm"
+        >
+          Connect <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+        </Button>
       </div>
     </div>
   );
 }
+
+// ── ConnectStep ────────────────────────────────────────────────────────────────
 
 function ConnectStep({
   label,

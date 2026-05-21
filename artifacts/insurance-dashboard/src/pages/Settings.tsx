@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useGetSettings, useUpdateSettings, getGetSettingsQueryKey } from "@workspace/api-client-react";
+import { useRegisterObservation } from "@/lib/chat-observer";
 import { useQueryClient } from "@tanstack/react-query";
 import { DOMAIN_PACKS } from "@/lib/domain-packs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -38,6 +39,22 @@ export default function Settings() {
   const { toast } = useToast();
   const { data, isLoading } = useGetSettings();
   const update = useUpdateSettings();
+
+  useRegisterObservation(
+    useMemo(
+      () => ({
+        label: "Settings",
+        kind: "settings" as const,
+        summary: "User is on the Settings page. They can change theme, AI tone, model, organization details, and file/upload limits. No project data is in focus.",
+        suggestions: [
+          "Recommend an AI tone for me",
+          "Which model is best for my use case?",
+          "Explain the AI tone options",
+        ],
+      }),
+      [],
+    ),
+  );
 
   const [organizationName, setOrganizationName] = useState("");
   const [profileName, setProfileName] = useState("");

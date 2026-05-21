@@ -117,21 +117,14 @@ export const CONNECTORS: ConnectorConfig[] = [
   {
     id: "postgres",
     label: "Postgres",
-    description: "Connect to any Postgres database via host, port and credentials.",
+    description: "Connect to any Postgres database, browse tables and build a joined dashboard.",
     icon: Database,
     accent: "text-emerald-700 bg-emerald-50 border-emerald-200",
-    fields: [
-      { key: "host", label: "Host", type: "text", placeholder: "db.acme.com", required: true },
-      { key: "port", label: "Port", type: "text", placeholder: "5432" },
-      { key: "database", label: "Database", type: "text", placeholder: "production", required: true },
-      { key: "username", label: "Username", type: "text", required: true },
-      { key: "password", label: "Password", type: "password" },
-      { key: "ssl", label: "SSL mode", type: "select", options: ["require", "prefer", "disable"] },
-      { key: "query", label: "Query / table (optional)", type: "textarea", placeholder: "SELECT * FROM public.orders WHERE created_at > NOW() - interval '30 days'" },
-    ],
-    sampleFile: "orders.csv",
-    sampleLabel: "Postgres — public.orders",
-    discovery: "TLS handshake OK. 7 schemas, 96 tables. Read-only role detected.",
+    fields: [],
+    sampleFile: "",
+    sampleLabel: "Postgres",
+    discovery: "Connected.",
+    live: true,
   },
 ];
 

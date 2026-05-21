@@ -1,12 +1,15 @@
 import { lazy, Suspense, useMemo, useState } from "react";
+import { useLocation } from "wouter";
+import { useCustomDashboards } from "@/lib/custom-dashboards";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AnimatedNumber } from "@/lib/animated-number";
-import { Sparkles, Maximize2, Wand2 } from "lucide-react";
+import { Sparkles, Maximize2, Wand2, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExplainPanel, ExplainButton } from "@/components/ExplainPanel";
 import { autoTidy } from "@/lib/layout-actions";
 import AdvancedAnalytics from "@/components/AdvancedAnalytics";
 import { useRegisterObservation } from "@/lib/chat-observer";
+import { useCopilot } from "@/lib/copilot-context";
 
 // Lazy so the presenter overlay (with its portal + extra deps) doesn't
 // inflate the initial dashboard render.
@@ -21,14 +24,23 @@ import {
   ScatterChart, Scatter, ZAxis,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   Treemap,
+  ComposedChart,
+  FunnelChart, Funnel, LabelList,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts";
 import {
-  TrendingUp, TrendingDown, DollarSign, Users, BarChart3,
+  TrendingUp, TrendingDown, Minus, DollarSign, Users, BarChart3,
   Activity, Package, Target, ShieldAlert, FileText,
   Hash, Percent, ArrowUpRight, ArrowDownRight, AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+/** Formats ISO date strings as plain year labels ("2022-12-31T18:30:00Z" → "2022"). */
+function dateTick(v: unknown): string {
+  const s = String(v ?? "");
+  const m = s.match(/^(\d{4})-\d{2}/);
+  return m ? m[1] : s;
+}
 
 /**
  * True if a numeric coercion yields a finite number. Avoids the recharts
@@ -57,9 +69,10 @@ function isNumericColumn(rows: any[], key: string): boolean {
 /** Friendly placeholder so a missing/malformed chart never silently renders empty. */
 function EmptyChartState({ message }: { message: string }) {
   return (
-    <div className="h-[280px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
-      <AlertCircle className="w-5 h-5 opacity-50" />
-      <p className="text-xs">{message}</p>
+    <div className="h-[280px] flex flex-col items-center justify-center gap-2 text-muted-foreground border border-dashed border-border rounded-lg">
+      <AlertCircle className="w-5 h-5 opacity-40" />
+      <p className="text-xs text-center px-4">{message}</p>
+      <p className="text-[10px] text-muted-foreground/60">Try asking Copilot to re-generate this chart</p>
     </div>
   );
 }
@@ -102,11 +115,13 @@ function formatValue(val: unknown, format?: string): string {
 
 function KPICard({ kpi, index = 0 }: { kpi: any; index?: number }) {
   const Icon = getIcon(kpi.icon);
-  const isPositive = kpi.trend && (kpi.trend.startsWith("+") || kpi.trend.includes("increase"));
+  const isPositive = kpi.trend && (kpi.trend.startsWith("+") || /increase|growth|improved|higher|above/i.test(kpi.trend));
+  const isNegative = kpi.trend && /decline|decrease|down\b|below|loss|fell|dropped|worsened/i.test(kpi.trend);
   const numericValue = typeof kpi.value === "number" ? kpi.value : Number(kpi.value);
   const isNumeric = !isNaN(numericValue) && Number.isFinite(numericValue);
   const animStyle = { animationDelay: `${index * 70}ms`, animationFillMode: "both" as const };
 
+  const { askCopilot } = useCopilot();
   const [explainOpen, setExplainOpen] = useState(false);
   const explainCtx: ExplainContext = {
     kind: "kpi",
@@ -120,8 +135,9 @@ function KPICard({ kpi, index = 0 }: { kpi: any; index?: number }) {
   return (
     <>
       <Card
-        className="shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 animate-in fade-in slide-in-from-bottom-3 duration-500 group"
+        className="shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 animate-in fade-in slide-in-from-bottom-3 duration-500 group cursor-pointer"
         style={animStyle}
+        onClick={() => askCopilot(`Explain the "${kpi.label}" metric — what is it, what's driving the current value, and is it good or bad?`)}
       >
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-2">
@@ -135,8 +151,8 @@ function KPICard({ kpi, index = 0 }: { kpi: any; index?: number }) {
                 )}
               </p>
               {kpi.trend && (
-                <div className={cn("flex items-center gap-1 text-[11px] font-medium", isPositive ? "text-emerald-600" : "text-red-500")}>
-                  {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                <div className={cn("flex items-center gap-1 text-[11px] font-medium", isPositive ? "text-emerald-600" : isNegative ? "text-red-500" : "text-muted-foreground")}>
+                  {isPositive ? <TrendingUp className="w-3 h-3" /> : isNegative ? <TrendingDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
                   {kpi.trend}
                 </div>
               )}
@@ -158,11 +174,265 @@ function KPICard({ kpi, index = 0 }: { kpi: any; index?: number }) {
   );
 }
 
+const PINNED_COLORS = ["#1565C0", "#0288D1", "#0097A7", "#00838F", "#00695C", "#6366f1", "#8b5cf6"];
+
+function PinnedChart({ chart }: { chart: { type: string; title: string; xKey: string; yKey: string; data: any[] } }) {
+  const [explainOpen, setExplainOpen] = useState(false);
+  const { askCopilot } = useCopilot();
+  const { type, title, xKey, yKey, data } = chart;
+  const fmt = (v: number) => {
+    if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+    if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
+    if (v < 1 && v > 0) return `${(v * 100).toFixed(1)}%`;
+    return v.toLocaleString();
+  };
+  const ttStyle = { backgroundColor: "#fff", borderColor: "#e5e7eb", borderRadius: "8px", fontSize: "11px" };
+
+  const explainCtx: ExplainContext = {
+    kind: "chart",
+    title,
+    chartType: type,
+    xKey,
+    yKeys: [yKey],
+    data,
+    source: "Pinned from chat",
+  };
+
+  if (type === "table") {
+    const columns = data.length > 0 ? Object.keys(data[0]) : [];
+    return (
+      <>
+      <Card className="shadow-sm group">
+        <CardHeader className="pb-2 pt-4 px-4 cursor-pointer" onClick={() => askCopilot(`Analyze the "${title}" table that was pinned from chat — what are the key insights?`)}>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+            <ExplainButton onClick={() => setExplainOpen(true)} />
+          </div>
+        </CardHeader>
+        <CardContent className="px-4 pb-4">
+          <div className="overflow-auto max-h-[200px] rounded border border-border text-xs">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-muted/50 sticky top-0">
+                  {columns.map((col) => (
+                    <th key={col} className="text-left px-3 py-1.5 font-semibold text-muted-foreground border-b border-border whitespace-nowrap">{col}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((row, i) => (
+                  <tr key={i} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                    {columns.map((col) => (
+                      <td key={col} className="px-3 py-1.5 border-b border-border/50 whitespace-nowrap">{row[col] ?? "—"}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+      <ExplainPanel open={explainOpen} onOpenChange={setExplainOpen} context={explainCtx} />
+      </>
+    );
+  }
+
+  const yKeys = Array.isArray(yKey) ? yKey : [yKey];
+  const legendStyle = { fontSize: "10px", paddingTop: "4px" };
+
+  const renderPinnedInner = (): React.ReactElement => {
+    switch (type) {
+      case "pie":
+      case "donut":
+        return (
+          <PieChart>
+            <Pie data={data} cx="50%" cy="50%" innerRadius={type === "donut" ? 40 : 0} outerRadius={75} paddingAngle={2} dataKey={yKeys[0]} nameKey={xKey} label={(entry: any) => entry[xKey]} labelLine={false}>
+              {data.map((_: any, i: number) => <Cell key={i} fill={PINNED_COLORS[i % PINNED_COLORS.length]} />)}
+            </Pie>
+            <Tooltip contentStyle={ttStyle} formatter={(v: number, _n: string, p: any) => [fmt(v), p?.payload?.[xKey]]} />
+          </PieChart>
+        );
+      case "bar":
+      case "stacked-bar":
+        return (
+          <BarChart data={data} margin={{ top: 4, right: 8, left: 24, bottom: 38 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+            <XAxis dataKey={xKey} fontSize={9} tickLine={false} axisLine={false} angle={-20} textAnchor="end" stroke="#6b7280" label={{ value: xKey, position: "insideBottom", offset: -18, fontSize: 10, fill: "#6b7280" }} />
+            <YAxis fontSize={9} tickLine={false} axisLine={false} tickFormatter={fmt} stroke="#6b7280" label={{ value: yKeys.join(", "), angle: -90, position: "insideLeft", offset: 0, fontSize: 10, fill: "#6b7280", style: { textAnchor: "middle" } }} />
+            <Tooltip contentStyle={ttStyle} formatter={(v: number) => [fmt(v)]} />
+            {yKeys.length > 1 && <Legend iconSize={8} wrapperStyle={legendStyle} />}
+            {yKeys.map((k: string, i: number) => (
+              <Bar key={k} dataKey={k} stackId={type === "stacked-bar" ? "s" : undefined} radius={type === "stacked-bar" ? undefined : [4, 4, 0, 0]} fill={PINNED_COLORS[i % PINNED_COLORS.length]}>
+                {yKeys.length === 1 && data.map((_: any, j: number) => <Cell key={j} fill={PINNED_COLORS[j % PINNED_COLORS.length]} />)}
+              </Bar>
+            ))}
+          </BarChart>
+        );
+      case "horizontal-bar":
+        return (
+          <BarChart data={data} layout="vertical" margin={{ top: 4, right: 20, left: 4, bottom: 22 }}>
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
+            <XAxis type="number" fontSize={9} tickLine={false} axisLine={false} tickFormatter={fmt} stroke="#6b7280" label={{ value: yKeys[0], position: "insideBottom", offset: -8, fontSize: 10, fill: "#6b7280" }} />
+            <YAxis dataKey={xKey} type="category" fontSize={9} tickLine={false} axisLine={false} width={90} stroke="#6b7280" />
+            <Tooltip contentStyle={ttStyle} formatter={(v: number) => [fmt(v)]} />
+            <Bar dataKey={yKeys[0]} radius={[0, 4, 4, 0]}>
+              {data.map((_: any, i: number) => <Cell key={i} fill={PINNED_COLORS[i % PINNED_COLORS.length]} />)}
+            </Bar>
+          </BarChart>
+        );
+      case "line":
+        return (
+          <LineChart data={data} margin={{ top: 4, right: 8, left: 24, bottom: 38 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+            <XAxis dataKey={xKey} fontSize={9} tickLine={false} axisLine={false} angle={-20} textAnchor="end" stroke="#6b7280" tickFormatter={dateTick} label={{ value: xKey, position: "insideBottom", offset: -18, fontSize: 10, fill: "#6b7280" }} />
+            <YAxis fontSize={9} tickLine={false} axisLine={false} tickFormatter={fmt} stroke="#6b7280" label={{ value: yKeys.join(", "), angle: -90, position: "insideLeft", offset: 0, fontSize: 10, fill: "#6b7280", style: { textAnchor: "middle" } }} />
+            <Tooltip contentStyle={ttStyle} formatter={(v: number) => [fmt(v)]} />
+            {yKeys.length > 1 && <Legend iconSize={8} wrapperStyle={legendStyle} />}
+            {yKeys.map((k: string, i: number) => (
+              <Line key={k} type="monotone" dataKey={k} stroke={PINNED_COLORS[i % PINNED_COLORS.length]} strokeWidth={2} dot={{ fill: PINNED_COLORS[i % PINNED_COLORS.length], r: 3 }} />
+            ))}
+          </LineChart>
+        );
+      case "scatter":
+      case "bubble":
+        return (
+          <ScatterChart margin={{ top: 4, right: 8, left: 24, bottom: 38 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey={xKey} type="number" fontSize={9} tickLine={false} axisLine={false} stroke="#6b7280" tickFormatter={fmt} label={{ value: xKey, position: "insideBottom", offset: -18, fontSize: 10, fill: "#6b7280" }} />
+            <YAxis dataKey={yKeys[0]} type="number" fontSize={9} tickLine={false} axisLine={false} stroke="#6b7280" tickFormatter={fmt} label={{ value: yKeys[0], angle: -90, position: "insideLeft", offset: 0, fontSize: 10, fill: "#6b7280", style: { textAnchor: "middle" } }} />
+            {type === "bubble" && <ZAxis dataKey={yKeys[1] || yKeys[0]} range={[40, 400]} />}
+            <Tooltip contentStyle={ttStyle} formatter={(v: number) => [fmt(v)]} />
+            <Scatter data={data} fill={PINNED_COLORS[0]}>
+              {data.map((_: any, i: number) => <Cell key={i} fill={PINNED_COLORS[i % PINNED_COLORS.length]} />)}
+            </Scatter>
+          </ScatterChart>
+        );
+      case "combo":
+        return (
+          <ComposedChart data={data} margin={{ top: 4, right: 30, left: 24, bottom: 38 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+            <XAxis dataKey={xKey} fontSize={9} tickLine={false} axisLine={false} angle={-20} textAnchor="end" stroke="#6b7280" label={{ value: xKey, position: "insideBottom", offset: -18, fontSize: 10, fill: "#6b7280" }} />
+            <YAxis yAxisId="left" fontSize={9} tickLine={false} axisLine={false} tickFormatter={fmt} stroke="#6b7280" />
+            <YAxis yAxisId="right" orientation="right" fontSize={9} tickLine={false} axisLine={false} tickFormatter={fmt} stroke={PINNED_COLORS[3]} />
+            <Tooltip contentStyle={ttStyle} formatter={(v: number) => [fmt(v)]} />
+            <Legend iconSize={8} wrapperStyle={legendStyle} />
+            <Bar yAxisId="left" dataKey={yKeys[0]} fill={PINNED_COLORS[0]} radius={[4, 4, 0, 0]} />
+            {yKeys[1] && <Line yAxisId="right" type="monotone" dataKey={yKeys[1]} stroke={PINNED_COLORS[3]} strokeWidth={2} dot={{ r: 2 }} />}
+          </ComposedChart>
+        );
+      case "funnel":
+        return (
+          <FunnelChart>
+            <Funnel dataKey={yKeys[0]} data={data.map((d: any, i: number) => ({ ...d, fill: PINNED_COLORS[i % PINNED_COLORS.length] }))} isAnimationActive>
+              <LabelList position="center" fill="#fff" stroke="none" fontSize={9} dataKey={xKey} />
+            </Funnel>
+            <Tooltip contentStyle={ttStyle} formatter={(v: number) => [fmt(v)]} />
+          </FunnelChart>
+        );
+      case "radar":
+        return (
+          <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data}>
+            <PolarGrid stroke="#e5e7eb" />
+            <PolarAngleAxis dataKey={xKey} fontSize={9} stroke="#6b7280" />
+            <PolarRadiusAxis fontSize={8} stroke="#6b7280" />
+            <Radar dataKey={yKeys[0]} stroke={PINNED_COLORS[0]} fill={PINNED_COLORS[0]} fillOpacity={0.2} strokeWidth={2} />
+            <Tooltip contentStyle={ttStyle} formatter={(v: number) => [fmt(v)]} />
+          </RadarChart>
+        );
+      case "treemap":
+        return (
+          <Treemap
+            data={data.map((d: any, i: number) => ({ ...d, fill: PINNED_COLORS[i % PINNED_COLORS.length] }))}
+            dataKey={yKeys[0]}
+            nameKey={xKey}
+            aspectRatio={4 / 3}
+            stroke="#fff"
+          />
+        );
+      default:
+        return (
+          <AreaChart data={data} margin={{ top: 4, right: 8, left: 24, bottom: 38 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+            <XAxis dataKey={xKey} fontSize={9} tickLine={false} axisLine={false} angle={-20} textAnchor="end" stroke="#6b7280" tickFormatter={dateTick} label={{ value: xKey, position: "insideBottom", offset: -18, fontSize: 10, fill: "#6b7280" }} />
+            <YAxis fontSize={9} tickLine={false} axisLine={false} tickFormatter={fmt} stroke="#6b7280" label={{ value: yKeys[0], angle: -90, position: "insideLeft", offset: 0, fontSize: 10, fill: "#6b7280", style: { textAnchor: "middle" } }} />
+            <Tooltip contentStyle={ttStyle} formatter={(v: number) => [fmt(v)]} />
+            <Area type="monotone" dataKey={yKeys[0]} stroke={PINNED_COLORS[1]} strokeWidth={2} fill={PINNED_COLORS[1]} fillOpacity={0.15} />
+          </AreaChart>
+        );
+    }
+  };
+
+  // For pie/donut/treemap the slice colour itself encodes the category, so
+  // recharts' XAxis/YAxis label trick doesn't apply — render an explicit
+  // colour-swatch legend below the chart so each colour has a name.
+  const showCategoryLegend = type === "pie" || type === "donut" || type === "treemap";
+  // Friendly subtitle so the reader knows what's being plotted even if the
+  // chart's own axis labels are squeezed. E.g. "owner_count by membership_tier".
+  const axesSummary =
+    type === "table"
+      ? null
+      : showCategoryLegend
+        ? `${yKeys[0]} by ${xKey}`
+        : `X: ${xKey}  •  Y: ${yKeys.join(", ")}`;
+
+  return (
+    <>
+    <Card className="shadow-sm group">
+      <CardHeader className="pb-2 pt-4 px-4 cursor-pointer" onClick={() => askCopilot(`Analyze the "${title}" ${type} chart that was pinned from chat — what are the key insights?`)}>
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+          <ExplainButton onClick={() => setExplainOpen(true)} />
+        </div>
+        {axesSummary && (
+          <CardDescription className="text-[10px] text-muted-foreground mt-0.5">{axesSummary}</CardDescription>
+        )}
+      </CardHeader>
+      <CardContent className="px-4 pb-4">
+        <div className={showCategoryLegend ? "h-[200px]" : "h-[220px]"}>
+          <ResponsiveContainer width="100%" height="100%">
+            {renderPinnedInner() as any}
+          </ResponsiveContainer>
+        </div>
+        {showCategoryLegend && (
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-2 pt-2 border-t border-border/40">
+            {data.slice(0, 8).map((item: any, i: number) => (
+              <div key={i} className="flex items-center gap-1.5 text-[10px]">
+                <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: PINNED_COLORS[i % PINNED_COLORS.length] }} />
+                <span className="text-muted-foreground truncate" title={String(item[xKey])}>{String(item[xKey])}</span>
+                <span className="ml-auto text-foreground/70 font-medium tabular-nums">{fmt(Number(item[yKeys[0]]) || 0)}</span>
+              </div>
+            ))}
+            {data.length > 8 && (
+              <div className="text-[9px] text-muted-foreground/60 col-span-2 mt-0.5">+ {data.length - 8} more</div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+    <ExplainPanel open={explainOpen} onOpenChange={setExplainOpen} context={explainCtx} />
+    </>
+  );
+}
+
 function ChartCard({ chart }: { chart: any }) {
   const [explainOpen, setExplainOpen] = useState(false);
-  const data = chart.data || [];
+  const { askCopilot } = useCopilot();
+  const rawData = chart.data || [];
+  // node-postgres returns numeric columns as strings — coerce them so Recharts renders correctly.
+  const data = rawData.map((row: any) => {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(row)) {
+      out[k] = typeof v === "string" && v !== "" && isFinite(Number(v)) ? Number(v) : v;
+    }
+    return out;
+  });
   const xKey = chart.xKey || Object.keys(data[0] || {})[0] || "name";
-  const yKey = chart.yKey || Object.keys(data[0] || {})[1] || "value";
+  const rawYKey = chart.yKey || Object.keys(data[0] || {})[1] || "value";
+  // Fix AI generation bug: when yKey === xKey, pick the first column that differs from xKey.
+  const cols = data.length > 0 ? Object.keys(data[0]) : [];
+  const yKey = Array.isArray(rawYKey) ? rawYKey
+    : rawYKey !== xKey ? rawYKey
+    : (cols.find(c => c !== xKey) ?? rawYKey);
   const yKeys = Array.isArray(yKey) ? yKey : [yKey];
 
   const tooltipStyle = {
@@ -187,7 +457,7 @@ function ChartCard({ chart }: { chart: any }) {
               ))}
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-            <XAxis dataKey={xKey} fontSize={10} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" />
+            <XAxis dataKey={xKey} fontSize={10} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" tickFormatter={dateTick} />
             <YAxis fontSize={10} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => formatValue(v)} />
             <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatValue(v)]} />
             {yKeys.map((k: string, i: number) => (
@@ -234,7 +504,7 @@ function ChartCard({ chart }: { chart: any }) {
         return (
           <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-            <XAxis dataKey={xKey} fontSize={10} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" />
+            <XAxis dataKey={xKey} fontSize={10} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" tickFormatter={dateTick} />
             <YAxis fontSize={10} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => formatValue(v)} />
             <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatValue(v)]} />
             {yKeys.length > 1 && <Legend iconSize={8} wrapperStyle={{ fontSize: "10px" }} />}
@@ -341,7 +611,7 @@ function ChartCard({ chart }: { chart: any }) {
         return (
           <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-            <XAxis dataKey={xKey} fontSize={10} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" />
+            <XAxis dataKey={xKey} fontSize={10} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" tickFormatter={dateTick} />
             <YAxis fontSize={10} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => formatValue(v)} />
             <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatValue(v)]} />
             <Legend iconSize={8} wrapperStyle={{ fontSize: "10px" }} />
@@ -350,6 +620,48 @@ function ChartCard({ chart }: { chart: any }) {
             ))}
           </AreaChart>
         );
+
+      case "combo":
+        return (
+          <ComposedChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+            <XAxis dataKey={xKey} fontSize={9} tickLine={false} axisLine={false} angle={-20} textAnchor="end" stroke="hsl(var(--muted-foreground))" />
+            <YAxis yAxisId="left" fontSize={10} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => formatValue(v)} />
+            <YAxis yAxisId="right" orientation="right" fontSize={10} tickLine={false} axisLine={false} stroke={PALETTE[5]} tickFormatter={(v) => formatValue(v)} />
+            <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatValue(v)]} />
+            <Legend iconSize={8} wrapperStyle={{ fontSize: "10px" }} />
+            <Bar yAxisId="left" dataKey={yKeys[0]} fill={PALETTE[0]} radius={[4, 4, 0, 0]} fillOpacity={0.85} />
+            {yKeys[1] && <Line yAxisId="right" type="monotone" dataKey={yKeys[1]} stroke={PALETTE[5]} strokeWidth={2} dot={{ fill: PALETTE[5], r: 3 }} />}
+          </ComposedChart>
+        );
+
+      case "funnel":
+        return (
+          <FunnelChart>
+            <Funnel
+              dataKey={yKeys[0]}
+              data={data.map((d: any, i: number) => ({ ...d, fill: PALETTE[i % PALETTE.length] }))}
+              isAnimationActive
+            >
+              <LabelList position="center" fill="#fff" stroke="none" fontSize={10} dataKey={xKey} />
+            </Funnel>
+            <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatValue(v)]} />
+          </FunnelChart>
+        );
+
+      case "histogram":
+        return (
+          <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 20 }} barCategoryGap={2}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+            <XAxis dataKey={xKey} fontSize={9} tickLine={false} axisLine={false} angle={-20} textAnchor="end" stroke="hsl(var(--muted-foreground))" />
+            <YAxis fontSize={10} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => formatValue(v)} />
+            <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [formatValue(v)]} />
+            <Bar dataKey={yKeys[0]} fill={PALETTE[2]} radius={[2, 2, 0, 0]} />
+          </BarChart>
+        );
+
+      case "bullet":
+        return <BulletChart data={data} nameKey={xKey} actualKey={yKeys[0]} targetKey={yKeys[1] || chart.config?.targetKey || ""} />;
 
       case "gauge":
         return <GaugeChart value={data[0]?.[yKeys[0]] || 0} max={chart.config?.max || 100} label={chart.config?.label || yKeys[0]} />;
@@ -386,7 +698,7 @@ function ChartCard({ chart }: { chart: any }) {
   // UI honest if a stale dashboard is loaded from localStorage.
   const hasData = Array.isArray(data) && data.length > 0;
 
-  const isWide = ["treemap", "heatmap", "stacked-area", "stacked-bar", "waterfall", "scatter", "bubble"].includes(chart.type);
+  const isWide = ["treemap", "heatmap", "stacked-area", "stacked-bar", "waterfall", "scatter", "bubble", "combo", "funnel", "histogram"].includes(chart.type);
 
   const explainCtx: ExplainContext = {
     kind: "chart",
@@ -401,8 +713,15 @@ function ChartCard({ chart }: { chart: any }) {
 
   return (
     <>
-      <Card className={cn("shadow-sm hover:shadow-md transition-shadow", isWide ? "col-span-2" : "")}>
-        <CardHeader className="pb-1">
+      <Card className={cn("shadow-sm hover:shadow-md transition-shadow group", isWide ? "col-span-2" : "")}>
+        <CardHeader className="pb-1 cursor-pointer" onClick={() => {
+          const sample = Array.isArray(data) && data.length > 0
+            ? JSON.stringify(data.slice(0, 12))
+            : "no data";
+          askCopilot(
+            `Explain the **${chart.title}** ${chart.type} chart — what's the headline and what should I notice?\n\n[[CTX]]\nChart data: ${sample}\nX-axis: ${xKey}, Y-axis: ${yKeys.join(", ")}\n\nRespond with:\n- A short opening sentence summarising the main finding\n- 3–5 bullet points (start each with **bold key insight** then a brief explanation) highlighting patterns, outliers, or actionable takeaways\n- Keep it concise and well-structured with bullets, not a wall of prose`,
+          );
+        }}>
           <div className="flex items-center justify-between gap-2">
             <CardTitle className="text-sm font-semibold text-foreground truncate">{chart.title}</CardTitle>
             <ExplainButton onClick={() => setExplainOpen(true)} />
@@ -412,8 +731,8 @@ function ChartCard({ chart }: { chart: any }) {
         <CardContent>
           <div className={cn("w-full", chart.type === "progress-bar" ? "" : "h-[280px]")}>
             {!hasData ? (
-              <EmptyChartState message="No data available for this view" />
-            ) : chart.type === "progress-bar" || chart.type === "gauge" || chart.type === "heatmap" || chart.type === "waterfall" ? (
+              <EmptyChartState message={chart.sqlError ? `Query failed: ${chart.sqlError}` : "No data available — click Refresh data to re-query the warehouse"} />
+            ) : chart.type === "progress-bar" || chart.type === "gauge" || chart.type === "heatmap" || chart.type === "waterfall" || chart.type === "bullet" ? (
               renderChart()
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -580,6 +899,40 @@ function ProgressBars({ data, nameKey, valueKey, maxKey }: { data: any[]; nameKe
   );
 }
 
+function BulletChart({ data, nameKey, actualKey, targetKey }: { data: any[]; nameKey: string; actualKey: string; targetKey: string }) {
+  return (
+    <div className="space-y-3 py-2">
+      {data.slice(0, 8).map((d: any, i: number) => {
+        const actual = Number(d[actualKey]) || 0;
+        const target = targetKey ? Number(d[targetKey]) || 0 : 0;
+        const max = Math.max(actual, target) * 1.15 || 1;
+        const actualPct = Math.min((actual / max) * 100, 100);
+        const targetPct = target ? Math.min((target / max) * 100, 100) : null;
+        const onTrack = !target || actual >= target;
+        return (
+          <div key={i} className="space-y-1">
+            <div className="flex justify-between text-xs">
+              <span className="font-medium text-foreground truncate">{d[nameKey]}</span>
+              <span className="text-muted-foreground font-mono text-[10px]">
+                {formatValue(actual)}{target ? ` / ${formatValue(target)}` : ""}
+              </span>
+            </div>
+            <div className="h-5 bg-muted rounded relative overflow-hidden">
+              <div
+                className="h-full rounded transition-all duration-700"
+                style={{ width: `${actualPct}%`, backgroundColor: onTrack ? PALETTE[4] : PALETTE[14] }}
+              />
+              {targetPct !== null && (
+                <div className="absolute top-0 h-full w-[2px] bg-foreground/70" style={{ left: `${targetPct}%` }} />
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function DataTable({ table }: { table: any }) {
   const columns = table.columns || Object.keys(table.data?.[0] || {});
   const data = table.data || [];
@@ -624,6 +977,86 @@ function DataTable({ table }: { table: any }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Slicer helpers — re-aggregate raw rows from dataScience when a filter is active
+// ---------------------------------------------------------------------------
+
+function sumByCategory(rows: any[], catCol: string, numCol: string, n = 10) {
+  const b = new Map<string, number>();
+  for (const r of rows) {
+    const k = String(r[catCol] ?? ""); if (!k) continue;
+    const v = Number(r[numCol]); if (!isFinite(v)) continue;
+    b.set(k, (b.get(k) ?? 0) + v);
+  }
+  return [...b.entries()].sort((a, b) => b[1] - a[1]).slice(0, n).map(([name, value]) => ({ name, value }));
+}
+
+function meanByCategory(rows: any[], catCol: string, numCol: string, n = 8) {
+  const b = new Map<string, { sum: number; cnt: number }>();
+  for (const r of rows) {
+    const k = String(r[catCol] ?? ""); if (!k) continue;
+    const v = Number(r[numCol]); if (!isFinite(v)) continue;
+    const e = b.get(k) ?? { sum: 0, cnt: 0 }; e.sum += v; e.cnt++;
+    b.set(k, e);
+  }
+  return [...b.entries()].map(([name, e]) => ({ name, value: e.sum / e.cnt }))
+    .sort((a, b) => b.value - a.value).slice(0, n);
+}
+
+function countByCategory(rows: any[], catCol: string, n = 8) {
+  const b = new Map<string, number>();
+  for (const r of rows) { const k = String(r[catCol] ?? ""); if (k) b.set(k, (b.get(k) ?? 0) + 1); }
+  return [...b.entries()].sort((a, b) => b[1] - a[1]).slice(0, n).map(([name, value]) => ({ name, value }));
+}
+
+function trendByMonthFn(rows: any[], dateCol: string, numCol: string) {
+  const b = new Map<string, number>();
+  for (const r of rows) {
+    const dv = r[dateCol]; if (!dv) continue;
+    const d = dv instanceof Date ? dv : new Date(String(dv)); if (isNaN(d.getTime())) continue;
+    const v = Number(r[numCol]); if (!isFinite(v)) continue;
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    b.set(key, (b.get(key) ?? 0) + v);
+  }
+  return [...b.entries()].sort(([a], [b]) => a.localeCompare(b)).slice(-12).map(([month, value]) => ({ month, value }));
+}
+
+function rebuildChartData(chart: any, rows: any[]): any[] | null {
+  const tag: string = chart.insightTag ?? "";
+  const parts = tag.split(":");
+  switch (parts[0]) {
+    case "top-sum":  return sumByCategory(rows, parts[1], parts[2], 10);
+    case "mean":     return meanByCategory(rows, parts[1], parts[2], 8);
+    case "mix":      return countByCategory(rows, parts[1], 8);
+    case "trend":    return trendByMonthFn(rows, parts[1], parts[2]);
+    case "corr": {
+      const [, colA, colB] = parts;
+      const out: any[] = [];
+      for (const r of rows) {
+        const x = Number(r[colA]); const y = Number(r[colB]);
+        if (isFinite(x) && isFinite(y)) { out.push({ [colA]: x, [colB]: y }); if (out.length >= 200) break; }
+      }
+      return out.length > 0 ? out : null;
+    }
+    case "dist": {
+      const col = parts[1];
+      const vals: number[] = [];
+      for (const r of rows) { const v = Number(r[col]); if (isFinite(v)) vals.push(v); }
+      if (!vals.length) return null;
+      let min = Infinity, max = -Infinity;
+      for (const v of vals) { if (v < min) min = v; if (v > max) max = v; }
+      if (min === max) return [{ name: String(min), value: vals.length }];
+      const bins = 8;
+      const w = (max - min) / bins;
+      const counts = new Array<number>(bins).fill(0);
+      for (const v of vals) counts[Math.min(bins - 1, Math.floor((v - min) / w))]++;
+      const fmt = (n: number) => Math.abs(n) >= 1000 ? n.toFixed(0) : n.toFixed(1);
+      return counts.map((c, i) => ({ name: `${fmt(min + i * w)}–${fmt(min + (i + 1) * w)}`, value: c }));
+    }
+    default: return null;
+  }
+}
+
 interface GeneratedDashboardProps {
   config: any;
   /** Hide the "Present" toggle — used inside PresenterMode itself to avoid recursion. */
@@ -634,18 +1067,93 @@ interface GeneratedDashboardProps {
 
 export default function GeneratedDashboard({ config, hidePresenter, onConfigChange }: GeneratedDashboardProps) {
   const [presenting, setPresenting] = useState(false);
+  const [slicerState, setSlicerState] = useState<Record<string, string>>({});
 
   if (!config) return null;
 
   const kpis = config.kpis || [];
-  // Hidden charts stay in storage so the Copilot can re-show them, but they
-  // never render in the grid.
   const charts = (config.charts || []).filter((c: any) => !c?.hidden);
   const tables = config.tables || [];
+  const dsRows: any[] = config.dataScience?.rows ?? [];
+  const dsCols: any[] = config.dataScience?.columns ?? [];
 
-  // Stagger chart cards in after the KPIs land for a polished entrance.
+  // Detect slicer candidates: categorical columns from raw data with 2–20 unique values
+  const slicerCols = useMemo(() => {
+    if (!dsRows.length || !dsCols.length) return [];
+    return dsCols
+      .filter((c: any) => c.type === "string" || c.type === "boolean")
+      .map((c: any) => {
+        const vals = [...new Set(dsRows.map((r: any) => String(r[c.name] ?? "")).filter(Boolean))].sort();
+        return { name: c.name, values: vals };
+      })
+      .filter((c) => c.values.length >= 2 && c.values.length <= 20)
+      .slice(0, 3);
+  }, [dsRows, dsCols]);
+
+  const hasActiveSlicer = Object.values(slicerState).some((v) => v !== "");
+
+  const filteredRows = useMemo(() => {
+    if (!hasActiveSlicer) return dsRows;
+    return dsRows.filter((row: any) =>
+      Object.entries(slicerState).every(([key, val]) => !val || String(row[key] ?? "") === val),
+    );
+  }, [dsRows, slicerState, hasActiveSlicer]);
+
+  const slicedCharts = useMemo(() => {
+    // Recovery pass: rebuild any chart that has empty data from the raw dataset rows.
+    const recovered = dsRows.length > 0 ? charts.map((chart: any) => {
+      if (Array.isArray(chart.data) && chart.data.length > 0) return chart;
+      const rebuilt = rebuildChartData(chart, dsRows);
+      if (rebuilt && rebuilt.length > 0) return { ...chart, data: rebuilt };
+      // Generic fallback when insightTag is absent: aggregate by xKey / yKey.
+      const xKey: string | undefined = chart.xKey;
+      const yKeyRaw = Array.isArray(chart.yKey) ? chart.yKey[0] : chart.yKey;
+      const yKey: string | undefined = yKeyRaw;
+      if (!xKey) return chart;
+      const availCols = Object.keys(dsRows[0]);
+      const rx = availCols.find((c) => c === xKey) ?? availCols.find((c) => c.includes(xKey));
+      if (!rx) return chart;
+      const ry = yKey ? (availCols.find((c) => c === yKey) ?? availCols.find((c) => c.includes(yKey))) : undefined;
+      const agg: Record<string, number> = {};
+      for (const row of dsRows) {
+        const k = String(row[rx] ?? ""); if (!k) continue;
+        agg[k] = (agg[k] ?? 0) + (ry ? Number(row[ry] || 0) : 1);
+      }
+      const limit = chart.type === "pie" || chart.type === "donut" ? 8 : 10;
+      const derived = Object.entries(agg)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, limit)
+        .map(([k, v]) => ({ [rx]: k, [ry ?? "count"]: v }));
+      return derived.length > 0 ? { ...chart, data: derived, xKey: rx, yKey: ry ?? "count" } : chart;
+    }) : charts;
+
+    if (!hasActiveSlicer) return recovered;
+    return recovered.map((chart: any) => {
+      // insightTag path: re-aggregate from raw filtered rows
+      if (filteredRows.length) {
+        const rebuilt = rebuildChartData(chart, filteredRows);
+        if (rebuilt && rebuilt.length > 0) return { ...chart, data: rebuilt };
+      }
+      // direct-filter fallback: filter chart.data by any slicer columns present in it
+      const activeSlicers = Object.entries(slicerState).filter(([, v]) => v !== "");
+      if (!activeSlicers.length) return chart;
+      const chartCols = new Set(Object.keys((chart.data || [])[0] || {}));
+      const relevant = activeSlicers.filter(([k]) => chartCols.has(k));
+      if (!relevant.length) return chart;
+      const filtered = (chart.data || []).filter((row: any) =>
+        relevant.every(([k, v]) => String(row[k] ?? "") === v)
+      );
+      return filtered.length > 0 ? { ...chart, data: filtered } : chart;
+    });
+  }, [charts, dsRows, filteredRows, hasActiveSlicer, slicerState]);
+
   const kpiStaggerEnd = kpis.length * 70;
   const canEdit = typeof onConfigChange === "function";
+
+  // Charts pinned from the Copilot chat ("Add to Dashboard" button)
+  const [location] = useLocation();
+  const { getChartsForSection } = useCustomDashboards();
+  const pinnedCharts = getChartsForSection(location);
 
   // Tell the right-rail Copilot what we're showing so it can answer with
   // ground-truth context (chart titles, KPI labels) instead of generic prose.
@@ -712,8 +1220,48 @@ export default function GeneratedDashboard({ config, hidePresenter, onConfigChan
         </div>
       )}
 
+      {/* Power BI-style slicer bar — auto-detected from raw data columns */}
+      {slicerCols.length > 0 && (
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-muted/40 border border-border rounded-xl flex-wrap animate-in fade-in duration-300">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Filter</span>
+          </div>
+          {slicerCols.map((col) => (
+            <div key={col.name} className="flex items-center gap-1.5">
+              <span className="text-[11px] text-muted-foreground font-medium">{col.name}:</span>
+              <select
+                value={slicerState[col.name] ?? ""}
+                onChange={(e) =>
+                  setSlicerState((prev) => ({ ...prev, [col.name]: e.target.value }))
+                }
+                className="text-[11px] bg-white border border-border rounded-md px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer hover:border-primary/50 transition-colors"
+              >
+                <option value="">All</option>
+                {col.values.map((v) => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </select>
+            </div>
+          ))}
+          {hasActiveSlicer && (
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-[10px] text-primary font-semibold">
+                {filteredRows.length.toLocaleString()} / {dsRows.length.toLocaleString()} rows
+              </span>
+              <button
+                onClick={() => setSlicerState({})}
+                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-3 h-3" /> Clear
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        {charts.map((chart: any, i: number) => (
+        {slicedCharts.map((chart: any, i: number) => (
           <div
             key={chart.id}
             className={cn(
@@ -727,6 +1275,19 @@ export default function GeneratedDashboard({ config, hidePresenter, onConfigChan
           </div>
         ))}
       </div>
+
+      {pinnedCharts.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Pinned from Chat
+          </p>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+            {pinnedCharts.map((chart) => (
+              <PinnedChart key={chart.id} chart={chart} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {tables.length > 0 && (
         <div className={cn("grid gap-5", tables.length >= 2 ? "grid-cols-1 xl:grid-cols-2" : "grid-cols-1")}>

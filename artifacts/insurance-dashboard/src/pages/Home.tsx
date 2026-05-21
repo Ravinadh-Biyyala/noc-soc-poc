@@ -1,10 +1,11 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { CreateWorkspaceDialog } from "@/components/CreateWorkspaceDialog";
 import { ConnectorPickerDialog } from "@/components/ConnectorPickerDialog";
 import { setPendingFile } from "@/lib/pending-file";
 import { CONNECTORS } from "@/lib/connectors.config";
+import { useRegisterObservation } from "@/lib/chat-observer";
 import {
   Upload,
   ArrowRight,
@@ -16,9 +17,39 @@ import {
 export default function Home() {
   const [createOpen, setCreateOpen] = useState(false);
   const [connectorOpen, setConnectorOpen] = useState(false);
+  const [autoOpenGoogleSheets, setAutoOpenGoogleSheets] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [, setLocation] = useLocation();
+
+  useRegisterObservation(
+    useMemo(
+      () => ({
+        label: "Home",
+        kind: "home" as const,
+        summary: "The user is on the front-door page. They can create a workspace, upload data, or pick a connector. No specific dataset or project is active.",
+        suggestions: [
+          "What's the fastest way to get started?",
+          "Which connector should I use?",
+          "Summarise what I've already uploaded",
+        ],
+      }),
+      [],
+    ),
+  );
+
+  // After Google OAuth callback, the URL will include ?google_connected=1.
+  // Auto-open the connector dialog directly to the Google Sheets picker.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("google_connected") === "1") {
+      setAutoOpenGoogleSheets(true);
+      setConnectorOpen(true);
+      // Remove the query param from the URL without a reload
+      const clean = window.location.pathname;
+      window.history.replaceState({}, "", clean);
+    }
+  }, []);
 
   const handleFileSelected = useCallback(
     (file: File) => {
@@ -143,7 +174,14 @@ export default function Home() {
         open={createOpen}
         onOpenChange={setCreateOpen}
       />
-      <ConnectorPickerDialog open={connectorOpen} onOpenChange={setConnectorOpen} />
+      <ConnectorPickerDialog
+        open={connectorOpen}
+        onOpenChange={(v) => {
+          setConnectorOpen(v);
+          if (!v) setAutoOpenGoogleSheets(false);
+        }}
+        autoOpenGoogleSheets={autoOpenGoogleSheets}
+      />
     </div>
   );
 }

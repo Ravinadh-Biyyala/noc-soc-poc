@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { useListWorkspaces } from "@workspace/api-client-react";
 import { getPack } from "@/lib/domain-packs";
+import { useRegisterObservation } from "@/lib/chat-observer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,6 +42,23 @@ function formatRelative(iso: string): string {
 export default function WorkspacesList() {
   const [createOpen, setCreateOpen] = useState(false);
   const { data, isLoading, error } = useListWorkspaces();
+
+  useRegisterObservation(
+    useMemo(() => {
+      const count = data?.length ?? 0;
+      const names = (data ?? []).slice(0, 5).map((w) => w.name).join(", ");
+      return {
+        label: "Workspaces",
+        kind: "workspaces" as const,
+        summary: `User is on the Workspaces list — the lightweight quickstart flow (upload → auto-dashboard). ${count} workspace(s) total${names ? `: ${names}` : ""}. For the multi-phase agent pipeline use the Projects tab instead.`,
+        suggestions: [
+          "What's the difference between Workspaces and Projects?",
+          "Summarise my workspaces",
+          "Which workspace is most active?",
+        ],
+      };
+    }, [data]),
+  );
 
   return (
     <div className="space-y-6 max-w-6xl" data-testid="page-workspaces">

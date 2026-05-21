@@ -39,7 +39,6 @@ const CustomDashboardsContext = createContext<CustomDashboardsContextType>({
   removeSidebarEntry: () => {},
 });
 
-const STORAGE_KEY = "invex-custom-dashboards";
 const SIDEBAR_STORAGE_KEY = "invex-custom-sidebar";
 
 const SECTION_KEYWORDS: Record<string, string[]> = {
@@ -69,14 +68,9 @@ export function classifyChart(chartData: { title: string; data: any[] }): { sect
   for (const [section, keywords] of Object.entries(SECTION_KEYWORDS)) {
     let score = 0;
     for (const keyword of keywords) {
-      if (searchText.includes(keyword)) {
-        score += keyword.length;
-      }
+      if (searchText.includes(keyword)) score += keyword.length;
     }
-    if (score > bestScore) {
-      bestScore = score;
-      bestSection = section;
-    }
+    if (score > bestScore) { bestScore = score; bestSection = section; }
   }
 
   return { section: bestSection, sectionLabel: SECTION_LABELS[bestSection] };
@@ -86,49 +80,90 @@ function slugify(title: string): string {
   return "/custom/" + title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
-export function CustomDashboardsProvider({ children }: { children: React.ReactNode }) {
-  const [charts, setCharts] = useState<CustomChart[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
+function rowToChart(row: any): CustomChart {
+  return {
+    id: String(row.id),
+    type: row.config.type ?? "bar",
+    title: row.config.title ?? "",
+    xKey: row.config.xKey ?? "x",
+    yKey: row.config.yKey ?? "y",
+    data: row.config.data ?? [],
+    section: row.sectionRoute,
+    sectionLabel: row.config.sectionLabel ?? row.sectionRoute,
+    addedAt: new Date(row.createdAt).getTime(),
+  };
+}
 
+export function CustomDashboardsProvider({ children }: { children: React.ReactNode }) {
+  const apiBase = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+  const [charts, setCharts] = useState<CustomChart[]>([]);
   const [sidebarEntries, setSidebarEntries] = useState<CustomSidebarEntry[]>(() => {
     try {
       const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
       return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   });
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(charts));
-  }, [charts]);
+    fetch(`${apiBase}/api/section-pinned-charts`)
+      .then((r) => r.json())
+      .then((rows: any[]) => setCharts(rows.map(rowToChart)))
+      .catch(() => {});
+  }, [apiBase]);
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(sidebarEntries));
   }, [sidebarEntries]);
 
-  const addChart = useCallback((chart: Omit<CustomChart, "id" | "addedAt">) => {
-    const newChart: CustomChart = {
-      ...chart,
-      id: `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      addedAt: Date.now(),
-    };
-    setCharts(prev => [...prev, newChart]);
-  }, []);
+  const addChart = useCallback(
+    (chart: Omit<CustomChart, "id" | "addedAt">) => {
+      // Optimistic local add
+      const optimisticId = `pending-${Date.now()}`;
+      const optimistic: CustomChart = { ...chart, id: optimisticId, addedAt: Date.now() };
+      setCharts((prev) => [...prev, optimistic]);
 
-  const removeChart = useCallback((id: string) => {
-    setCharts(prev => prev.filter(c => c.id !== id));
-  }, []);
+      const config = {
+        type: chart.type,
+        title: chart.title,
+        xKey: chart.xKey,
+        yKey: chart.yKey,
+        data: chart.data,
+        sectionLabel: chart.sectionLabel,
+      };
 
-  const getChartsForSection = useCallback((section: string) => {
-    return charts.filter(c => c.section === section);
-  }, [charts]);
+      fetch(`${apiBase}/api/section-pinned-charts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sectionRoute: chart.section, config }),
+      })
+        .then((r) => r.json())
+        .then((row: any) => {
+          setCharts((prev) =>
+            prev.map((c) => (c.id === optimisticId ? rowToChart(row) : c)),
+          );
+        })
+        .catch(() => {
+          setCharts((prev) => prev.filter((c) => c.id !== optimisticId));
+        });
+    },
+    [apiBase],
+  );
+
+  const removeChart = useCallback(
+    (id: string) => {
+      setCharts((prev) => prev.filter((c) => c.id !== id));
+      if (!id.startsWith("pending-")) {
+        fetch(`${apiBase}/api/section-pinned-charts/${id}`, { method: "DELETE" }).catch(() => {});
+      }
+    },
+    [apiBase],
+  );
+
+  const getChartsForSection = useCallback(
+    (section: string) => charts.filter((c) => c.section === section),
+    [charts],
+  );
 
   const addSidebarEntry = useCallback((title: string) => {
     const route = slugify(title);
@@ -138,25 +173,25 @@ export function CustomDashboardsProvider({ children }: { children: React.ReactNo
       route,
       addedAt: Date.now(),
     };
-    setSidebarEntries(prev => {
-      if (prev.some(e => e.route === route)) return prev;
+    setSidebarEntries((prev) => {
+      if (prev.some((e) => e.route === route)) return prev;
       return [...prev, entry];
     });
     return entry;
   }, []);
 
   const removeSidebarEntry = useCallback((id: string) => {
-    setSidebarEntries(prev => {
-      const entry = prev.find(e => e.id === id);
-      if (entry) {
-        setCharts(c => c.filter(ch => ch.section !== entry.route));
-      }
-      return prev.filter(e => e.id !== id);
+    setSidebarEntries((prev) => {
+      const entry = prev.find((e) => e.id === id);
+      if (entry) setCharts((c) => c.filter((ch) => ch.section !== entry.route));
+      return prev.filter((e) => e.id !== id);
     });
   }, []);
 
   return (
-    <CustomDashboardsContext.Provider value={{ charts, addChart, removeChart, getChartsForSection, sidebarEntries, addSidebarEntry, removeSidebarEntry }}>
+    <CustomDashboardsContext.Provider
+      value={{ charts, addChart, removeChart, getChartsForSection, sidebarEntries, addSidebarEntry, removeSidebarEntry }}
+    >
       {children}
     </CustomDashboardsContext.Provider>
   );

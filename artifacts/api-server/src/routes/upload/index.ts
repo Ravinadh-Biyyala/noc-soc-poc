@@ -2,6 +2,10 @@ import { Router, type Request, type Response, type NextFunction } from "express"
 import multer from "multer";
 import * as XLSX from "xlsx";
 import { openai } from "@workspace/integrations-openai-ai-server";
+import { db, pool, datasets as datasetsTable, workspaces as workspacesTable } from "@workspace/db";
+import type { DatasetColumn } from "@workspace/db";
+import { eq, sql } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 
 const router = Router();
 const MAX_UPLOAD_BYTES = 60 * 1024 * 1024; // 60 MB
@@ -48,6 +52,132 @@ interface SheetSummary {
 interface UploadResult {
   fileName: string;
   sheets: SheetSummary[];
+  datasetIds?: number[];
+}
+
+// Map inferred column types to PostgreSQL column types
+function toPgType(type: ColumnInfo["type"]): DatasetColumn["pgType"] {
+  switch (type) {
+    case "number":  return "NUMERIC";
+    case "date":    return "TIMESTAMPTZ";
+    case "boolean": return "BOOLEAN";
+    default:        return "TEXT";
+  }
+}
+
+// Sanitize a column name to a valid, lowercase PostgreSQL identifier
+function toPgName(name: string): string {
+  const sanitized = name
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "_")
+    .replace(/^([^a-z])/, "col_$1")
+    .slice(0, 60);
+  return sanitized || "col_unknown";
+}
+
+async function persistSheetToDb(
+  sheet: SheetSummary,
+  fileName: string,
+  workspaceId: number | null,
+  log: Request["log"],
+): Promise<number> {
+  const uid = randomUUID().replace(/-/g, "").slice(0, 12);
+  const tableName = `ds_${uid}`;
+
+  // Build column metadata with sanitized pg names (deduplicate if needed)
+  const usedPgNames = new Set<string>();
+  const colSchema: DatasetColumn[] = sheet.columns.map((c) => {
+    let pgName = toPgName(c.name);
+    if (pgName === "_row_id") pgName = "col_row_id";
+    // Ensure uniqueness
+    let candidate = pgName;
+    let suffix = 2;
+    while (usedPgNames.has(candidate)) {
+      candidate = `${pgName}_${suffix++}`;
+    }
+    usedPgNames.add(candidate);
+    return {
+      originalName: c.name,
+      pgName: candidate,
+      type: c.type,
+      pgType: toPgType(c.type),
+      nullCount: c.nullCount,
+      uniqueCount: c.uniqueCount,
+      min: c.min,
+      max: c.max,
+      mean: c.mean,
+    };
+  });
+
+  // DDL — create the dynamic table
+  const colDefs = colSchema
+    .map((c) => `  "${c.pgName}" ${c.pgType}`)
+    .join(",\n");
+  const createSql = `CREATE TABLE "${tableName}" (\n  _row_id SERIAL PRIMARY KEY,\n${colDefs}\n)`;
+
+  const rows = (sheet.rows ?? sheet.sampleRows) as Record<string, unknown>[];
+
+  const client = await pool.connect();
+  try {
+    await client.query(createSql);
+
+    // Batch insert — keep param count below PostgreSQL's 65535 limit
+    if (rows.length > 0) {
+      const batchSize = Math.max(1, Math.floor(60_000 / colSchema.length));
+      const pgNames = colSchema.map((c) => `"${c.pgName}"`).join(", ");
+
+      for (let i = 0; i < rows.length; i += batchSize) {
+        const batch = rows.slice(i, i + batchSize);
+        const placeholders: string[] = [];
+        const values: unknown[] = [];
+        let paramIdx = 1;
+
+        for (const row of batch) {
+          const rowPlaceholders = colSchema.map((c) => {
+            const raw = row[c.originalName];
+            let val = raw === undefined || raw === "" ? null : raw;
+            // Guard against strings that passed type detection but aren't
+            // valid timestamps — null them out rather than letting PG throw.
+            if (c.pgType === "TIMESTAMPTZ" && val !== null && !(val instanceof Date)) {
+              const d = new Date(String(val));
+              val = isNaN(d.getTime()) ? null : d;
+            }
+            values.push(val);
+            return `$${paramIdx++}`;
+          });
+          placeholders.push(`(${rowPlaceholders.join(", ")})`);
+        }
+
+        await client.query(
+          `INSERT INTO "${tableName}" (${pgNames}) VALUES ${placeholders.join(", ")}`,
+          values,
+        );
+      }
+    }
+
+    log.info({ tableName, rows: rows.length, cols: colSchema.length }, "Sheet persisted to DB");
+  } catch (err) {
+    // Clean up the half-created table on failure
+    await client.query(`DROP TABLE IF EXISTS "${tableName}"`).catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  // Save dataset metadata row
+  const [meta] = await db
+    .insert(datasetsTable)
+    .values({
+      workspaceId,
+      fileName,
+      sheetName: sheet.name,
+      tableName,
+      columnSchema: colSchema,
+      rowCount: rows.length,
+    })
+    .returning();
+
+  return meta.id;
 }
 
 function detectColumnType(values: unknown[]): ColumnInfo["type"] {
@@ -58,10 +188,13 @@ function detectColumnType(values: unknown[]): ColumnInfo["type"] {
   let dateCount = 0;
   let boolCount = 0;
 
+  // Require an explicit date-shaped pattern for string values — Date.parse() is
+  // too permissive and misclassifies IDs like "CG-12520" as timestamps.
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}|$)|^\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2,4}$/;
   for (const v of nonNull.slice(0, 100)) {
     if (typeof v === "number" || (typeof v === "string" && !isNaN(Number(v)) && v.trim() !== "")) numCount++;
     else if (typeof v === "boolean") boolCount++;
-    else if (v instanceof Date || (typeof v === "string" && !isNaN(Date.parse(v)) && v.length > 6)) dateCount++;
+    else if (v instanceof Date || (typeof v === "string" && DATE_RE.test(v.trim()))) dateCount++;
   }
 
   const total = Math.min(nonNull.length, 100);
@@ -140,12 +273,19 @@ router.post("/upload", handleUpload, async (req: Request, res: Response) => {
       return;
     }
 
+    req.log.info(
+      { fileName: req.file.originalname, sizeBytes: req.file.size, mimetype: req.file.mimetype },
+      "File received — parsing started"
+    );
+    const parseStart = Date.now();
+
     const workbook = XLSX.read(req.file.buffer, { type: "buffer", cellDates: true });
     const sheets = workbook.SheetNames.map((name) =>
       analyzeSheet(workbook.Sheets[name], name)
     ).filter((s) => s.rowCount > 0);
 
     if (sheets.length === 0) {
+      req.log.warn({ fileName: req.file.originalname }, "Upload rejected — no data rows found");
       res.status(400).json({ error: "No data found in the uploaded file" });
       return;
     }
@@ -154,6 +294,10 @@ router.post("/upload", handleUpload, async (req: Request, res: Response) => {
     // true rowCount and the column stats (computed over the full sheet earlier).
     const trimmedSheets = sheets.map((s) => {
       if (!s.rows || s.rows.length <= MAX_ROWS_PER_SHEET) return { ...s, truncated: false };
+      req.log.info(
+        { sheet: s.name, totalRows: s.rowCount, returnedRows: MAX_ROWS_PER_SHEET },
+        "Sheet truncated — large dataset, returning row cap"
+      );
       return {
         ...s,
         rows: s.rows.slice(0, MAX_ROWS_PER_SHEET),
@@ -162,9 +306,56 @@ router.post("/upload", handleUpload, async (req: Request, res: Response) => {
       };
     });
 
+    req.log.info(
+      {
+        fileName: req.file.originalname,
+        parseDurationMs: Date.now() - parseStart,
+        sheetCount: trimmedSheets.length,
+        sheets: trimmedSheets.map((s) => ({ name: s.name, rows: s.rowCount, cols: s.columns.length, truncated: s.truncated })),
+      },
+      "File parsed successfully"
+    );
+
+    // -----------------------------------------------------------------------
+    // Persist each sheet as its own PostgreSQL table so NL-to-SQL queries
+    // can run against the real data without requiring another upload.
+    // -----------------------------------------------------------------------
+    const workspaceId = req.body.workspaceId ? Number(req.body.workspaceId) : null;
+    const savedDatasetIds: number[] = [];
+
+    for (const sheet of trimmedSheets) {
+      try {
+        const datasetId = await persistSheetToDb(
+          sheet,
+          req.file.originalname,
+          workspaceId,
+          req.log,
+        );
+        savedDatasetIds.push(datasetId);
+      } catch (persistErr: unknown) {
+        req.log.warn({ err: persistErr, sheet: sheet.name }, "Failed to persist sheet — continuing");
+      }
+    }
+
+    // Bump fileCount on the workspace if provided
+    if (workspaceId && savedDatasetIds.length > 0) {
+      try {
+        await db
+          .update(workspacesTable)
+          .set({
+            fileCount: sql`${workspacesTable.fileCount} + ${savedDatasetIds.length}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(workspacesTable.id, workspaceId));
+      } catch {
+        // Non-fatal — workspace counter is informational
+      }
+    }
+
     const result: UploadResult = {
       fileName: req.file.originalname,
       sheets: trimmedSheets,
+      datasetIds: savedDatasetIds,
     };
 
     res.json(result);
@@ -551,6 +742,13 @@ router.post("/generate-dashboard", async (req: Request, res: Response) => {
     // Multi-sheet datasets are joined client-side in DataPrep before they get
     // here, so we only need to plan against the first (final) sheet.
     const primary = sheets[0];
+
+    req.log.info(
+      { fileName, rows: primary.rowCount, cols: primary.columns.length, columns: primary.columns.map((c) => `${c.name}(${c.type})`) },
+      "Dashboard generation started"
+    );
+    const genStart = Date.now();
+
     const drafts = buildInsightPlan(primary);
     const baseKpis = buildKpis(primary);
 
@@ -632,6 +830,9 @@ ${JSON.stringify(sampleRows, null, 1)}`;
     } | null = null;
 
     try {
+      req.log.info({ model: "gpt-4.1-mini", chartDrafts: drafts.length, kpis: baseKpis.length }, "Calling OpenAI for dashboard narrative");
+      const llmStart = Date.now();
+
       const response = await openai.chat.completions.create({
         model: "gpt-4.1-mini",
         max_completion_tokens: 2048,
@@ -643,6 +844,16 @@ ${JSON.stringify(sampleRows, null, 1)}`;
       });
       const content = response.choices[0]?.message?.content;
       if (content) narrative = JSON.parse(content);
+
+      req.log.info(
+        {
+          llmDurationMs: Date.now() - llmStart,
+          promptTokens: response.usage?.prompt_tokens,
+          completionTokens: response.usage?.completion_tokens,
+          totalTokens: response.usage?.total_tokens,
+        },
+        "OpenAI narrative call complete"
+      );
     } catch (llmErr: unknown) {
       // Soft-fail: the deterministic defaults are good enough on their own.
       req.log.warn({ err: llmErr }, "Narrative LLM call failed, using deterministic defaults");
@@ -677,6 +888,7 @@ ${JSON.stringify(sampleRows, null, 1)}`;
           xKey: d.xKey,
           yKey: d.yKey,
           data: d.data,
+          insightTag: d.insightTag,
         };
       })
       // Final guard: empty data must never reach the client.
@@ -695,6 +907,18 @@ ${JSON.stringify(sampleRows, null, 1)}`;
       min: c.min,
       max: c.max,
     }));
+
+    req.log.info(
+      {
+        fileName,
+        totalDurationMs: Date.now() - genStart,
+        chartCount: charts.length,
+        kpiCount: kpis.length,
+        narrativeUsed: narrative !== null,
+        charts: charts.map((c) => ({ id: c.id, type: c.type, dataPoints: c.data.length })),
+      },
+      "Dashboard generation complete"
+    );
 
     res.json({
       title: narrative?.title || fileName.replace(/\.[^.]+$/, "") || "Dataset overview",

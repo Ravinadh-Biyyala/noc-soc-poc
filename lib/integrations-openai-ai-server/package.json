@@ -10,8 +10,12 @@
     "./audio": "./src/audio/index.ts"
   },
   "dependencies": {
+    "langsmith": "^0.7.1",
     "openai": "^6.27.0",
     "p-limit": "^7.3.0",
     "p-retry": "^7.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:"
   }
 }

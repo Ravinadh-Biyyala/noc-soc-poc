@@ -25,7 +25,7 @@ export const DOMAIN_PACKS: DomainPack[] = [
     industry: "Insurance",
     description: "Premium, commission, retention, claims and producer analytics.",
     icon: ShieldAlert,
-    copilotName: "Broker Copilot",
+    copilotName: "BI Companion",
     suggestedPrompts: [
       "Compare top 5 states by premium",
       "Show premium trend last 12 months",
@@ -85,7 +85,7 @@ export const DOMAIN_PACKS: DomainPack[] = [
     industry: "Any",
     description: "Open-ended pack — bring your own data and let Gen-BI suggest metrics.",
     icon: BarChart3,
-    copilotName: "Gen-BI Copilot",
+    copilotName: "BI Companion",
     suggestedPrompts: [
       "Summarize the dataset",
       "What patterns are in the data?",

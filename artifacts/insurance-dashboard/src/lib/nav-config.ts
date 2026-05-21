@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   ShieldCheck,
   Settings as SettingsIcon,
+  FolderKanban,
   type LucideIcon,
 } from "lucide-react";
 
@@ -37,6 +38,13 @@ export type NavItem = NavLeaf;
  */
 export const NAV: NavItem[] = [
   { type: "leaf", href: "/", label: "Home", icon: Home },
+  {
+    type: "leaf",
+    href: "/projects",
+    label: "Projects",
+    icon: FolderKanban,
+    matchPrefix: "/projects",
+  },
   {
     type: "leaf",
     href: "/workspaces",

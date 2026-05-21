@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { wrapOpenAI } from "langsmith/wrappers";
 
 if (!process.env.AI_INTEGRATIONS_OPENAI_BASE_URL) {
   throw new Error(
@@ -12,7 +13,9 @@ if (!process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
   );
 }
 
-export const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+export const openai: OpenAI = wrapOpenAI(
+  new OpenAI({
+    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  })
+);

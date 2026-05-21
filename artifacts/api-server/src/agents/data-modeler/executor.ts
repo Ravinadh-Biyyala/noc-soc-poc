@@ -1,0 +1,271 @@
+/**
+ * Concrete tool implementations for DataModelerAgent.
+ *
+ * The semantic-model pass is READ-ONLY against the warehouse and writes a
+ * single graphDefinition row into project_semantic_models. The agent never
+ * issues DDL — physical join shape is not its responsibility.
+ *
+ * The dashboard-generation pass (Pass 2B, retained) writes to user_dashboards
+ * + dashboard_charts. Kept here for back-compat until the consumption-side
+ * dashboard generator moves out of the modeler in a follow-up.
+ */
+import {
+  db,
+  userDashboards,
+  dashboardCharts,
+  projectSemanticModels,
+  masterPool,
+  warehouseSchema,
+  type SemanticGraphDefinition,
+} from "@workspace/db";
+import { eq, and, desc } from "drizzle-orm";
+import { assertSelectOnly, assertSchemaScope } from "../shared/validation";
+import type { AgentToolCall } from "../shared/runner";
+import type pino from "pino";
+
+interface ColumnRow {
+  table_name: string;
+  column_name: string;
+  data_type: string;
+}
+
+export async function listWarehouseTables(projectId: number) {
+  const schema = warehouseSchema(projectId);
+  const result = await masterPool.query<ColumnRow>(
+    `SELECT table_name, column_name, data_type
+     FROM information_schema.columns
+     WHERE table_schema = $1
+     ORDER BY table_name, ordinal_position`,
+    [schema],
+  );
+  const grouped = new Map<string, Array<{ name: string; type: string }>>();
+  for (const row of result.rows) {
+    const existing = grouped.get(row.table_name) ?? [];
+    existing.push({ name: row.column_name, type: row.data_type });
+    grouped.set(row.table_name, existing);
+  }
+  return Array.from(grouped.entries()).map(([tableName, columns]) => ({ tableName, columns }));
+}
+
+export async function executeWarehouseQuery(projectId: number, sqlText: string) {
+  assertSelectOnly(sqlText);
+  assertSchemaScope(sqlText, [warehouseSchema(projectId)]);
+  const result = await masterPool.query(sqlText);
+  return {
+    columns: result.fields.map((f) => f.name),
+    rows: result.rows.slice(0, 200),
+    truncated: result.rows.length > 200,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Semantic model tools — propose_star_schema (in-memory) +
+// generate_semantic_graph (writes the row).
+// ---------------------------------------------------------------------------
+
+interface StarSchemaState {
+  facts: string[];
+  dimensions: string[];
+  rationale: string;
+}
+
+export interface GenerateSemanticGraphArgs {
+  facts: string[];
+  dimensions: string[];
+  joins: Array<{ from: string; to: string; cardinality: "1:1" | "1:N" | "N:1" | "N:N" }>;
+  rationale: string;
+}
+
+export async function saveSemanticGraph(
+  projectId: number,
+  args: GenerateSemanticGraphArgs,
+): Promise<{ id: number; status: string }> {
+  // Replace any prior "proposed" row for this project — we keep one open
+  // proposal at a time. Accepted rows are immutable history.
+  await db
+    .delete(projectSemanticModels)
+    .where(and(
+      eq(projectSemanticModels.workspaceId, projectId),
+      eq(projectSemanticModels.status, "proposed"),
+    ));
+
+  const graphDefinition: SemanticGraphDefinition = {
+    facts: args.facts,
+    dimensions: args.dimensions,
+    joins: args.joins,
+  };
+
+  const [row] = await db
+    .insert(projectSemanticModels)
+    .values({
+      workspaceId: projectId,
+      status: "proposed",
+      graphDefinition,
+      agentRationale: args.rationale,
+    })
+    .returning();
+
+  return { id: row.id, status: row.status };
+}
+
+export async function getAppliedSemanticGraph(projectId: number) {
+  const [row] = await db
+    .select()
+    .from(projectSemanticModels)
+    .where(and(
+      eq(projectSemanticModels.workspaceId, projectId),
+      eq(projectSemanticModels.status, "applied"),
+    ))
+    .orderBy(desc(projectSemanticModels.createdAt))
+    .limit(1);
+  return row ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// create_dashboard tool — kept for the dashboard-generation pass. Writes
+// user_dashboards + dashboard_charts so the existing GeneratedDashboard
+// component can render the result.
+// ---------------------------------------------------------------------------
+
+interface ChartShape {
+  title: string;
+  chartType: string;
+  config: Record<string, unknown>;
+}
+
+export interface CreateDashboardArgs {
+  title: string;
+  charts: ChartShape[];
+}
+
+export async function createProjectDashboard(projectId: number, args: CreateDashboardArgs) {
+  if (!args.title || !Array.isArray(args.charts) || args.charts.length === 0) {
+    return { error: "title and at least one chart are required" };
+  }
+
+  const safeTitle = args.title.trim().slice(0, 255);
+  const flatTableName = `proj_${projectId}_dash_${Date.now().toString(36)}`;
+
+  const [dashboard] = await db
+    .insert(userDashboards)
+    .values({
+      name: safeTitle,
+      flatTableName,
+      sourceDatasetIds: [],
+      rowCount: 0,
+      status: "ready",
+      agentLog: `Generated by DataModelerAgent for project ${projectId}`,
+    })
+    .returning();
+
+  await db.insert(dashboardCharts).values(
+    args.charts.map((c, i) => ({
+      dashboardId: dashboard.id,
+      title: c.title,
+      chartType: c.chartType,
+      config: c.config as never,
+      position: i,
+      colSpan: 1,
+    })),
+  );
+
+  return { dashboardId: dashboard.id, name: safeTitle, chartCount: args.charts.length };
+}
+
+// ---------------------------------------------------------------------------
+// Dispatchers — one for the "semantic model" pass (no dashboard tool), one
+// for the "generate dashboard" pass. Each agent run sees only the tools that
+// match its current task.
+// ---------------------------------------------------------------------------
+
+export function makeSemanticModelExecutor(projectId: number, log: pino.Logger) {
+  // Hold the in-flight star-schema classification across tool calls so
+  // generate_semantic_graph can default to it if the model omits facts/dims.
+  let starSchema: StarSchemaState | null = null;
+
+  return async (call: AgentToolCall): Promise<string> => {
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(call.arguments || "{}");
+    } catch {
+      return JSON.stringify({ error: "Could not parse tool arguments as JSON." });
+    }
+
+    switch (call.name) {
+      case "list_warehouse_tables": {
+        log.info({ projectId, tool: "list_warehouse_tables" }, "data-modeler tool");
+        const result = await listWarehouseTables(projectId).catch((err) => ({ error: String(err) }));
+        return JSON.stringify(result);
+      }
+      case "propose_star_schema": {
+        starSchema = {
+          facts: Array.isArray(parsed.facts) ? parsed.facts.map(String) : [],
+          dimensions: Array.isArray(parsed.dimensions) ? parsed.dimensions.map(String) : [],
+          rationale: String(parsed.rationale ?? ""),
+        };
+        log.info({ projectId, tool: "propose_star_schema", starSchema }, "data-modeler tool");
+        return JSON.stringify({ recorded: true, ...starSchema });
+      }
+      case "generate_semantic_graph": {
+        const args: GenerateSemanticGraphArgs = {
+          facts: Array.isArray(parsed.facts) ? parsed.facts.map(String) : (starSchema?.facts ?? []),
+          dimensions: Array.isArray(parsed.dimensions) ? parsed.dimensions.map(String) : (starSchema?.dimensions ?? []),
+          joins: Array.isArray(parsed.joins) ? parsed.joins as GenerateSemanticGraphArgs["joins"] : [],
+          rationale: String(parsed.rationale ?? starSchema?.rationale ?? ""),
+        };
+        log.info({ projectId, tool: "generate_semantic_graph", joinCount: args.joins.length }, "data-modeler tool");
+        const result = await saveSemanticGraph(projectId, args).catch((err) => ({ error: String(err) }));
+        return JSON.stringify(result);
+      }
+      // Back-compat alias: callers that still call the old name get redirected
+      // to the new semantic-graph flow.
+      case "propose_relationship": {
+        const join = {
+          from: `${parsed.sourceTable}.${parsed.sourceColumn}`,
+          to: `${parsed.targetTable}.${parsed.targetColumn}`,
+          cardinality: (String(parsed.cardinality ?? "1:N") as "1:1" | "1:N" | "N:1" | "N:N"),
+        };
+        log.info({ projectId, tool: "propose_relationship", join }, "data-modeler tool (back-compat)");
+        return JSON.stringify({ note: "propose_relationship is deprecated; aggregating into a single semantic graph. Call generate_semantic_graph when done.", recordedJoin: join });
+      }
+      default:
+        return JSON.stringify({ error: `Tool ${call.name} is not available during the semantic-model pass.` });
+    }
+  };
+}
+
+/** Back-compat name used by the legacy /suggest-relationships route. */
+export const makeRelationshipsExecutor = makeSemanticModelExecutor;
+
+export function makeDashboardExecutor(projectId: number, log: pino.Logger) {
+  return async (call: AgentToolCall): Promise<string> => {
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(call.arguments || "{}");
+    } catch {
+      return JSON.stringify({ error: "Could not parse tool arguments as JSON." });
+    }
+
+    switch (call.name) {
+      case "list_warehouse_tables": {
+        log.info({ projectId, tool: "list_warehouse_tables" }, "data-modeler tool");
+        const result = await listWarehouseTables(projectId).catch((err) => ({ error: String(err) }));
+        return JSON.stringify(result);
+      }
+      case "execute_warehouse_query": {
+        const sqlText = String(parsed.sql ?? "");
+        if (!sqlText) return JSON.stringify({ error: "sql is required" });
+        log.info({ projectId, tool: "execute_warehouse_query" }, "data-modeler tool");
+        const result = await executeWarehouseQuery(projectId, sqlText).catch((err) => ({ error: String(err) }));
+        return JSON.stringify(result);
+      }
+      case "create_dashboard": {
+        log.info({ projectId, tool: "create_dashboard", title: parsed.title }, "data-modeler tool");
+        const result = await createProjectDashboard(projectId, parsed as unknown as CreateDashboardArgs).catch((err) => ({ error: String(err) }));
+        return JSON.stringify(result);
+      }
+      default:
+        return JSON.stringify({ error: `Tool ${call.name} is not available during dashboard generation.` });
+    }
+  };
+}

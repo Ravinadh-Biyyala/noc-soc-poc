@@ -14,6 +14,13 @@ export interface ChatObservation {
   summary?: string;
   /** Optional pre-baked suggestion chips for this view. */
   suggestions?: string[];
+  /**
+   * Active workspace/project id, if any. Passed to /api/openai/chat so the
+   * server can load the project's applied semantic model + metrics and inject
+   * them into the system prompt. Substituting {{metric:name}} placeholders in
+   * generated SQL also keys off this.
+   */
+  workspaceId?: number;
 }
 
 /**

@@ -2,6 +2,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { db, settings as settingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { UpdateSettingsBody } from "@workspace/api-zod";
+import { invalidateSystemPromptCache } from "../../config/prompt-builder.js";
 
 // Single-row settings keyed by user id. There is no auth layer yet, so all
 // requests share the "default" row. Once auth ships, swap this for the
@@ -66,6 +67,14 @@ router.patch("/settings", async (req: Request, res: Response) => {
     })
     .where(eq(settingsTable.userId, DEFAULT_USER_ID))
     .returning();
+
+  if (!updated) {
+    res.status(404).json({ error: "Settings not found" });
+    return;
+  }
+
+  // AI behaviour may have changed — invalidate the cached system prompt
+  invalidateSystemPromptCache();
   res.json(serialize(updated));
 });
 

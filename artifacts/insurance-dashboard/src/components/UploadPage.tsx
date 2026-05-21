@@ -9,8 +9,10 @@ import { cn } from "@/lib/utils";
 import DataPrep from "@/components/DataPrep";
 import type { Table } from "@/lib/data-operations";
 import { consumePendingFile } from "@/lib/pending-file";
-import { useChatObserver } from "@/lib/chat-observer";
-import { profile, type DqInput } from "@/lib/data-quality";
+import { useChatObserver, useRegisterObservation } from "@/lib/chat-observer";
+import { profile, type DqInput, type DqFinding } from "@/lib/data-quality";
+import { log } from "@/lib/logger";
+import { useToast } from "@/hooks/use-toast";
 
 interface SheetSummary {
   name: string;
@@ -22,10 +24,21 @@ interface SheetSummary {
   returnedRowCount?: number;
 }
 
-interface UploadResult {
+export interface UploadResult {
   uploadId: string;
   fileName: string;
   sheets: SheetSummary[];
+  datasetIds?: number[];
+}
+
+interface PersistedDataset {
+  id: number;
+  fileName: string;
+  sheetName: string;
+  tableName: string;
+  rowCount: number;
+  columns: { name: string; type: string }[];
+  createdAt: string;
 }
 
 type Stage = "upload" | "parsing" | "prep" | "generating";
@@ -40,13 +53,73 @@ function tableIdFor(uploadId: string, sheetName: string): string {
   return `${uploadId}::${sheetName}`.replace(/[^a-zA-Z0-9:_-]/g, "_");
 }
 
-function tableNameFor(fileName: string, sheetName: string, multipleSheets: boolean): string {
+export function tableNameFor(fileName: string, sheetName: string, multipleSheets: boolean): string {
   const base = fileName.replace(/\.[^.]+$/, "");
   if (!multipleSheets) return base;
   return `${base}.${sheetName}`;
 }
 
-export default function UploadPage({ onDashboardGenerated }: { onDashboardGenerated: (config: any) => { route: string } }) {
+// ---------------------------------------------------------------------------
+// Data-quality Apply functions — turn agent-suggestion "apply" into real
+// in-memory transformations so the cleaned data flows into dashboard generation.
+// ---------------------------------------------------------------------------
+function applyFindingToFiles(
+  prev: import("./UploadPage").UploadResult[] | any[],
+  finding: DqFinding,
+): any[] {
+  return prev.map((f: any) => {
+    const multi = f.sheets.length > 1;
+    return {
+      ...f,
+      sheets: f.sheets.map((s: any) => {
+        if (tableNameFor(f.fileName, s.name, multi) !== finding.scope.table) return s;
+        const col = finding.scope.columns?.[0];
+        const allRows: Record<string, unknown>[] = s.rows || s.sampleRows;
+        let newRows = allRows;
+
+        if (finding.rule === "outliers" && col) {
+          const nums = allRows.map((r) => r[col]).filter((v): v is number => typeof v === "number");
+          if (nums.length > 1) {
+            const mean = nums.reduce((a, b) => a + b, 0) / nums.length;
+            const sd = Math.sqrt(nums.reduce((a, b) => a + (b - mean) ** 2, 0) / nums.length) || 1;
+            const hi = mean + 3 * sd;
+            const lo = mean - 3 * sd;
+            newRows = allRows.map((r) =>
+              typeof r[col] === "number"
+                ? { ...r, [col]: Math.min(hi, Math.max(lo, r[col] as number)) }
+                : r,
+            );
+          }
+        } else if (finding.rule === "missing-values" && col) {
+          const nonNull = allRows.map((r) => r[col]).filter((v) => v != null && v !== "");
+          const isNum = nonNull.length > 0 && nonNull.every((v) => typeof v === "number");
+          const fill = isNum
+            ? ([...nonNull as number[]].sort((a, b) => a - b)[Math.floor(nonNull.length / 2)] ?? 0)
+            : "Unknown";
+          newRows = allRows.map((r) =>
+            r[col] == null || r[col] === "" ? { ...r, [col]: fill } : r,
+          );
+        } else if (finding.rule === "duplicate-rows") {
+          const seen = new Set<string>();
+          newRows = allRows.filter((r) => {
+            const k = JSON.stringify(r);
+            if (seen.has(k)) return false;
+            seen.add(k);
+            return true;
+          });
+        }
+
+        return {
+          ...s,
+          rows: s.rows ? newRows : s.rows,
+          sampleRows: newRows.slice(0, Math.max(s.sampleRows.length, 8)),
+        };
+      }),
+    };
+  });
+}
+
+export default function UploadPage({ onDashboardGenerated }: { onDashboardGenerated: (config: any) => Promise<{ route: string }> }) {
   const [stage, setStage] = useState<Stage>("upload");
   const [dragActive, setDragActive] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadResult[]>([]);
@@ -57,7 +130,77 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
   const [_, setLocation] = useLocation();
   const { pushAgentSuggestion, dismissAgentSuggestion } = useChatObserver();
 
+  const [persistedDatasets, setPersistedDatasets] = useState<PersistedDataset[]>([]);
+  const [loadingDatasets, setLoadingDatasets] = useState(true);
+  const [creatingDashboardForId, setCreatingDashboardForId] = useState<number | null>(null);
+  const [selectedDatasetIds, setSelectedDatasetIds] = useState<Set<number>>(new Set());
+  const [creatingMultiDashboard, setCreatingMultiDashboard] = useState(false);
+
+  useRegisterObservation(
+    useMemo(() => {
+      const fileNames = uploadedFiles.slice(0, 3).map((f) => f.fileName).join(", ");
+      return {
+        label: stage === "upload" ? "Data upload" : `Data upload (${stage})`,
+        kind: "data" as const,
+        summary: `User is on the Data upload page (stage: ${stage}). ${uploadedFiles.length} file(s) uploaded in this session${fileNames ? `: ${fileNames}` : ""}. ${persistedDatasets.length} dataset(s) previously imported.`,
+        suggestions: [
+          "What columns look suspicious in my upload?",
+          "Suggest a dashboard for the data I just uploaded",
+          "How do I clean malformed dates in this file?",
+        ],
+      };
+    }, [stage, uploadedFiles, persistedDatasets.length]),
+  );
+
   const apiBase = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+  // Fetch all previously imported datasets from the DB on mount
+  useEffect(() => {
+    fetch(`${apiBase}/api/datasets`)
+      .then((r) => r.json())
+      .then((data: PersistedDataset[]) => setPersistedDatasets(data))
+      .catch(() => {})
+      .finally(() => setLoadingDatasets(false));
+  }, [apiBase]);
+
+  const toggleDatasetSelection = useCallback((id: number) => {
+    setSelectedDatasetIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleCreateMultiDashboard = useCallback(async () => {
+    if (selectedDatasetIds.size === 0) return;
+    setCreatingMultiDashboard(true);
+    setError(null);
+    setProgress("AI agent is merging tables and generating your dashboard…");
+    try {
+      const res = await fetch(`${apiBase}/api/user-dashboards`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          datasetIds: Array.from(selectedDatasetIds),
+          name: selectedDatasetIds.size === 1
+            ? (persistedDatasets.find((d) => d.id === Array.from(selectedDatasetIds)[0])?.fileName?.replace(/\.[^.]+$/, "") ?? "My Dashboard")
+            : `Dashboard — ${selectedDatasetIds.size} tables`,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: `Server returned ${res.status}` }));
+        throw new Error(err.error || "Dashboard creation failed");
+      }
+      const dashboard = await res.json();
+      setLocation(`/my-dashboards/${dashboard.id}`);
+    } catch (err: any) {
+      log.error("Multi-table dashboard creation failed", { error: err.message });
+      setError(err.message || "Failed to create dashboard");
+    } finally {
+      setCreatingMultiDashboard(false);
+      setProgress("");
+    }
+  }, [apiBase, selectedDatasetIds, persistedDatasets, setLocation]);
 
   // Memoize so heavy row arrays aren't re-flatMapped on every keystroke / re-render.
   const sourceTables: Table[] = useMemo(
@@ -80,17 +223,21 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
     // Client-side guards
     const MAX_BYTES = 60 * 1024 * 1024; // keep in sync with backend
     if (file.size > MAX_BYTES) {
+      log.warn("Upload rejected — file too large", { name: file.name, size: formatBytes(file.size), limitMB: 60 });
       setError(`"${file.name}" is ${formatBytes(file.size)} — max upload is 60 MB.`);
       return;
     }
     const ext = file.name.toLowerCase().split(".").pop();
     if (!ext || !["csv", "xlsx", "xls"].includes(ext)) {
+      log.warn("Upload rejected — unsupported file type", { name: file.name, ext });
       setError(`Unsupported file type. Please upload CSV, XLSX, or XLS.`);
       return;
     }
 
+    log.info("Upload started", { name: file.name, size: formatBytes(file.size), sizeBytes: file.size, type: file.type });
     setStage("parsing");
     setProgress(`Parsing ${file.name} (${formatBytes(file.size)})...`);
+    const uploadStart = Date.now();
 
     try {
       const formData = new FormData();
@@ -104,6 +251,18 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
 
       const parsed = await res.json();
       const result: UploadResult = { ...parsed, uploadId: newUploadId() };
+
+      log.info("Upload complete", {
+        name: file.name,
+        durationMs: Date.now() - uploadStart,
+        sheets: result.sheets.map((s) => ({
+          name: s.name,
+          rows: s.rowCount,
+          cols: s.columns.length,
+          truncated: s.truncated ?? false,
+        })),
+      });
+
       setUploadedFiles((prev) => {
         const next = [...prev, result];
         // Run the deterministic data-quality engine across everything
@@ -118,6 +277,7 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
             })),
           );
           const findings = profile(tables);
+          log.info("Data quality profile complete", { findingsCount: findings.length, findings: findings.map((f) => f.title) });
           for (const fnd of findings) {
             pushAgentSuggestion({
               id: fnd.id,
@@ -125,15 +285,15 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
               rationale: fnd.rationale,
               applyLabel: fnd.applyLabel,
               severity: fnd.severity,
-              // The "apply" hook is a no-op stub for now — the
-              // materialisation lives in DataPrep / the prepared-table
-              // pipeline. The card still proves the agent is the one
-              // driving cleansing/joins instead of a buried nav page.
-              onApply: () => dismissAgentSuggestion(fnd.id),
+              onApply: () => {
+                setUploadedFiles(prev => applyFindingToFiles(prev, fnd));
+                dismissAgentSuggestion(fnd.id);
+              },
             });
           }
-        } catch {
+        } catch (profileErr) {
           // Profiling is best-effort; never block the upload flow.
+          log.warn("Data quality profiling failed (non-fatal)", { err: String(profileErr) });
         }
         return next;
       });
@@ -142,6 +302,7 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
       const msg = err?.name === "TypeError"
         ? "Network error — the file may be too large or the server is unreachable."
         : (err?.message || "Failed to parse file");
+      log.error("Upload failed", { name: file.name, durationMs: Date.now() - uploadStart, error: msg });
       setError(msg);
       // Use functional setState pattern to avoid stale closure on uploadedFiles.length
       setUploadedFiles((prev) => {
@@ -209,10 +370,67 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
     });
   };
 
+  const handleCreateFromDataset = useCallback(async (dataset: PersistedDataset) => {
+    setCreatingDashboardForId(dataset.id);
+    setError(null);
+    setProgress("AI is analyzing your data and designing visualizations...");
+    try {
+      // Fetch the detail view (includes 100-row preview + full column schema with stats)
+      const detail = await fetch(`${apiBase}/api/datasets/${dataset.id}`).then((r) => r.json());
+
+      const sheetForBackend = {
+        name: dataset.sheetName,
+        rowCount: dataset.rowCount,
+        columns: detail.columns.map((c: any) => ({
+          name: c.name,
+          type: c.type,
+          uniqueCount: c.uniqueCount ?? 0,
+          sample: [],
+          nullCount: c.nullCount ?? 0,
+        })),
+        sampleRows: (detail.sampleRows ?? []).slice(0, 8),
+        rows: detail.sampleRows ?? [],
+      };
+
+      const res = await fetch(`${apiBase}/api/generate-dashboard`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sheets: [sheetForBackend], fileName: dataset.fileName }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: `Server returned ${res.status}` }));
+        throw new Error(err.error || "Generation failed");
+      }
+
+      const dashboardConfig = await res.json();
+      log.info("Dashboard generated from persisted dataset", {
+        datasetId: dataset.id,
+        fileName: dataset.fileName,
+        title: dashboardConfig.title,
+      });
+      const entry = await onDashboardGenerated(dashboardConfig);
+      setLocation(entry.route);
+    } catch (err: any) {
+      log.error("Failed to create dashboard from dataset", { datasetId: dataset.id, error: err.message });
+      setError(err.message || "Failed to create dashboard");
+    } finally {
+      setCreatingDashboardForId(null);
+      setProgress("");
+    }
+  }, [apiBase, onDashboardGenerated, setLocation]);
+
   const handleGenerate = async (finalTable: Table) => {
     setStage("generating");
     setProgress("AI is analyzing your data and designing visualizations...");
     setError(null);
+
+    log.info("Dashboard generation started", {
+      tableName: finalTable.name,
+      totalRows: finalTable.rows.length,
+      columns: finalTable.columns.map((c) => `${c.name}(${c.type})`),
+    });
+    const genStart = Date.now();
 
     try {
       // Cap rows sent over the wire — AI only uses ~150 anyway, but a buffer
@@ -283,9 +501,17 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
       }
 
       const dashboardConfig = await res.json();
-      const entry = onDashboardGenerated(dashboardConfig);
+      log.info("Dashboard generation complete", {
+        durationMs: Date.now() - genStart,
+        title: dashboardConfig.title,
+        kpiCount: dashboardConfig.kpis?.length ?? 0,
+        chartCount: dashboardConfig.charts?.length ?? 0,
+        charts: dashboardConfig.charts?.map((c: any) => `${c.type}:${c.title}`),
+      });
+      const entry = await onDashboardGenerated(dashboardConfig);
       setLocation(entry.route);
     } catch (err: any) {
+      log.error("Dashboard generation failed", { durationMs: Date.now() - genStart, error: err.message });
       setError(err.message || "Failed to generate dashboard");
       setStage("prep");
     }
@@ -484,6 +710,138 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
           </div>
         )}
 
+        {/* Recent Imports — datasets previously saved to the database */}
+        {stage === "upload" && (
+          <>
+            {loadingDatasets && (
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground py-1">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Loading recent imports…
+              </div>
+            )}
+
+            {!loadingDatasets && persistedDatasets.length > 0 && (
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-2 pt-1">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium px-1">
+                    Recent Imports
+                  </span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+
+                {/* Multi-select action bar */}
+                {selectedDatasetIds.size > 0 && (
+                  <div className="flex items-center justify-between gap-2 px-3 py-2 bg-primary/5 border border-primary/20 rounded-lg">
+                    <span className="text-xs font-medium text-primary">
+                      {selectedDatasetIds.size} table{selectedDatasetIds.size !== 1 ? "s" : ""} selected
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-[11px] h-7 px-2"
+                        onClick={() => setSelectedDatasetIds(new Set())}
+                      >
+                        Clear
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="text-[11px] h-7 gap-1.5 px-2.5"
+                        disabled={creatingMultiDashboard}
+                        onClick={handleCreateMultiDashboard}
+                      >
+                        {creatingMultiDashboard ? (
+                          <><Loader2 className="w-3 h-3 animate-spin" />Creating…</>
+                        ) : (
+                          <><BarChart3 className="w-3 h-3" />Create Dashboard</>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-0.5">
+                  {persistedDatasets.map((ds) => {
+                    const isSelected = selectedDatasetIds.has(ds.id);
+                    return (
+                      <div
+                        key={ds.id}
+                        onClick={() => toggleDatasetSelection(ds.id)}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 border rounded-lg cursor-pointer transition-all",
+                          isSelected
+                            ? "border-primary/40 bg-primary/5"
+                            : "border-border/60 bg-muted/30 hover:bg-muted/50"
+                        )}
+                      >
+                        {/* Checkbox */}
+                        <div
+                          className={cn(
+                            "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+                            isSelected
+                              ? "border-primary bg-primary"
+                              : "border-border/60 bg-background"
+                          )}
+                        >
+                          {isSelected && (
+                            <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 12 12">
+                              <path d="M10 3L5 8.5 2 5.5" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </div>
+
+                        {/* Icon */}
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Database className="w-4 h-4 text-primary" />
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-sm font-medium truncate">{ds.fileName}</span>
+                            {ds.sheetName !== "Sheet1" && ds.sheetName !== ds.fileName.replace(/\.[^.]+$/, "") && (
+                              <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex-shrink-0">
+                                {ds.sheetName}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
+                            <span>{ds.rowCount.toLocaleString()} rows</span>
+                            <span className="text-border">·</span>
+                            <span>{ds.columns.length} columns</span>
+                            <span className="text-border">·</span>
+                            <span>{formatRelativeDate(ds.createdAt)}</span>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground/70 truncate mt-0.5">
+                            {ds.columns.slice(0, 5).map((c) => c.name).join(", ")}
+                            {ds.columns.length > 5 && ` +${ds.columns.length - 5} more`}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {selectedDatasetIds.size === 0 && (
+                  <p className="text-[10px] text-muted-foreground text-center">
+                    Select one or more tables, then click "Create Dashboard"
+                  </p>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Generating overlay for multi-table dashboard creation */}
+        {creatingMultiDashboard && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 backdrop-blur-sm px-4 py-10 animate-in fade-in duration-300">
+            <div className="w-full max-w-md">
+              <GenerationLoader progress={progress} />
+            </div>
+          </div>
+        )}
+
         {stage === "generating" && (
           <div className="w-full max-w-md mx-auto">
             <GenerationLoader progress={progress} />
@@ -493,6 +851,18 @@ export default function UploadPage({ onDashboardGenerated }: { onDashboardGenera
       {hiddenInput}
     </div>
   );
+}
+
+function formatRelativeDate(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 function formatBytes(bytes: number): string {

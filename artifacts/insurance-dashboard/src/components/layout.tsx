@@ -6,14 +6,17 @@ import {
   Bot,
   Send,
   ChevronRight,
-  ChevronDown,
   BrainCircuit,
   Loader2,
   Sparkles as SparklesNav,
+  PlusCircle,
+  CornerDownRight,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useCopilot } from "@/lib/copilot-context";
-import { useTenantConfig, resolveIcon } from "@/lib/tenant-config";
+import { useTenantConfig } from "@/lib/tenant-config";
 import { useGeneratedDashboards } from "@/lib/generated-dashboards";
 import { useChatObserver } from "@/lib/chat-observer";
 import { Eye, AlertTriangle, Info, AlertOctagon, Check, XCircle } from "lucide-react";
@@ -29,14 +32,36 @@ import {
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Avatar, AvatarFallback } from "./ui/avatar";
+import { useToast } from "@/hooks/use-toast";
+import { useCustomDashboards, classifyChart } from "@/lib/custom-dashboards";
 import {
   ResponsiveContainer,
   BarChart, Bar,
   AreaChart, Area,
   LineChart, Line,
   PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip,
+  ScatterChart, Scatter, ZAxis,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  ComposedChart,
+  FunnelChart, Funnel, LabelList,
+  Treemap,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts";
+
+function generateFollowUps(content: string, observationLabel: string): string[] {
+  const lower = content.toLowerCase();
+  if (lower.includes('[chart:') || lower.includes('chart') && lower.includes('data'))
+    return ["Break this down by another dimension", "What's driving the largest slice?", "Show me the trend over time"];
+  if (lower.includes('trend') || lower.includes('month') || lower.includes('year'))
+    return ["Compare with the previous period", "What caused the biggest change?", "Forecast the next 3 months"];
+  if (lower.includes('top') || lower.includes('highest') || lower.includes('best'))
+    return ["Show me the bottom performers too", "What do the top performers have in common?"];
+  if (lower.includes('anomal') || lower.includes('outlier') || lower.includes('unusual'))
+    return ["When did this anomaly start?", "What other metrics are affected?"];
+  if (lower.includes('segment') || lower.includes('region') || lower.includes('categor'))
+    return ["Which segment has the most growth potential?", "Show me a comparison chart"];
+  return [`What else stands out on ${observationLabel}?`, "How does this compare to benchmarks?"];
+}
 
 function pageTitle(location: string): string {
   // Quick lookups so the header reads sensibly on every route.
@@ -51,102 +76,96 @@ function pageTitle(location: string): string {
   return "Dashboard";
 }
 
-function SidebarNav() {
+function SidebarNav({ collapsed }: { collapsed: boolean }) {
   const [location] = useLocation();
-  const { config } = useTenantConfig();
-  // Built-in tenant sections render as nested quick-links under Dashboards
-  // so the user can still jump straight to e.g. Claims or Sales without
-  // a separate top-level entry.
-  const sectionItems = (config?.sections || []).map((s) => ({
-    id: s.id,
-    label: s.label,
-    href: s.route === "/" ? `/dashboards/${s.id}` : s.route,
-    icon: resolveIcon(s.icon),
-  }));
 
   return (
-    <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
+    <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto overflow-x-hidden">
       {NAV.map((item) => {
         const isActive = item.matchPrefix
           ? location === item.href || location.startsWith(item.matchPrefix + "/")
           : location === item.href;
-        const showDashboardSections =
-          item.href === "/dashboards" &&
-          (location === "/dashboards" ||
-            location.startsWith("/dashboards/") ||
-            sectionItems.some((s) => s.href === location)) &&
-          sectionItems.length > 0;
         return (
-          <div key={item.href}>
-            <Link href={item.href}>
-              <div
-                className={cn(
-                  "flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] transition-all cursor-pointer",
-                  isActive
-                    ? "bg-sidebar-accent text-white font-medium"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-white",
-                )}
-                data-testid={`nav-${item.label.toLowerCase()}`}
-              >
-                <item.icon className={cn("w-4 h-4", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/50")} />
-                {item.label}
-              </div>
-            </Link>
-            {showDashboardSections && (
-              <div className="ml-5 mt-0.5 space-y-0.5 border-l border-sidebar-border/50 pl-2">
-                {sectionItems.map((sec) => {
-                  const SecIcon = sec.icon;
-                  const secActive = location === sec.href;
-                  return (
-                    <Link key={sec.id} href={sec.href}>
-                      <div
-                        className={cn(
-                          "flex items-center gap-2 px-2 py-1 rounded-md text-[11.5px] transition-all cursor-pointer",
-                          secActive
-                            ? "bg-sidebar-accent text-white font-medium"
-                            : "text-sidebar-foreground/55 hover:bg-sidebar-accent/40 hover:text-white",
-                        )}
-                        data-testid={`nav-section-${sec.id}`}
-                      >
-                        <SecIcon className={cn("w-3 h-3", secActive ? "text-sidebar-primary" : "text-sidebar-foreground/40")} />
-                        {sec.label}
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <Link key={item.href} href={item.href}>
+            <div
+              title={collapsed ? item.label : undefined}
+              className={cn(
+                "flex items-center gap-2.5 rounded-md text-[13px] transition-all cursor-pointer",
+                collapsed ? "justify-center px-2 py-2" : "px-2.5 py-2",
+                isActive
+                  ? "bg-sidebar-accent text-white font-medium"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-white",
+              )}
+              data-testid={`nav-${item.label.toLowerCase()}`}
+            >
+              <item.icon className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/50")} />
+              {!collapsed && <span className="truncate">{item.label}</span>}
+            </div>
+          </Link>
         );
       })}
     </nav>
   );
 }
 
+const SIDEBAR_COLLAPSED_KEY = "geva-sidebar-collapsed";
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { config } = useTenantConfig();
   const { workspace } = useActiveWorkspace();
-  const brandName = config?.branding?.name || "Gen-BI";
+  const brandName = config?.branding?.name || "Geva";
   const headerTitle = workspace?.name && location.startsWith("/workspaces/") ? workspace.name : pageTitle(location);
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1";
+  });
+  useEffect(() => {
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, sidebarCollapsed ? "1" : "0");
+  }, [sidebarCollapsed]);
 
   return (
     <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
-      <aside className="w-60 flex-shrink-0 border-r border-sidebar-border bg-sidebar flex flex-col">
-        <div className="h-14 flex items-center px-5 border-b border-sidebar-border">
-          <Link href="/">
-            <div className="flex items-center gap-2.5 text-white font-bold text-base tracking-tight cursor-pointer">
-              <div className="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center">
-                <SparklesNav className="w-4 h-4 text-sidebar-primary" />
+      <aside
+        className={cn(
+          "flex-shrink-0 border-r border-sidebar-border bg-sidebar flex flex-col transition-[width] duration-200 ease-out",
+          sidebarCollapsed ? "w-14" : "w-60",
+        )}
+      >
+        <div
+          className={cn(
+            "h-14 flex items-center border-b border-sidebar-border",
+            sidebarCollapsed ? "justify-center px-2" : "justify-between px-3",
+          )}
+        >
+          {!sidebarCollapsed && (
+            <Link href="/">
+              <div className="flex items-center gap-2.5 text-white font-bold text-base tracking-tight cursor-pointer">
+                <div className="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center">
+                  <SparklesNav className="w-4 h-4 text-sidebar-primary" />
+                </div>
+                {brandName}
               </div>
-              {brandName}
-            </div>
-          </Link>
+            </Link>
+          )}
+          <button
+            type="button"
+            onClick={() => setSidebarCollapsed((v) => !v)}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="w-8 h-8 rounded-md flex items-center justify-center text-sidebar-foreground/60 hover:text-white hover:bg-sidebar-accent/50 transition-colors"
+            data-testid="sidebar-toggle"
+          >
+            {sidebarCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+          </button>
         </div>
-        <SidebarNav />
-        <div className="p-3 border-t border-sidebar-border text-[10px] text-sidebar-foreground/40">
-          {brandName} {new Date().getFullYear()}
-        </div>
+        <SidebarNav collapsed={sidebarCollapsed} />
+        {!sidebarCollapsed && (
+          <div className="p-3 border-t border-sidebar-border text-[10px] text-sidebar-foreground/40">
+            {brandName} {new Date().getFullYear()}
+          </div>
+        )}
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -182,7 +201,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
 const CHART_COLORS = ["#1565C0", "#0288D1", "#0097A7", "#00838F", "#00695C", "#6366f1", "#8b5cf6"];
 
-function InlineChart({ chartData }: { chartData: { type: string; title: string; xKey: string; yKey: string; data: any[] } }) {
+function InlineChart({ chartData, onAddToDashboard }: {
+  chartData: { type: string; title: string; xKey: string; yKey: string; data: any[] };
+  onAddToDashboard?: () => void;
+}) {
   const { type, title, xKey, yKey, data } = chartData;
 
   const formatValue = (val: number) => {
@@ -192,6 +214,138 @@ function InlineChart({ chartData }: { chartData: { type: string; title: string; 
     return val.toLocaleString();
   };
 
+  const yKeys = Array.isArray(yKey) ? yKey : [yKey];
+  const ttStyle = { backgroundColor: '#fff', borderColor: '#e5e7eb', borderRadius: '8px', fontSize: '11px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' };
+
+  const renderInlineChart = (): React.ReactElement => {
+    switch (type) {
+      case 'pie':
+      case 'donut':
+        return (
+          <PieChart>
+            <Pie data={data} cx="50%" cy="50%" innerRadius={type === 'donut' ? 35 : 0} outerRadius={65} paddingAngle={2} dataKey={yKeys[0]} nameKey={xKey}>
+              {data.map((_: any, i: number) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+            </Pie>
+            <Tooltip contentStyle={ttStyle} formatter={(v: number) => [formatValue(v)]} />
+          </PieChart>
+        );
+      case 'bar':
+      case 'stacked-bar':
+      case 'histogram':
+        return (
+          <BarChart data={data} margin={{ top: 5, right: 5, left: 10, bottom: 20 }} barCategoryGap={type === 'histogram' ? 2 : '10%'}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+            <XAxis dataKey={xKey} fontSize={9} tickLine={false} axisLine={false} angle={-20} textAnchor="end" stroke="#6b7280" />
+            <YAxis fontSize={9} tickLine={false} axisLine={false} tickFormatter={formatValue} stroke="#6b7280" />
+            <Tooltip contentStyle={ttStyle} formatter={(v: number) => [formatValue(v)]} />
+            {yKeys.length > 1 && <Legend iconSize={7} wrapperStyle={{ fontSize: "9px" }} />}
+            {yKeys.map((k: string, i: number) => (
+              <Bar key={k} dataKey={k} stackId={type === 'stacked-bar' ? 's' : undefined} radius={type === 'stacked-bar' ? undefined : [4, 4, 0, 0]} fill={CHART_COLORS[i % CHART_COLORS.length]}>
+                {yKeys.length === 1 && data.map((_: any, j: number) => <Cell key={j} fill={CHART_COLORS[j % CHART_COLORS.length]} />)}
+              </Bar>
+            ))}
+          </BarChart>
+        );
+      case 'horizontal-bar':
+        return (
+          <BarChart data={data} layout="vertical" margin={{ top: 5, right: 15, left: 5, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
+            <XAxis type="number" fontSize={9} tickLine={false} axisLine={false} tickFormatter={formatValue} stroke="#6b7280" />
+            <YAxis dataKey={xKey} type="category" fontSize={9} tickLine={false} axisLine={false} width={80} stroke="#6b7280" />
+            <Tooltip contentStyle={ttStyle} formatter={(v: number) => [formatValue(v)]} />
+            <Bar dataKey={yKeys[0]} radius={[0, 4, 4, 0]}>
+              {data.map((_: any, i: number) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+            </Bar>
+          </BarChart>
+        );
+      case 'line':
+        return (
+          <LineChart data={data} margin={{ top: 5, right: 5, left: 10, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+            <XAxis dataKey={xKey} fontSize={9} tickLine={false} axisLine={false} angle={-20} textAnchor="end" stroke="#6b7280" />
+            <YAxis fontSize={9} tickLine={false} axisLine={false} tickFormatter={formatValue} stroke="#6b7280" />
+            <Tooltip contentStyle={ttStyle} formatter={(v: number) => [formatValue(v)]} />
+            {yKeys.length > 1 && <Legend iconSize={7} wrapperStyle={{ fontSize: "9px" }} />}
+            {yKeys.map((k: string, i: number) => (
+              <Line key={k} type="monotone" dataKey={k} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={2} dot={{ fill: CHART_COLORS[i % CHART_COLORS.length], r: 3 }} />
+            ))}
+          </LineChart>
+        );
+      case 'scatter':
+      case 'bubble':
+        return (
+          <ScatterChart margin={{ top: 5, right: 5, left: 10, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey={xKey} type="number" fontSize={9} tickLine={false} axisLine={false} stroke="#6b7280" tickFormatter={formatValue} />
+            <YAxis dataKey={yKeys[0]} type="number" fontSize={9} tickLine={false} axisLine={false} stroke="#6b7280" tickFormatter={formatValue} />
+            {type === 'bubble' && <ZAxis dataKey={yKeys[1] || yKeys[0]} range={[40, 300]} />}
+            <Tooltip contentStyle={ttStyle} formatter={(v: number) => [formatValue(v)]} />
+            <Scatter data={data} fill={CHART_COLORS[0]}>
+              {data.map((_: any, i: number) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+            </Scatter>
+          </ScatterChart>
+        );
+      case 'combo':
+        return (
+          <ComposedChart data={data} margin={{ top: 5, right: 25, left: 10, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+            <XAxis dataKey={xKey} fontSize={9} tickLine={false} axisLine={false} angle={-20} textAnchor="end" stroke="#6b7280" />
+            <YAxis yAxisId="left" fontSize={9} tickLine={false} axisLine={false} tickFormatter={formatValue} stroke="#6b7280" />
+            <YAxis yAxisId="right" orientation="right" fontSize={9} tickLine={false} axisLine={false} tickFormatter={formatValue} stroke={CHART_COLORS[3]} />
+            <Tooltip contentStyle={ttStyle} formatter={(v: number) => [formatValue(v)]} />
+            <Legend iconSize={7} wrapperStyle={{ fontSize: "9px" }} />
+            <Bar yAxisId="left" dataKey={yKeys[0]} fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} fillOpacity={0.85} />
+            {yKeys[1] && <Line yAxisId="right" type="monotone" dataKey={yKeys[1]} stroke={CHART_COLORS[3]} strokeWidth={2} dot={{ r: 2 }} />}
+          </ComposedChart>
+        );
+      case 'funnel':
+        return (
+          <FunnelChart>
+            <Funnel dataKey={yKeys[0]} data={data.map((d: any, i: number) => ({ ...d, fill: CHART_COLORS[i % CHART_COLORS.length] }))} isAnimationActive>
+              <LabelList position="center" fill="#fff" stroke="none" fontSize={9} dataKey={xKey} />
+            </Funnel>
+            <Tooltip contentStyle={ttStyle} formatter={(v: number) => [formatValue(v)]} />
+          </FunnelChart>
+        );
+      case 'radar':
+        return (
+          <RadarChart cx="50%" cy="50%" outerRadius="65%" data={data}>
+            <PolarGrid stroke="#e5e7eb" />
+            <PolarAngleAxis dataKey={xKey} fontSize={9} stroke="#6b7280" />
+            <PolarRadiusAxis fontSize={8} stroke="#6b7280" />
+            <Radar dataKey={yKeys[0]} stroke={CHART_COLORS[0]} fill={CHART_COLORS[0]} fillOpacity={0.2} strokeWidth={2} />
+            <Tooltip contentStyle={ttStyle} formatter={(v: number) => [formatValue(v)]} />
+          </RadarChart>
+        );
+      case 'treemap':
+        return (
+          <Treemap
+            data={data.map((d: any, i: number) => ({ ...d, fill: CHART_COLORS[i % CHART_COLORS.length] }))}
+            dataKey={yKeys[0]}
+            nameKey={xKey}
+            aspectRatio={4 / 3}
+            stroke="#fff"
+          />
+        );
+      default:
+        return (
+          <AreaChart data={data} margin={{ top: 5, right: 5, left: 10, bottom: 20 }}>
+            <defs>
+              <linearGradient id="chatAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={CHART_COLORS[1]} stopOpacity={0.3} />
+                <stop offset="95%" stopColor={CHART_COLORS[1]} stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+            <XAxis dataKey={xKey} fontSize={9} tickLine={false} axisLine={false} angle={-20} textAnchor="end" stroke="#6b7280" />
+            <YAxis fontSize={9} tickLine={false} axisLine={false} tickFormatter={formatValue} stroke="#6b7280" />
+            <Tooltip contentStyle={ttStyle} formatter={(v: number) => [formatValue(v)]} />
+            <Area type="monotone" dataKey={yKeys[0]} stroke={CHART_COLORS[1]} strokeWidth={2} fillOpacity={1} fill="url(#chatAreaGrad)" />
+          </AreaChart>
+        );
+    }
+  };
+
   return (
     <div className="mt-2 mb-1 bg-muted/40 rounded-lg border border-border p-3">
       <div className="mb-2">
@@ -199,49 +353,10 @@ function InlineChart({ chartData }: { chartData: { type: string; title: string; 
       </div>
       <div className="h-[180px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          {type === 'pie' ? (
-            <PieChart>
-              <Pie data={data} cx="50%" cy="50%" innerRadius={35} outerRadius={65} paddingAngle={2} dataKey={yKey} nameKey={xKey}>
-                {data.map((_: any, i: number) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-              </Pie>
-              <Tooltip contentStyle={{ backgroundColor: '#fff', borderColor: '#e5e7eb', borderRadius: '8px', fontSize: '11px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} formatter={(v: number) => [formatValue(v)]} />
-            </PieChart>
-          ) : type === 'bar' ? (
-            <BarChart data={data} margin={{ top: 5, right: 5, left: 10, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-              <XAxis dataKey={xKey} fontSize={9} tickLine={false} axisLine={false} angle={-20} textAnchor="end" stroke="#6b7280" />
-              <YAxis fontSize={9} tickLine={false} axisLine={false} tickFormatter={formatValue} stroke="#6b7280" />
-              <Tooltip contentStyle={{ backgroundColor: '#fff', borderColor: '#e5e7eb', borderRadius: '8px', fontSize: '11px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} formatter={(v: number) => [formatValue(v)]} />
-              <Bar dataKey={yKey} radius={[4, 4, 0, 0]}>
-                {data.map((_: any, i: number) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-              </Bar>
-            </BarChart>
-          ) : type === 'line' ? (
-            <LineChart data={data} margin={{ top: 5, right: 5, left: 10, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-              <XAxis dataKey={xKey} fontSize={9} tickLine={false} axisLine={false} angle={-20} textAnchor="end" stroke="#6b7280" />
-              <YAxis fontSize={9} tickLine={false} axisLine={false} tickFormatter={formatValue} stroke="#6b7280" />
-              <Tooltip contentStyle={{ backgroundColor: '#fff', borderColor: '#e5e7eb', borderRadius: '8px', fontSize: '11px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} formatter={(v: number) => [formatValue(v)]} />
-              <Line type="monotone" dataKey={yKey} stroke={CHART_COLORS[0]} strokeWidth={2} dot={{ fill: CHART_COLORS[0], r: 3 }} />
-            </LineChart>
-          ) : (
-            <AreaChart data={data} margin={{ top: 5, right: 5, left: 10, bottom: 20 }}>
-              <defs>
-                <linearGradient id="chatAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={CHART_COLORS[1]} stopOpacity={0.3} />
-                  <stop offset="95%" stopColor={CHART_COLORS[1]} stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-              <XAxis dataKey={xKey} fontSize={9} tickLine={false} axisLine={false} angle={-20} textAnchor="end" stroke="#6b7280" />
-              <YAxis fontSize={9} tickLine={false} axisLine={false} tickFormatter={formatValue} stroke="#6b7280" />
-              <Tooltip contentStyle={{ backgroundColor: '#fff', borderColor: '#e5e7eb', borderRadius: '8px', fontSize: '11px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} formatter={(v: number) => [formatValue(v)]} />
-              <Area type="monotone" dataKey={yKey} stroke={CHART_COLORS[1]} strokeWidth={2} fillOpacity={1} fill="url(#chatAreaGrad)" />
-            </AreaChart>
-          )}
+          {renderInlineChart() as any}
         </ResponsiveContainer>
       </div>
-      {type === 'pie' && (
+      {(type === 'pie' || type === 'donut') && (
         <div className="grid grid-cols-2 gap-1 mt-2">
           {data.slice(0, 6).map((item: any, i: number) => (
             <div key={i} className="flex items-center gap-1.5 text-[9px]">
@@ -251,42 +366,248 @@ function InlineChart({ chartData }: { chartData: { type: string; title: string; 
           ))}
         </div>
       )}
+      {onAddToDashboard && (
+        <div className="flex items-center justify-between px-1 pt-1.5 pb-0.5 mt-1 border-t border-border/40">
+          <span className="text-[9px] text-muted-foreground/60">{data.length} data points</span>
+          <button
+            onClick={onAddToDashboard}
+            className="flex items-center gap-1 text-[10px] font-medium text-primary hover:text-primary/80 transition-colors"
+          >
+            <PlusCircle className="w-3 h-3" />
+            Add to Dashboard
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-function parseCharts(content: string): { text: string; charts: any[] } {
+function InlineTable({ tableData, onAddToDashboard }: {
+  tableData: { title: string; columns: string[]; rows: string[][] };
+  onAddToDashboard?: () => void;
+}) {
+  const { title, columns, rows } = tableData;
+  return (
+    <div className="mt-2 mb-1 bg-muted/40 rounded-lg border border-border p-3">
+      <p className="text-[11px] font-semibold text-foreground mb-2">{title}</p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-[10px] border-collapse">
+          <thead>
+            <tr className="border-b border-border">
+              {columns.map((col, i) => (
+                <th key={i} className="text-left py-1 px-1.5 font-semibold text-muted-foreground whitespace-nowrap">{col}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, ri) => (
+              <tr key={ri} className={cn("border-b border-border/30", ri % 2 === 1 ? "bg-white/60" : "")}>
+                {row.map((cell, ci) => (
+                  <td key={ci} className="py-1 px-1.5 text-foreground">{cell}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {onAddToDashboard && (
+        <div className="flex items-center justify-between px-1 pt-1.5 pb-0.5 mt-1 border-t border-border/40">
+          <span className="text-[9px] text-muted-foreground/60">{rows.length} rows</span>
+          <button onClick={onAddToDashboard} className="flex items-center gap-1 text-[10px] font-medium text-primary hover:text-primary/80 transition-colors">
+            <PlusCircle className="w-3 h-3" />
+            Add to Dashboard
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InlineMetric({ metricData, onAddToDashboard }: {
+  metricData: { title: string; value: string; subtitle?: string; trend?: string };
+  onAddToDashboard?: () => void;
+}) {
+  const { title, value, subtitle, trend } = metricData;
+  const trendArrow = trend === "up" ? "↑" : trend === "down" ? "↓" : null;
+  const trendColor = trend === "up" ? "text-emerald-600" : trend === "down" ? "text-red-500" : "";
+  return (
+    <div className="mt-2 mb-1 bg-primary/5 rounded-lg border border-primary/20 p-3">
+      <p className="text-[10px] text-muted-foreground mb-1">{title}</p>
+      <div className="flex items-end gap-2">
+        <span className="text-xl font-bold text-foreground">{value}</span>
+        {trendArrow && <span className={cn("text-sm font-semibold mb-0.5", trendColor)}>{trendArrow}</span>}
+      </div>
+      {subtitle && <p className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</p>}
+      {onAddToDashboard && (
+        <div className="flex justify-end pt-1.5 mt-1 border-t border-primary/10">
+          <button onClick={onAddToDashboard} className="flex items-center gap-1 text-[10px] font-medium text-primary hover:text-primary/80 transition-colors">
+            <PlusCircle className="w-3 h-3" />
+            Add to Dashboard
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function parseVisuals(content: string): { text: string; charts: any[]; tables: any[]; metrics: any[] } {
   const charts: any[] = [];
+  const tables: any[] = [];
+  const metrics: any[] = [];
   let text = content;
 
-  const marker = '[CHART:';
-  let startIdx = text.indexOf(marker);
-  while (startIdx !== -1) {
-    const jsonStart = startIdx + marker.length;
-    let depth = 0;
-    let endIdx = jsonStart;
-    for (let i = jsonStart; i < text.length; i++) {
-      if (text[i] === '{') depth++;
-      if (text[i] === '}') depth--;
-      if (depth === 0) {
-        endIdx = i + 1;
-        break;
+  function extractTokens(marker: string, target: any[]) {
+    let startIdx = text.indexOf(marker);
+    while (startIdx !== -1) {
+      const jsonStart = startIdx + marker.length;
+      let depth = 0;
+      let endIdx = jsonStart;
+      for (let i = jsonStart; i < text.length; i++) {
+        if (text[i] === '{') depth++;
+        if (text[i] === '}') depth--;
+        if (depth === 0) { endIdx = i + 1; break; }
       }
+      const closeBracket = text.indexOf(']', endIdx);
+      const fullMatch = text.substring(startIdx, closeBracket !== -1 ? closeBracket + 1 : endIdx);
+      const jsonStr = text.substring(jsonStart, endIdx);
+      try { target.push(JSON.parse(jsonStr)); } catch {}
+      text = text.replace(fullMatch, '');
+      startIdx = text.indexOf(marker);
     }
-    const closeBracket = text.indexOf(']', endIdx);
-    const fullMatch = text.substring(startIdx, closeBracket !== -1 ? closeBracket + 1 : endIdx);
-    const jsonStr = text.substring(jsonStart, endIdx);
-
-    try {
-      const chartJson = JSON.parse(jsonStr);
-      charts.push(chartJson);
-    } catch (e) {}
-
-    text = text.replace(fullMatch, '');
-    startIdx = text.indexOf(marker);
   }
 
-  return { text: text.trim(), charts };
+  extractTokens('[CHART:', charts);
+  extractTokens('[TABLE:', tables);
+  extractTokens('[METRIC:', metrics);
+
+  return { text: text.trim(), charts, tables, metrics };
+}
+
+// kept for backward compat with any callers that still use parseCharts
+function parseCharts(content: string): { text: string; charts: any[] } {
+  const { text, charts } = parseVisuals(content);
+  return { text, charts };
+}
+
+// ─── Hidden context marker ────────────────────────────────────────────────────
+// Some callers (e.g. clicking a chart to ask Copilot to explain it) need to
+// send the raw data + response instructions to the model without polluting
+// the user-visible message bubble. They prefix the hidden portion with
+// "[[CTX]]" and we strip everything from that marker onwards for display.
+function stripHiddenContext(content: string): string {
+  const idx = content.indexOf("[[CTX]]");
+  return idx === -1 ? content : content.slice(0, idx).trim();
+}
+
+// ─── Inline bold + markdown renderer for assistant responses ──────────────────
+function InlineBold({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.startsWith("**") && p.endsWith("**")
+          ? <strong key={i} className="font-semibold text-foreground">{p.slice(2, -2)}</strong>
+          : <span key={i}>{p}</span>
+      )}
+    </>
+  );
+}
+
+function normalizeMarkdown(raw: string): string {
+  let t = raw.replace(/\r\n/g, "\n");
+  // If the model returned inline bullets like "Foo. - Bar - Baz", break them
+  // onto new lines so the parser below recognises them.
+  if (!/\n\s*[-*•]\s/.test(t)) {
+    const c = t.replace(/([.!?:,;])\s{1,4}[-–—]\s{1,4}/g, "$1\n- ");
+    if (c !== t) t = c;
+  }
+  return t;
+}
+
+function MarkdownText({ content }: { content: string }) {
+  type Seg =
+    | { k: "h1" | "h2" | "h3"; text: string }
+    | { k: "bullets"; items: string[] }
+    | { k: "numbered"; items: string[] }
+    | { k: "para"; text: string };
+
+  const segs: Seg[] = [];
+  let bullets: string[] = [];
+  let numbered: string[] = [];
+
+  const flushBullets = () => { if (bullets.length) { segs.push({ k: "bullets", items: [...bullets] }); bullets = []; } };
+  const flushNumbered = () => { if (numbered.length) { segs.push({ k: "numbered", items: [...numbered] }); numbered = []; } };
+  const flush = () => { flushBullets(); flushNumbered(); };
+
+  for (const raw of content.split("\n")) {
+    const t = raw.trim();
+    if (!t) { flush(); continue; }
+
+    const hm = t.match(/^(#{1,3})\s+(.+)$/);
+    if (hm) {
+      flush();
+      const level = hm[1].length;
+      segs.push({ k: level === 1 ? "h1" : level === 2 ? "h2" : "h3", text: hm[2] });
+      continue;
+    }
+
+    const bm = t.match(/^[-*•]\s+(.+)$/);
+    if (bm) { flushNumbered(); bullets.push(bm[1]); continue; }
+
+    const nm = t.match(/^\d+\.\s+(.+)$/);
+    if (nm) { flushBullets(); numbered.push(nm[1]); continue; }
+
+    flush();
+    segs.push({ k: "para", text: t });
+  }
+  flush();
+
+  return (
+    <div className="space-y-2">
+      {segs.map((s, i) => {
+        if (s.k === "h1") return (
+          <div key={i} className="font-bold text-[13px] text-foreground mt-1.5 mb-0.5">
+            <InlineBold text={s.text} />
+          </div>
+        );
+        if (s.k === "h2") return (
+          <div key={i} className="font-semibold text-[10px] text-primary/80 mt-1.5 mb-0.5 uppercase tracking-wide">
+            <InlineBold text={s.text} />
+          </div>
+        );
+        if (s.k === "h3") return (
+          <div key={i} className="font-semibold text-[12px] text-foreground mt-1 mb-0.5">
+            <InlineBold text={s.text} />
+          </div>
+        );
+        if (s.k === "bullets") return (
+          <ul key={i} className="space-y-1 my-1 pl-1">
+            {s.items.map((it, j) => (
+              <li key={j} className="flex gap-2 items-start">
+                <span className="text-primary font-black mt-[1px] flex-shrink-0 text-[14px] leading-none">•</span>
+                <span className="flex-1 leading-relaxed"><InlineBold text={it} /></span>
+              </li>
+            ))}
+          </ul>
+        );
+        if (s.k === "numbered") return (
+          <ol key={i} className="space-y-1 my-1">
+            {s.items.map((it, j) => (
+              <li key={j} className="flex gap-2 items-start">
+                <span className="text-primary font-semibold flex-shrink-0 min-w-[1.25rem] text-[11px]">{j + 1}.</span>
+                <span className="flex-1 leading-relaxed"><InlineBold text={it} /></span>
+              </li>
+            ))}
+          </ol>
+        );
+        return (
+          <p key={i} className="leading-relaxed">
+            <InlineBold text={s.text} />
+          </p>
+        );
+      })}
+    </div>
+  );
 }
 
 function ChatPanel() {
@@ -294,24 +615,36 @@ function ChatPanel() {
   const [input, setInput] = useState("");
   const [streamingMessage, setStreamingMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [pendingUserMessage, setPendingUserMessage] = useState("");
   const [highlightInput, setHighlightInput] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [_, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { registerHandler } = useCopilot();
   const pendingQuestionRef = useRef<string | null>(null);
   const { config } = useTenantConfig();
   const { pack } = useActiveWorkspace();
   const { observation, agentSuggestions, dismissAgentSuggestion } = useChatObserver();
+  const { addChart } = useCustomDashboards();
+  const { toast } = useToast();
+
+  const handleAddChartToDashboard = (chartData: { type: string; title: string; xKey: string; yKey: string; data: any[] }) => {
+    const onGeneratedPage =
+      location.startsWith("/generated/") ||
+      location.startsWith("/custom/") ||
+      location.startsWith("/my-dashboards/");
+    const section = onGeneratedPage ? location : classifyChart(chartData).section;
+    const sectionLabel = onGeneratedPage ? observation.label : classifyChart(chartData).sectionLabel;
+    addChart({ ...chartData, section, sectionLabel });
+    toast({ title: `Added to ${sectionLabel}`, description: `"${chartData.title}" pinned to your dashboard.` });
+  };
   // Conversations into which we've already injected the page-context block
   // (so we don't re-pay the prompt cost on every turn). Cleared when the
   // observation label changes — next message in the same conversation will
   // re-seed against the new view.
   const seededConvIds = useRef<Set<number>>(new Set());
-  useEffect(() => {
-    if (activeConvId != null) seededConvIds.current.delete(activeConvId);
-  }, [observation.label, activeConvId]);
+  const prevObservationLabel = useRef<string | null>(null);
 
   // Listen for the global "copilot:focus" event (dispatched, for example,
   // by the Home "Ask Gen-BI" quick action) and visibly bring the chat
@@ -340,7 +673,7 @@ function ChatPanel() {
   // Falls back to the global tenant config (legacy insurance content) and
   // finally to safe generic prompts.
   const copilotName =
-    pack?.copilotName || config?.branding?.copilotName || "Gen-BI Copilot";
+    pack?.copilotName || config?.branding?.copilotName || "BI Companion";
   // Page-aware suggestions take precedence over pack defaults — when a
   // page (e.g. a generated dashboard) registers its own chips via
   // useRegisterObservation, the Copilot reflects what the user is actually
@@ -405,6 +738,23 @@ function ChatPanel() {
     });
   };
 
+  // Auto-open a new conversation when the user navigates to a different dashboard
+  // so follow-up questions stay scoped to the current view.
+  const latestNavState = useRef({ activeConvId, messagesLen: messages.length, handleNewChat });
+  useEffect(() => { latestNavState.current = { activeConvId, messagesLen: messages.length, handleNewChat }; });
+  useEffect(() => {
+    if (prevObservationLabel.current === null) {
+      prevObservationLabel.current = observation.label;
+      return;
+    }
+    if (observation.label !== prevObservationLabel.current) {
+      prevObservationLabel.current = observation.label;
+      const { activeConvId: convId, messagesLen, handleNewChat: startNewChat } = latestNavState.current;
+      if (convId != null) seededConvIds.current.delete(convId);
+      if (messagesLen > 0) startNewChat();
+    }
+  }, [observation.label]);
+
   const handleSendMessage = async (messageOverride?: string) => {
     const msg = messageOverride || input;
     if (!msg.trim() || !activeConvId) return;
@@ -413,6 +763,7 @@ function ChatPanel() {
     setInput("");
     setIsTyping(true);
     setStreamingMessage("");
+    setPendingUserMessage(userMsg);
 
     // Inject the current observation as ground truth on the FIRST send of
     // each conversation (or after the user navigates to a different view).
@@ -420,7 +771,7 @@ function ChatPanel() {
     // token cost again until the observation actually changes.
     const needsContext = observation.summary && !seededConvIds.current.has(activeConvId);
     const payload = needsContext
-      ? `You are the user's right-rail data Copilot. They are currently looking at: **${observation.label}** (${observation.kind}).\n\n[CONTEXT — what's on screen]\n${observation.summary}\n\nAnswer with that view in mind. If they ask about something off-screen, say so plainly and offer where to look.\n\n[USER]\n${userMsg}`
+      ? `You are the user's right-rail data Copilot. They are currently looking at: **${observation.label}** (${observation.kind}).\n\n[CONTEXT — what's on screen]\n${observation.summary}\n\nUse this context if the question is directly answered here. If the user asks about data not shown (rankings, top N, totals, trends, comparisons), call execute_dataset_query with the relevant dataset to retrieve real results — do NOT say the dashboard doesn't show it.\n\n[USER]\n${userMsg}`
       : userMsg;
     seededConvIds.current.add(activeConvId);
 
@@ -453,8 +804,14 @@ function ChatPanel() {
               try {
                 const parsed = JSON.parse(line.slice(6));
                 if (parsed.done) continue;
-                if (parsed.error) continue;
-                if (parsed.content) {
+                if (parsed.error) {
+                  setStreamingMessage(prev => prev || `_${parsed.error}_`);
+                  continue;
+                }
+                if (parsed.status === "querying_database") {
+                  setIsTyping(true);
+                } else if (parsed.content) {
+                  setIsTyping(false);
                   setStreamingMessage(prev => prev + parsed.content);
                 }
               } catch (e) {}
@@ -463,36 +820,64 @@ function ChatPanel() {
         }
       }
       
-      queryClient.invalidateQueries({ queryKey: getListOpenaiMessagesQueryKey(activeConvId) });
+      await queryClient.invalidateQueries({ queryKey: getListOpenaiMessagesQueryKey(activeConvId) });
+      setPendingUserMessage("");
       setStreamingMessage("");
       
     } catch (e) {
       console.error(e);
       setIsTyping(false);
+      setPendingUserMessage("");
     }
   };
 
+  const handleAddTableToDashboard = (tableData: { title: string; columns: string[]; rows: string[][] }) => {
+    const onGeneratedPage =
+      location.startsWith("/generated/") ||
+      location.startsWith("/custom/") ||
+      location.startsWith("/my-dashboards/");
+    const section = onGeneratedPage ? location : "/dashboards";
+    const sectionLabel = onGeneratedPage ? observation.label : "Dashboard";
+    addChart({ type: "table", title: tableData.title, xKey: "label", yKey: "value", data: tableData.rows.map(r => Object.fromEntries(tableData.columns.map((c, i) => [c, r[i]]))), section, sectionLabel } as any);
+    toast({ title: `Added to ${sectionLabel}`, description: `"${tableData.title}" table pinned to your dashboard.` });
+  };
+
+  const handleAddMetricToDashboard = (metricData: { title: string; value: string; subtitle?: string }) => {
+    const onGeneratedPage =
+      location.startsWith("/generated/") ||
+      location.startsWith("/custom/") ||
+      location.startsWith("/my-dashboards/");
+    const section = onGeneratedPage ? location : "/dashboards";
+    const sectionLabel = onGeneratedPage ? observation.label : "Dashboard";
+    addChart({ type: "metric", title: metricData.title, xKey: "label", yKey: "value", data: [{ label: metricData.title, value: metricData.value }], section, sectionLabel } as any);
+    toast({ title: `Added to ${sectionLabel}`, description: `"${metricData.title}" metric pinned to your dashboard.` });
+  };
+
   const renderContent = (content: string) => {
-    const { text, charts } = parseCharts(content);
-    let processed = text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-foreground font-semibold">$1</strong>');
-    
+    const { text, charts, tables, metrics } = parseVisuals(content);
     const navMatch = text.match(/\[NAVIGATE:(.*?)\]/);
-    if (navMatch) {
-      processed = processed.replace(/\[NAVIGATE:.*?\]/g, '');
-    }
-    
-    processed = processed.replace(/\[CREATE_DASHBOARD:.*?\]/g, '');
+    const cleaned = text
+      .replace(/\[NAVIGATE:.*?\]/g, "")
+      .replace(/\[CREATE_DASHBOARD:.*?\]/g, "")
+      .trim();
+    const normalized = normalizeMarkdown(cleaned);
 
     return (
       <div className="space-y-2">
-        <div dangerouslySetInnerHTML={{ __html: processed.trim() }} className="leading-relaxed" />
+        <MarkdownText content={normalized} />
+        {metrics.map((m, i) => (
+          <InlineMetric key={i} metricData={m} onAddToDashboard={() => handleAddMetricToDashboard(m)} />
+        ))}
+        {tables.map((t, i) => (
+          <InlineTable key={i} tableData={t} onAddToDashboard={() => handleAddTableToDashboard(t)} />
+        ))}
         {charts.map((chart, i) => (
-          <InlineChart key={i} chartData={chart} />
+          <InlineChart key={i} chartData={chart} onAddToDashboard={() => handleAddChartToDashboard(chart)} />
         ))}
         {navMatch && (
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="w-full mt-1 bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary hover:text-primary transition-all text-xs"
             onClick={() => setLocation(navMatch[1])}
           >
@@ -504,16 +889,19 @@ function ChatPanel() {
   };
 
   const renderStreamingContent = (content: string) => {
-    const { text, charts } = parseCharts(content);
-    let processed = text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-foreground font-semibold">$1</strong>');
-    processed = processed.replace(/\[NAVIGATE:.*?\]/g, '').replace(/\[CREATE_DASHBOARD:.*?\]/g, '');
-    
+    const { text, charts, tables, metrics } = parseVisuals(content);
+    const cleaned = text
+      .replace(/\[NAVIGATE:.*?\]/g, "")
+      .replace(/\[CREATE_DASHBOARD:.*?\]/g, "")
+      .trim();
+    const normalized = normalizeMarkdown(cleaned);
+
     return (
       <div className="space-y-2">
-        <div dangerouslySetInnerHTML={{ __html: processed.trim() }} className="leading-relaxed" />
-        {charts.map((chart, i) => (
-          <InlineChart key={i} chartData={chart} />
-        ))}
+        <MarkdownText content={normalized} />
+        {metrics.map((m, i) => <InlineMetric key={i} metricData={m} />)}
+        {tables.map((t, i) => <InlineTable key={i} tableData={t} />)}
+        {charts.map((chart, i) => <InlineChart key={i} chartData={chart} />)}
       </div>
     );
   };
@@ -524,7 +912,7 @@ function ChatPanel() {
         <div className="flex items-center gap-2 font-semibold text-foreground text-sm">
           <BrainCircuit className="w-4 h-4 text-primary" />
           {copilotName}
-          <span className="text-[9px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">Gen-BI</span>
+          <span className="text-[9px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">BI</span>
         </div>
         <Button variant="ghost" size="icon" onClick={handleNewChat} className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors">
           <Plus className="w-4 h-4" />
@@ -603,6 +991,7 @@ function ChatPanel() {
         </div>
       )}
 
+
       <div className="flex-1 overflow-y-auto p-4 space-y-5 bg-muted/30" ref={scrollRef}>
         {messages.length === 0 && !isTyping && !streamingMessage && (
           <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground space-y-3 px-4">
@@ -631,7 +1020,7 @@ function ChatPanel() {
           </div>
         )}
         
-        {messages.map((msg) => (
+        {messages.map((msg, idx) => (
           <div key={msg.id} className={cn("flex flex-col max-w-[92%]", msg.role === 'user' ? "ml-auto items-end" : "mr-auto items-start")}>
             <div className="flex items-center gap-1.5 mb-1 px-0.5">
               {msg.role === 'user' ? (
@@ -643,19 +1032,45 @@ function ChatPanel() {
                 </>
               )}
             </div>
-            <div 
+            <div
               className={cn(
                 "rounded-xl px-3.5 py-2.5 text-[12px] leading-relaxed",
-                msg.role === 'user' 
-                  ? "bg-primary text-white rounded-tr-sm" 
-                  : "bg-white border border-border text-foreground rounded-tl-sm shadow-sm"
+                msg.role === 'user'
+                  ? "bg-primary text-white rounded-tr-sm"
+                  : "bg-white border border-border text-foreground rounded-tl-sm shadow-sm",
               )}
             >
-              {msg.role === 'user' ? msg.content : renderContent(msg.content)}
+              {msg.role === 'user' ? (
+                <p className="whitespace-pre-wrap">{stripHiddenContext(msg.content)}</p>
+              ) : renderContent(msg.content)}
             </div>
+            {/* Follow-up chips — shown only after the last assistant message */}
+            {msg.role === 'assistant' && idx === messages.length - 1 && !isTyping && !streamingMessage && (
+              <div className="mt-1.5 space-y-1 pl-0.5">
+                {generateFollowUps(msg.content, observation.label).map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => handleSendMessage(q)}
+                    disabled={isTyping}
+                    className="flex items-center gap-1.5 w-full text-left text-[10px] px-2.5 py-1.5 rounded-md border border-border/60 bg-white hover:bg-primary/5 hover:border-primary/30 text-muted-foreground hover:text-foreground transition-all"
+                  >
+                    <CornerDownRight className="w-2.5 h-2.5 text-primary/60 flex-shrink-0" />
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ))}
         
+        {pendingUserMessage && (
+          <div className="flex flex-col max-w-[92%] ml-auto items-end">
+            <div className="rounded-xl px-3.5 py-2.5 text-[12px] leading-relaxed bg-primary text-primary-foreground rounded-tr-sm shadow-sm">
+              <p className="whitespace-pre-wrap">{stripHiddenContext(pendingUserMessage)}</p>
+            </div>
+          </div>
+        )}
+
         {(streamingMessage || isTyping) && (
           <div className="flex flex-col max-w-[92%] mr-auto items-start">
             <div className="flex items-center gap-1.5 mb-1 px-0.5">

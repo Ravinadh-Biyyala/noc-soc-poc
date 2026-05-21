@@ -10,58 +10,86 @@ export interface GeneratedDashboard {
 
 interface GeneratedDashboardsContextType {
   dashboards: GeneratedDashboard[];
-  addDashboard: (config: any) => GeneratedDashboard;
+  addDashboard: (config: any) => Promise<GeneratedDashboard>;
   removeDashboard: (id: string) => void;
-  /** Replace the stored config for a dashboard (e.g. after a layout edit). */
   updateDashboardConfig: (id: string, config: any) => void;
 }
 
 const GeneratedDashboardsContext = createContext<GeneratedDashboardsContextType>({
   dashboards: [],
-  addDashboard: () => ({ id: "", title: "", route: "", config: null, createdAt: 0 }),
+  addDashboard: async () => ({ id: "", title: "", route: "", config: null, createdAt: 0 }),
   removeDashboard: () => {},
   updateDashboardConfig: () => {},
 });
-
-const STORAGE_KEY = "genbi-generated-dashboards";
 
 function slugify(title: string): string {
   return "/generated/" + title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
 }
 
+function rowToEntry(row: any): GeneratedDashboard {
+  return {
+    id: String(row.id),
+    title: row.title,
+    route: row.route,
+    config: row.config,
+    createdAt: new Date(row.createdAt).getTime(),
+  };
+}
+
 export function GeneratedDashboardProvider({ children }: { children: React.ReactNode }) {
-  const [dashboards, setDashboards] = useState<GeneratedDashboard[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
+  const apiBase = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const [dashboards, setDashboards] = useState<GeneratedDashboard[]>([]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(dashboards));
-  }, [dashboards]);
+    fetch(`${apiBase}/api/copilot-dashboards`)
+      .then((r) => r.json())
+      .then((rows: any[]) => setDashboards(rows.map(rowToEntry)))
+      .catch(() => {});
+  }, [apiBase]);
 
-  const addDashboard = useCallback((config: any) => {
-    const title = config.title || "Generated Dashboard";
-    const id = `gen-${Date.now()}`;
-    const route = slugify(title) + "-" + id.slice(-6);
-    const entry: GeneratedDashboard = { id, title, route, config, createdAt: Date.now() };
-    setDashboards((prev) => [entry, ...prev]);
-    return entry;
-  }, []);
+  const addDashboard = useCallback(
+    async (config: any): Promise<GeneratedDashboard> => {
+      const title = config.title || "Generated Dashboard";
+      const id = `gen-${Date.now()}`;
+      const route = config.customRoute ?? (slugify(title) + "-" + id.slice(-6));
 
-  const removeDashboard = useCallback((id: string) => {
-    setDashboards((prev) => prev.filter((d) => d.id !== id));
-  }, []);
+      const res = await fetch(`${apiBase}/api/copilot-dashboards`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, route, config }),
+      });
+      const row = await res.json();
+      const entry = rowToEntry(row);
+      setDashboards((prev) => [entry, ...prev.filter((d) => d.route !== route)]);
+      return entry;
+    },
+    [apiBase],
+  );
 
-  const updateDashboardConfig = useCallback((id: string, config: any) => {
-    setDashboards((prev) => prev.map((d) => (d.id === id ? { ...d, config } : d)));
-  }, []);
+  const removeDashboard = useCallback(
+    (id: string) => {
+      setDashboards((prev) => prev.filter((d) => d.id !== id));
+      fetch(`${apiBase}/api/copilot-dashboards/${id}`, { method: "DELETE" }).catch(() => {});
+    },
+    [apiBase],
+  );
+
+  const updateDashboardConfig = useCallback(
+    (id: string, config: any) => {
+      setDashboards((prev) => prev.map((d) => (d.id === id ? { ...d, config } : d)));
+      fetch(`${apiBase}/api/copilot-dashboards/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ config }),
+      }).catch(() => {});
+    },
+    [apiBase],
+  );
 
   return (
-    <GeneratedDashboardsContext.Provider value={{ dashboards, addDashboard, removeDashboard, updateDashboardConfig }}>
+    <GeneratedDashboardsContext.Provider
+      value={{ dashboards, addDashboard, removeDashboard, updateDashboardConfig }}
+    >
       {children}
     </GeneratedDashboardsContext.Provider>
   );

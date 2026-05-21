@@ -317,7 +317,7 @@ function PresenterCopilot({
           <BrainCircuit className="w-4 h-4 text-primary" />
         </div>
         <div className="min-w-0">
-          <div className="text-sm font-semibold text-foreground leading-tight">Gen-BI Copilot</div>
+          <div className="text-sm font-semibold text-foreground leading-tight">BI Companion</div>
           <div className="text-[10px] text-muted-foreground leading-tight">Watching this dashboard</div>
         </div>
       </div>

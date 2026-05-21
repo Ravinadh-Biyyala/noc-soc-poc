@@ -6,6 +6,17 @@ import uploadRouter from "./upload";
 import workspacesRouter from "./workspaces";
 import settingsRouter from "./settings";
 import connectorsRouter from "./connectors";
+import datasetsRouter from "./datasets";
+import userDashboardsRouter from "./user-dashboards";
+import googleSheetsRouter from "./google-sheets";
+import postgresRouter from "./postgres";
+import copilotDashboardsRouter from "./copilot-dashboards";
+import sectionPinnedChartsRouter from "./section-pinned-charts";
+import projectAgentsRouter from "./project-agents";
+import projectIngestRouter from "./project-ingest";
+import projectTransformationsRouter from "./project-transformations";
+import projectModelingRouter from "./project-modeling";
+import projectMetricsRouter from "./project-metrics";
 
 const router: IRouter = Router();
 
@@ -16,5 +27,16 @@ router.use(uploadRouter);
 router.use(workspacesRouter);
 router.use(settingsRouter);
 router.use(connectorsRouter);
+router.use(datasetsRouter);
+router.use(userDashboardsRouter);
+router.use(googleSheetsRouter);
+router.use(postgresRouter);
+router.use(copilotDashboardsRouter);
+router.use(sectionPinnedChartsRouter);
+router.use(projectAgentsRouter);
+router.use(projectIngestRouter);
+router.use(projectTransformationsRouter);
+router.use(projectModelingRouter);
+router.use(projectMetricsRouter);
 
 export default router;
