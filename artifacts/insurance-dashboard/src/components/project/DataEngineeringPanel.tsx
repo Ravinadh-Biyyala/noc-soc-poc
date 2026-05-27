@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -58,10 +58,32 @@ export function ProjectDataEngineeringPanel({ projectId, projectName }: Props) {
   );
 }
 
+export function ProjectConnectDataPanel({ projectId, onImported }: { projectId: number; onImported: () => void }) {
+  return <ConnectData projectId={projectId} onImported={onImported} />;
+}
+
+export function ProjectRawBrowserPanel({ projectId }: { projectId: number }) {
+  return <RawBrowser projectId={projectId} />;
+}
+
+export function ProjectTransformationsPanel({ projectId, projectName }: Props) {
+  return <Transformations projectId={projectId} projectName={projectName} />;
+}
+
 function ConnectData({ projectId, onImported }: { projectId: number; onImported: () => void }) {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [pgOpen, setPgOpen] = useState(false);
   const [sheetsOpen, setSheetsOpen] = useState(false);
+
+  // After Google OAuth the browser is redirected back here with ?google_connected=1.
+  // Auto-reopen the Google Sheets dialog so the user can pick their file.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("google_connected") === "1") {
+      setSheetsOpen(true);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -136,47 +158,82 @@ function SourceCard({
 function RawBrowser({ projectId }: { projectId: number }) {
   const { data, isLoading, refetch, isRefetching } = useRawTables(projectId);
   const tables = data?.tables ?? [];
+  const [selected, setSelected] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selected === null || !tables.some((t) => t.tableName === selected)) {
+      setSelected(tables[0]?.tableName ?? null);
+    }
+  }, [tables, selected]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8 text-muted-foreground gap-2 text-sm">
+        <Loader2 className="w-4 h-4 animate-spin" /> Loading…
+      </div>
+    );
+  }
+
+  if (tables.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-10 flex flex-col items-center gap-2 text-center text-muted-foreground">
+          <Database className="w-6 h-6 opacity-50" />
+          <p className="text-sm">No raw tables yet.</p>
+          <p className="text-xs max-w-md">Use the Connect tab to ingest data.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium">Raw tables</p>
-          <p className="text-xs text-muted-foreground">
-            Tables in <code className="text-xs bg-muted px-1.5 py-0.5 rounded">proj_{projectId}.raw</code>.
-          </p>
+    <div className="flex h-[560px] rounded-lg border overflow-hidden">
+      <div className="w-64 flex-shrink-0 border-r flex flex-col">
+        <div className="px-3 py-2.5 border-b flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Raw tables</p>
+            <p className="text-xs text-muted-foreground truncate">
+              <code className="text-xs bg-muted px-1.5 py-0.5 rounded">proj_{projectId}.raw</code>
+            </p>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => refetch()} className="gap-1.5 flex-shrink-0">
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefetching ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
         </div>
-        <Button size="sm" variant="outline" onClick={() => refetch()} className="gap-1.5">
-          <RefreshCw className={`w-3.5 h-3.5 ${isRefetching ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
-      </div>
-
-      {isLoading ? (
-        <div className="flex items-center justify-center py-8 text-muted-foreground gap-2 text-sm">
-          <Loader2 className="w-4 h-4 animate-spin" /> Loading…
-        </div>
-      ) : tables.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 flex flex-col items-center gap-2 text-center text-muted-foreground">
-            <Database className="w-6 h-6 opacity-50" />
-            <p className="text-sm">No raw tables yet.</p>
-            <p className="text-xs max-w-md">Use the Connect tab to ingest data.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div className="flex-1 overflow-y-auto py-1">
           {tables.map((t) => (
-            <RawTableRow key={t.tableName} projectId={projectId} tableName={t.tableName} rowCount={t.rowCount} />
+            <button
+              key={t.tableName}
+              onClick={() => setSelected(t.tableName)}
+              className={cn(
+                "w-full flex items-center justify-between gap-2 px-3 py-2 text-left hover:bg-muted/60 transition-colors",
+                selected === t.tableName && "bg-muted font-medium",
+              )}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <TableIcon className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                <span className="text-sm truncate">{t.tableName}</span>
+              </div>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">~{t.rowCount.toLocaleString()}</span>
+            </button>
           ))}
         </div>
-      )}
+      </div>
+      <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
+        {selected ? (
+          <RawTablePreview projectId={projectId} tableName={selected} />
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
+            Select a table to view its data.
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-function RawTableRow({ projectId, tableName, rowCount }: { projectId: number; tableName: string; rowCount: number }) {
-  const [expanded, setExpanded] = useState(false);
+function RawTablePreview({ projectId, tableName }: { projectId: number; tableName: string }) {
   const { data, isLoading } = useQuery<{ rows: Record<string, unknown>[]; fields: Array<{ name: string }> }>({
     queryKey: ["raw-preview", projectId, tableName],
     queryFn: async () => {
@@ -184,53 +241,52 @@ function RawTableRow({ projectId, tableName, rowCount }: { projectId: number; ta
       if (!r.ok) return { rows: [], fields: [] };
       return r.json();
     },
-    enabled: expanded,
+    enabled: true,
     staleTime: 30_000,
   });
 
   return (
-    <Card>
-      <CardContent className="p-3">
-        <button
-          className="w-full flex items-center justify-between gap-2 text-left"
-          onClick={() => setExpanded((v) => !v)}
-        >
-          <div className="flex items-center gap-2 min-w-0">
-            <TableIcon className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-            <span className="text-sm font-medium truncate">{tableName}</span>
-          </div>
-          <span className="text-xs text-muted-foreground whitespace-nowrap">~{rowCount.toLocaleString()} rows</span>
-        </button>
-        {expanded && (
-          <div className="mt-3 border-t pt-2 -mx-1 overflow-x-auto">
-            {isLoading ? (
-              <div className="text-xs text-muted-foreground flex items-center gap-1.5 px-1 py-2">
-                <Loader2 className="w-3 h-3 animate-spin" /> Loading preview…
-              </div>
-            ) : !data || data.rows.length === 0 ? (
-              <p className="text-xs text-muted-foreground px-1 py-2">No rows.</p>
-            ) : (
-              <table className="text-[11px] w-full">
-                <thead>
-                  <tr className="text-left text-muted-foreground">
-                    {data.fields.slice(0, 6).map((f) => <th key={f.name} className="px-1.5 py-1 font-medium">{f.name}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.rows.slice(0, 10).map((row, i) => (
-                    <tr key={i} className="border-t">
-                      {data.fields.slice(0, 6).map((f) => (
-                        <td key={f.name} className="px-1.5 py-1 truncate max-w-[120px]">{String(row[f.name] ?? "")}</td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+    <>
+      <div className="px-3 py-2.5 border-b flex items-center justify-between gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <TableIcon className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+          <span className="text-sm font-medium truncate">{tableName}</span>
+        </div>
+        {data && data.rows.length > 0 && (
+          <span className="text-xs text-muted-foreground whitespace-nowrap">{data.rows.length} rows shown</span>
         )}
-      </CardContent>
-    </Card>
+      </div>
+      <div className="flex-1 overflow-auto">
+        {isLoading ? (
+          <div className="h-full flex items-center justify-center text-xs text-muted-foreground gap-1.5">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading preview…
+          </div>
+        ) : !data || data.rows.length === 0 ? (
+          <div className="h-full flex items-center justify-center text-xs text-muted-foreground">No rows.</div>
+        ) : (
+          <table className="text-xs w-full">
+            <thead className="sticky top-0 bg-background">
+              <tr className="text-left text-muted-foreground border-b">
+                {data.fields.map((f) => (
+                  <th key={f.name} className="px-2 py-1.5 font-medium whitespace-nowrap">{f.name}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.rows.map((row, i) => (
+                <tr key={i} className="border-t">
+                  {data.fields.map((f) => (
+                    <td key={f.name} className="px-2 py-1 whitespace-nowrap truncate max-w-[240px]">
+                      {String(row[f.name] ?? "")}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </>
   );
 }
 

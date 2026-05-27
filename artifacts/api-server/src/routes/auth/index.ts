@@ -45,12 +45,18 @@ export async function getValidToken(userId: number): Promise<string> {
   return credentials.access_token!;
 }
 
-router.get("/auth", (_req: Request, res: Response) => {
+router.get("/auth", (req: Request, res: Response) => {
+  // Accept a returnTo path so the callback can redirect back to the right page.
+  // Sanitise: only allow relative paths (must start with /) to prevent open redirects.
+  const raw = String(req.query.returnTo ?? "").trim();
+  const returnTo = raw.startsWith("/") ? raw : "/";
+
   const oauth2Client = makeOAuth2Client();
   const url = oauth2Client.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
     scope: SCOPES,
+    state: returnTo,   // Google echoes this back unchanged in the callback
   });
   res.redirect(url);
 });
@@ -61,6 +67,10 @@ router.get("/auth/callback", async (req: Request, res: Response) => {
     res.status(400).send("Missing code parameter");
     return;
   }
+
+  // Recover the returnTo path we stored in state. Sanitise again for safety.
+  const rawState = String(req.query.state ?? "").trim();
+  const returnTo = rawState.startsWith("/") ? rawState : "/";
 
   try {
     const oauth2Client = makeOAuth2Client();
@@ -98,7 +108,10 @@ router.get("/auth/callback", async (req: Request, res: Response) => {
     const frontendOrigin =
       process.env.CORS_ORIGIN ??
       (process.env.NODE_ENV === "production" ? "" : "http://localhost:5173");
-    res.redirect(`${frontendOrigin}/?google_connected=1`);
+
+    // Redirect back to the originating page so the Google Sheets dialog
+    // re-opens in context (instead of always landing on the home page).
+    res.redirect(`${frontendOrigin}${returnTo}?google_connected=1`);
   } catch (err: unknown) {
     req.log.error({ err }, "OAuth callback error");
     res.status(500).send("Authentication failed. Please try again.");

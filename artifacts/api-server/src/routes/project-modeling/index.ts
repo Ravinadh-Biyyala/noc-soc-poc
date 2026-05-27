@@ -51,6 +51,25 @@ import {
 
 const router: IRouter = Router();
 
+/** Infer a KPI value format from its title, mirroring the gold-path
+ *  /my-dashboards renderer so project KPI cards format identically. */
+function kpiFormat(title: string): string | undefined {
+  if (/revenue|sales|amount|profit|income|spend|cost|price|value|total.*(\$|usd|aud|gbp|eur)/i.test(title)) return "currency";
+  if (/rate|ratio|percent|%/i.test(title)) return "percent";
+  return undefined;
+}
+
+/** Pick an icon name (matching GeneratedDashboard's ICON_MAP) from a KPI title. */
+function kpiIcon(title: string): string {
+  if (/revenue|sales|amount|profit|income|spend|cost|price/i.test(title)) return "DollarSign";
+  if (/customer|user|owner|person|agent|member|employee|broker/i.test(title)) return "Users";
+  if (/rate|ratio|percent|%/i.test(title)) return "Percent";
+  if (/trend|growth|change/i.test(title)) return "TrendingUp";
+  if (/record|row|count|total/i.test(title)) return "Hash";
+  if (/policy|claim|risk|alert/i.test(title)) return "ShieldAlert";
+  return "BarChart3";
+}
+
 /** Returns true when the error is a Postgres "relation does not exist" —
  *  i.e. the Phase-2 tables haven't been pushed yet. */
 function isMissingTable(err: unknown): boolean {
@@ -478,14 +497,21 @@ router.get("/projects/:id/dashboards/:dashId", async (req: Request, res: Respons
     }
 
     if (c.chartType === "kpi") {
-      kpis.push({ title: c.title, ...cfg });
+      // Shape into { label, value, format, icon } — the form KPICard renders.
+      const yKey = Array.isArray(cfg.yKey) ? (cfg.yKey as string[])[0] : (cfg.yKey as string | undefined);
+      const data = Array.isArray(cfg.data) ? (cfg.data as Array<Record<string, unknown>>) : [];
+      const firstRow = data[0] ?? {};
+      const value = yKey && yKey in firstRow ? firstRow[yKey] : firstRow[Object.keys(firstRow)[0] ?? ""];
+      kpis.push({ label: c.title, value, format: kpiFormat(c.title), icon: kpiIcon(c.title) });
     } else if (c.chartType === "table") {
       tables.push({ title: c.title, ...cfg });
     } else {
+      const question = typeof cfg.question === "string" ? cfg.question : undefined;
       visualCharts.push({
         title: c.title,
         type: c.chartType,
         colSpan: c.colSpan ?? 1,
+        subtitle: question && question !== c.title ? question : undefined,
         ...cfg,
       });
     }

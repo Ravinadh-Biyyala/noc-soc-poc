@@ -7,22 +7,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ArrowLeft, AlertTriangle, Wrench, LayoutDashboard, MessageSquare, Lock, Network, Gauge } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Upload, Table, Wand2, LayoutDashboard, Lock, Network, Gauge } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ProjectDataEngineeringPanel } from "@/components/project/DataEngineeringPanel";
+import { ProjectConnectDataPanel, ProjectRawBrowserPanel, ProjectTransformationsPanel } from "@/components/project/DataEngineeringPanel";
 import { ProjectDashboardsPanel } from "@/components/project/DashboardsPanel";
-import { ProjectChatPanel } from "@/components/project/ChatPanel";
 import { ProjectSemanticModelPanel } from "@/components/project/SemanticModelPanel";
 import { ProjectMetricArchitectPanel } from "@/components/project/MetricArchitectPanel";
 
-type Phase = "data-engineering" | "semantic-model" | "metrics" | "dashboards" | "chat";
+type Phase = "connect" | "raw" | "transform" | "semantic-model" | "metrics" | "dashboards";
 
 const VALID_TABS: ReadonlySet<Phase> = new Set([
-  "data-engineering",
-  "semantic-model",
-  "metrics",
-  "dashboards",
-  "chat",
+  "connect", "raw", "transform",
+  "semantic-model", "metrics", "dashboards",
 ]);
 
 interface WarehouseStatus {
@@ -50,8 +46,8 @@ export default function ProjectDetail() {
   const [, setLocation] = useLocation();
 
   const idStr = params?.id ?? "";
-  const tabParam = (params?.tab ?? "data-engineering") as Phase;
-  const tab: Phase = VALID_TABS.has(tabParam) ? tabParam : "data-engineering";
+  const tabParam = (params?.tab ?? "connect") as Phase;
+  const tab: Phase = VALID_TABS.has(tabParam) ? tabParam : "connect";
 
   const id = parseInt(idStr, 10);
   const validId = Number.isFinite(id) && id > 0 ? id : null;
@@ -67,27 +63,30 @@ export default function ProjectDetail() {
     useMemo(() => {
       if (!project) return null;
       const phaseLabel: Record<Phase, string> = {
-        "data-engineering": "Data Engineering (Bronze → Silver)",
+        "connect": "Connect to data (Bronze ingestion)",
+        "raw": "Raw browser (Bronze layer)",
+        "transform": "Transformations (Bronze → Silver)",
         "semantic-model": "Semantic Model (Silver → Semantic)",
         "metrics": "Metric Architect (Gold layer)",
         "dashboards": "Dashboards",
-        "chat": "Analyst Chat",
       };
       return {
         label: `${project.name} — ${phaseLabel[tab]}`,
         kind: "workspace" as const,
         workspaceId: id,
-        summary: `Project "${project.name}" (id=${id}). Current phase: ${phaseLabel[tab]}. Warehouse has ${warehouseStatus?.tableCount ?? 0} table(s). The project pipeline goes: Data Engineering proposes cleaning transformations → Semantic Model defines fact/dim/joins → Metric Architect defines KPI formulas → Dashboards and Chat consume the model and metrics. The active workspaceId for queries is ${id}.`,
+        summary: `Project "${project.name}" (id=${id}). Current phase: ${phaseLabel[tab]}. Warehouse has ${warehouseStatus?.tableCount ?? 0} table(s). The project pipeline goes: Connect data → Raw browser → Transformations → Semantic Model → Metrics → Dashboards. The active workspaceId for queries is ${id}.`,
         suggestions: [
-          tab === "data-engineering"
-            ? "What raw tables look most important?"
-            : tab === "semantic-model"
-              ? "Which tables look like facts vs dimensions?"
-              : tab === "metrics"
-                ? "What standard KPIs should I define?"
-                : tab === "dashboards"
-                  ? "Summarise what this dashboard shows"
-                  : "What's the most interesting number in my warehouse?",
+          tab === "connect"
+            ? "What data sources should I connect?"
+            : tab === "raw"
+              ? "What raw tables look most important?"
+              : tab === "transform"
+                ? "What transformations should I apply?"
+                : tab === "semantic-model"
+                  ? "Which tables look like facts vs dimensions?"
+                  : tab === "metrics"
+                    ? "What standard KPIs should I define?"
+                    : "Summarise what this dashboard shows",
           "What's blocking me from advancing to the next phase?",
           "Audit my pipeline so far",
         ],
@@ -154,8 +153,14 @@ export default function ProjectDetail() {
 
       <Tabs value={tab} onValueChange={(v) => goTab(v as Phase)}>
         <TabsList className="h-10 flex-wrap">
-          <TabsTrigger value="data-engineering" className="gap-1.5">
-            <Wrench className="w-3.5 h-3.5" /> Data Engineering
+          <TabsTrigger value="connect" className="gap-1.5">
+            <Upload className="w-3.5 h-3.5" /> Connect to data
+          </TabsTrigger>
+          <TabsTrigger value="raw" className="gap-1.5">
+            <Table className="w-3.5 h-3.5" /> Raw browser
+          </TabsTrigger>
+          <TabsTrigger value="transform" className="gap-1.5">
+            <Wand2 className="w-3.5 h-3.5" /> Transformations
           </TabsTrigger>
           <TabsTrigger value="semantic-model" disabled={!warehouseReady} className="gap-1.5">
             {warehouseReady ? <Network className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
@@ -169,14 +174,16 @@ export default function ProjectDetail() {
             {warehouseReady ? <LayoutDashboard className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
             Dashboards
           </TabsTrigger>
-          <TabsTrigger value="chat" disabled={!warehouseReady} className="gap-1.5">
-            {warehouseReady ? <MessageSquare className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-            Chat
-          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="data-engineering" className="pt-4">
-          <ProjectDataEngineeringPanel projectId={id} projectName={project.name} />
+        <TabsContent value="connect" className="pt-4">
+          <ProjectConnectDataPanel projectId={id} onImported={() => goTab("raw")} />
+        </TabsContent>
+        <TabsContent value="raw" className="pt-4">
+          <ProjectRawBrowserPanel projectId={id} />
+        </TabsContent>
+        <TabsContent value="transform" className="pt-4">
+          <ProjectTransformationsPanel projectId={id} projectName={project.name} />
         </TabsContent>
         <TabsContent value="semantic-model" className="pt-4">
           {warehouseReady ? (
@@ -195,13 +202,6 @@ export default function ProjectDetail() {
         <TabsContent value="dashboards" className="pt-4">
           {warehouseReady ? (
             <ProjectDashboardsPanel projectId={id} projectName={project.name} />
-          ) : (
-            <WarehouseEmptyCard />
-          )}
-        </TabsContent>
-        <TabsContent value="chat" className="pt-4">
-          {warehouseReady ? (
-            <ProjectChatPanel projectId={id} />
           ) : (
             <WarehouseEmptyCard />
           )}

@@ -994,19 +994,13 @@ function ChatPanel() {
 
       <div className="flex-1 overflow-y-auto p-4 space-y-5 bg-muted/30" ref={scrollRef}>
         {messages.length === 0 && !isTyping && !streamingMessage && (
-          <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground space-y-3 px-4">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <BrainCircuit className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <p className="font-semibold text-foreground mb-0.5 text-sm">Watching {observation.label}</p>
-              <p className="text-xs text-muted-foreground leading-relaxed max-w-[240px]">
-                {observation.summary
-                  ? `I can see what's on screen — ask me anything about it, or pick a starter:`
-                  : `Ask any data question and get instant visualizations.`}
-              </p>
-            </div>
-            <div className="grid grid-cols-1 gap-1.5 w-full max-w-[260px] mt-2">
+          <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground space-y-2 px-4">
+            <p className="text-xs text-muted-foreground leading-relaxed max-w-[240px]">
+              {observation.summary
+                ? "I can see what's on screen — ask me anything about it, or pick a starter:"
+                : "Ask any data question and get instant visualizations."}
+            </p>
+            <div className="grid grid-cols-1 gap-1.5 w-full max-w-[260px] mt-1">
               {suggestedPrompts.map((q) => (
                 <button
                   key={q}

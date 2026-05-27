@@ -33,9 +33,18 @@ app.use(
     secret: process.env.SESSION_SECRET ?? "dev-secret-change-me",
     resave: false,
     saveUninitialized: false,
-    cookie: { sameSite: "lax", secure: false },
+    cookie: { sameSite: "none", secure: true },
   }),
 );
+
+// Allow Salesforce to embed this app in an iframe
+app.use((_req, res, next) => {
+  res.setHeader(
+    "Content-Security-Policy",
+    "frame-ancestors 'self' https://*.lightning.force.com https://*.salesforce.com https://*.force.com",
+  );
+  next();
+});
 
 // In development allow the Vite dev server; in production lock to the configured origin.
 const allowedOrigin = process.env.CORS_ORIGIN ?? (process.env.NODE_ENV === "production" ? "" : "http://localhost:5173");
