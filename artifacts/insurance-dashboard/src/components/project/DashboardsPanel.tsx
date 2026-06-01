@@ -1,17 +1,17 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import GeneratedDashboard from "@/components/GeneratedDashboard";
 import {
   Loader2, RefreshCw, AlertTriangle,
-  ArrowLeft, LayoutDashboard, Plus,
+  ArrowLeft, LayoutDashboard, Plus, FileText, ChevronDown, ChevronRight,
 } from "lucide-react";
 
 interface Props { projectId: number; projectName: string }
 
 interface DashboardListItem { id: number; name: string; createdAt: string; updatedAt: string }
-interface ProjectDashboardDetail { id: number; name: string; config: unknown }
+interface ProjectDashboardDetail { id: number; name: string; config: unknown; report?: string | null }
 
 function useProjectDashboards(projectId: number) {
   return useQuery<{ dashboards: DashboardListItem[] }>({
@@ -173,7 +173,70 @@ function DashboardViewer({ projectId, dashId }: { projectId: number; dashId: num
           Refresh data
         </Button>
       </div>
+      {detail.data.report && <ReportSection markdown={detail.data.report} />}
       <GeneratedDashboard config={detail.data.config} hidePresenter />
     </div>
+  );
+}
+
+/** Collapsible narrative report rendered above the charts (auto-mode dashboards).
+ *  Lightweight markdown: #/## headings, "- " bullets, and paragraphs. */
+function ReportSection({ markdown }: { markdown: string }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="w-full flex items-center gap-2 px-4 py-3 text-left font-medium text-sm hover:bg-muted/50"
+          data-testid="report-toggle"
+        >
+          {open ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          <FileText className="w-4 h-4 text-primary" />
+          Insight Report
+        </button>
+        {open && (
+          <div className="px-5 pb-5 pt-1 space-y-1.5 text-sm">
+            {renderMarkdown(markdown)}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function renderMarkdown(md: string): ReactNode[] {
+  const out: ReactNode[] = [];
+  const lines = md.split("\n");
+  let bullets: ReactNode[] = [];
+  const flushBullets = () => {
+    if (bullets.length) {
+      out.push(
+        <ul key={`ul-${out.length}`} className="list-disc pl-5 space-y-0.5 text-muted-foreground">
+          {bullets.map((b, i) => <li key={i}>{b}</li>)}
+        </ul>,
+      );
+      bullets = [];
+    }
+  };
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    if (line.startsWith("# ")) { flushBullets(); out.push(<h3 key={out.length} className="text-base font-semibold pt-1">{line.slice(2)}</h3>); }
+    else if (line.startsWith("## ")) { flushBullets(); out.push(<h4 key={out.length} className="text-sm font-semibold pt-1.5">{line.slice(3)}</h4>); }
+    else if (line.startsWith("- ")) { bullets.push(stripBold(line.slice(2))); }
+    else if (line.trim() === "") { flushBullets(); }
+    else { flushBullets(); out.push(<p key={out.length} className="text-muted-foreground">{stripBold(line)}</p>); }
+  }
+  flushBullets();
+  return out;
+}
+
+/** Render **bold** segments inline. */
+function stripBold(text: string): ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((p, i) =>
+    p.startsWith("**") && p.endsWith("**")
+      ? <strong key={i} className="text-foreground font-medium">{p.slice(2, -2)}</strong>
+      : <span key={i}>{p}</span>,
   );
 }

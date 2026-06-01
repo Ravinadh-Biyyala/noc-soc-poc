@@ -17,12 +17,15 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles, SlidersHorizontal } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+type ProjectMode = "auto" | "manual";
 
 /**
  * Projects are built on top of the workspaces table (same id space, same
@@ -35,6 +38,7 @@ interface Props {
 export function CreateProjectDialog({ open, onOpenChange }: Props) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [mode, setMode] = useState<ProjectMode>("manual");
   const [error, setError] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
@@ -44,6 +48,7 @@ export function CreateProjectDialog({ open, onOpenChange }: Props) {
   const reset = () => {
     setName("");
     setDescription("");
+    setMode("manual");
     setError(null);
   };
 
@@ -55,12 +60,13 @@ export function CreateProjectDialog({ open, onOpenChange }: Props) {
     }
     setError(null);
     try {
-      // packId is not user-facing for Projects; default to a generic pack so
-      // the existing API contract is satisfied without exposing domain packs.
+      // packId doubles as the project mode discriminator ("auto" | "manual").
+      // It is not otherwise user-facing for Projects, so reusing it avoids a
+      // schema + codegen change. ProjectDetail reads project.packId to branch.
       const created = await createMut.mutateAsync({
         data: {
           name: name.trim(),
-          packId: "custom",
+          packId: mode,
           description: description.trim() || undefined,
         },
       });
@@ -86,7 +92,7 @@ export function CreateProjectDialog({ open, onOpenChange }: Props) {
           <DialogTitle>Create a new project</DialogTitle>
           <DialogDescription>
             A project is an isolated workspace with its own raw + warehouse Postgres schemas.
-            You'll move through three phases: Data Engineering, Dashboards, and Chat.
+            Pick how you want to build it.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -100,6 +106,43 @@ export function CreateProjectDialog({ open, onOpenChange }: Props) {
               data-testid="input-project-name"
               autoFocus
             />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Build mode</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setMode("manual")}
+                data-testid="mode-manual"
+                className={cn(
+                  "flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors",
+                  mode === "manual" ? "border-primary ring-1 ring-primary bg-primary/5" : "hover:bg-muted/60",
+                )}
+              >
+                <span className="flex items-center gap-1.5 text-sm font-medium">
+                  <SlidersHorizontal className="w-3.5 h-3.5" /> Manual
+                </span>
+                <span className="text-xs text-muted-foreground leading-snug">
+                  Step through Connect → Transform → Model → Metrics → Dashboards with agent help at each phase.
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("auto")}
+                data-testid="mode-auto"
+                className={cn(
+                  "flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors",
+                  mode === "auto" ? "border-primary ring-1 ring-primary bg-primary/5" : "hover:bg-muted/60",
+                )}
+              >
+                <span className="flex items-center gap-1.5 text-sm font-medium">
+                  <Sparkles className="w-3.5 h-3.5" /> Auto
+                </span>
+                <span className="text-xs text-muted-foreground leading-snug">
+                  Just connect data and click Create Dashboard — a multi-agent system profiles, cleans, analyses and visualises it for you.
+                </span>
+              </button>
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="proj-desc">Description</Label>

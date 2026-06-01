@@ -10,5 +10,6 @@ export * from "./section-pinned-charts";
 export * from "./project-transformations";
 export * from "./project-semantic-models";
 export * from "./project-metrics";
+export * from "./project-relationship-links";
 export * from "./project-data-sources";
 export * from "./pipeline-checkpoints";

@@ -12,6 +12,10 @@ pnpm dev
 pnpm dev:api          # API server only
 pnpm dev:web          # Frontend only
 
+# Python agent service (FastAPI + LangChain/LangGraph) on :8000
+cd services/agents-py && python -m venv .venv && .venv/Scripts/python -m pip install -r requirements.txt && .venv/Scripts/python run.py
+# Then set AGENTS_SERVICE_URL=http://localhost:8000 in .env so Express proxies the agent routes to it.
+
 # Production build (runs typecheck + all packages)
 pnpm build
 
@@ -45,7 +49,23 @@ Run `pnpm db:push` after setting `DATABASE_URL` to initialize the schema.
 
 ## Architecture
 
-**pnpm monorepo** with two deployable apps and several shared libraries.
+**pnpm monorepo** with two deployable apps and several shared libraries, plus a
+standalone Python agent service (`services/agents-py`).
+
+### Python agent service (`services/agents-py`)
+
+A FastAPI service that re-implements the AI agent layer on **LangChain +
+LangGraph**, with **LangSmith** tracing into the `genbi-agents` project. Each
+agent is a compiled LangGraph `StateGraph` (LLM ↔ `ToolNode` loop) on the shared
+`AsyncPostgresSaver` checkpointer; `agents/pipeline/graph.py` chains the phases
+with `interrupt()` for human-in-the-loop. It hits the **same Postgres** and the
+same `project_*` / dashboard tables, so the frontend contract is preserved. When
+`AGENTS_SERVICE_URL` is set, Express proxies the agent vertical
+(`/api/projects/:id/(agents|transformations|semantic-model|relationships|metrics|warehouse-tables|dashboards|pipeline)`)
+to it; unset to fall back to the TS routers in `artifacts/api-server/src/agents`.
+See `services/agents-py/README.md`. The TS agent code remains as the fallback.
+
+
 
 ### Apps
 

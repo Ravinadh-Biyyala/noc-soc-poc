@@ -6,6 +6,7 @@ import {
   ShieldCheck,
   Settings as SettingsIcon,
   FolderKanban,
+  BarChart2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -59,6 +60,13 @@ export const NAV: NavItem[] = [
     label: "Dashboards",
     icon: LayoutDashboard,
     matchPrefix: "/dashboards",
+  },
+  {
+    type: "leaf",
+    href: "/visuals-catalog",
+    label: "Visuals Catalog",
+    icon: BarChart2,
+    matchPrefix: "/visuals-catalog",
   },
   { type: "leaf", href: "/governance", label: "Governance", icon: ShieldCheck },
   { type: "leaf", href: "/settings", label: "Settings", icon: SettingsIcon },

@@ -23,6 +23,7 @@ import Dashboards from "@/pages/Dashboards";
 import UserDashboardPage from "@/pages/UserDashboardPage";
 import PostgresBrowserPage from "@/pages/PostgresBrowserPage";
 import GoogleSheetsBrowserPage from "@/pages/GoogleSheetsBrowserPage";
+import VisualsCatalog from "@/pages/VisualsCatalog";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShieldCheck } from "lucide-react";
 import { useMemo } from "react";
@@ -97,6 +98,7 @@ function ConfigDrivenRoutes() {
       <Route path="/my-dashboards/:id" component={UserDashboardPage} />
       <Route path="/postgres-browser" component={PostgresBrowserPage} />
       <Route path="/google-sheets-browser" component={GoogleSheetsBrowserPage} />
+      <Route path="/visuals-catalog" component={VisualsCatalog} />
       {/* Every tenant section is also reachable under /dashboards/:id so the
           executive section (whose legacy route is "/") doesn't collide with
           Home. The legacy routes still work for any non-root paths. */}
