@@ -1,0 +1,83 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - link "Geva" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e7]:
+            - img [ref=e9]
+            - text: Geva
+        - button "Collapse sidebar" [ref=e12]:
+          - img [ref=e13]
+      - navigation [ref=e16]:
+        - link "Home" [ref=e17] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e18]:
+            - img [ref=e19]
+            - generic [ref=e22]: Home
+        - link "Projects" [ref=e23] [cursor=pointer]:
+          - /url: /projects
+          - generic [ref=e24]:
+            - img [ref=e25]
+            - generic [ref=e27]: Projects
+        - link "Dashboards" [ref=e28] [cursor=pointer]:
+          - /url: /dashboards
+          - generic [ref=e29]:
+            - img [ref=e30]
+            - generic [ref=e35]: Dashboards
+        - link "Visuals Catalog" [ref=e36] [cursor=pointer]:
+          - /url: /visuals-catalog
+          - generic [ref=e37]:
+            - img [ref=e38]
+            - generic [ref=e39]: Visuals Catalog
+        - link "Governance" [ref=e40] [cursor=pointer]:
+          - /url: /governance
+          - generic [ref=e41]:
+            - img [ref=e42]
+            - generic [ref=e45]: Governance
+        - link "Settings" [ref=e46] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=e47]:
+            - img [ref=e48]
+            - generic [ref=e51]: Settings
+      - generic [ref=e52]: Geva 2026
+    - main [ref=e53]:
+      - generic [ref=e54]:
+        - heading "Home" [level=1] [ref=e55]
+        - generic [ref=e56]:
+          - generic [ref=e61]: Live
+          - generic [ref=e64]: BK
+    - complementary [ref=e73]:
+      - generic [ref=e74]:
+        - generic [ref=e75]:
+          - img [ref=e76]
+          - text: BI Companion
+          - generic [ref=e88]: BI
+        - button "Start a new chat" [ref=e89]:
+          - img
+      - generic [ref=e90]:
+        - img [ref=e91]
+        - generic [ref=e94]: Observing
+        - generic [ref=e95]: Gen-BI workspace
+      - generic [ref=e98]:
+        - generic [ref=e101]:
+          - generic [ref=e103]: Ask about your data, or tell me where to go and what to build.
+          - generic [ref=e104]:
+            - button "Regenerate response" [ref=e105] [cursor=pointer]:
+              - img
+            - button "Copy to clipboard" [ref=e106] [cursor=pointer]:
+              - img
+            - button "Thumbs up" [ref=e107] [cursor=pointer]:
+              - img
+            - button "Thumbs down" [ref=e108] [cursor=pointer]:
+              - img
+        - generic [ref=e110]:
+          - generic [ref=e111]:
+            - textbox "Ask anything about your data…" [ref=e112]
+            - button "Send" [disabled] [ref=e115]:
+              - img [ref=e116]
+          - paragraph [ref=e119]: Powered by CopilotKit
+  - region "Notifications (F8)":
+    - list
+  - button "Web Inspector" [ref=e121]:
+    - img "Inspector logo" [ref=e122]

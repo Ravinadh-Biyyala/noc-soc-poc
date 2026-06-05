@@ -346,7 +346,7 @@ router.post("/postgres/import", async (req: Request, res: Response) => {
         const [dataset] = await db
           .insert(datasets)
           .values({
-            workspaceId: workspaceId ?? undefined,
+            projectId: workspaceId ?? undefined,
             fileName: table,
             sheetName: schema,
             tableName: destTableName,

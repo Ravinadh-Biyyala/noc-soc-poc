@@ -23,7 +23,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from .checkpoint.saver import close_saver, open_saver
 from .config import get_settings
 from .db.pool import close_pool, open_pool, fetch_one
-from .routes import agents, auto_dashboard, metrics, modeling, pipeline, transformations
+from .routes import (
+    agents,
+    auto_dashboard,
+    guided_dashboard,
+    metrics,
+    modeling,
+    transformations,
+)
 from .tracing import configure_tracing
 
 logging.basicConfig(level=logging.INFO)
@@ -58,8 +65,8 @@ app.include_router(transformations.router, prefix="/api")
 app.include_router(modeling.router, prefix="/api")
 app.include_router(metrics.router, prefix="/api")
 app.include_router(agents.router, prefix="/api")
-app.include_router(pipeline.router, prefix="/api")
 app.include_router(auto_dashboard.router, prefix="/api")
+app.include_router(guided_dashboard.router, prefix="/api")
 
 
 @app.get("/healthz")

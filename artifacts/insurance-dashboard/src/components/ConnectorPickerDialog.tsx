@@ -5,11 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, CheckCircle2, Database, Loader2, ShieldCheck, Sparkles, ArrowRight, Search, FileSpreadsheet, LogIn } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Database, Loader2, ShieldCheck, ArrowRight, Search, FileSpreadsheet, LogIn } from "lucide-react";
 import { CONNECTORS, type ConnectorConfig, type ConnectorField } from "@/lib/connectors.config";
-import { setPendingFile } from "@/lib/pending-file";
 import { cn } from "@/lib/utils";
 
 interface DriveFile {
@@ -23,8 +21,6 @@ interface SheetTab {
   title: string;
 }
 
-type Stage = "idle" | "testing" | "tested" | "pulling";
-
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -35,8 +31,6 @@ interface Props {
 export function ConnectorPickerDialog({ open, onOpenChange, autoOpenGoogleSheets }: Props) {
   const [active, setActive] = useState<ConnectorConfig | null>(null);
   const [values, setValues] = useState<Record<string, string | string[]>>({});
-  const [stage, setStage] = useState<Stage>("idle");
-  const [error, setError] = useState<string | null>(null);
   const [, setLocation] = useLocation();
 
   // Auto-select Google Sheets if requested (e.g. after OAuth callback redirect)
@@ -52,65 +46,14 @@ export function ConnectorPickerDialog({ open, onOpenChange, autoOpenGoogleSheets
     if (!open) {
       setActive(null);
       setValues({});
-      setStage("idle");
-      setError(null);
     }
   }, [open]);
 
   useEffect(() => {
     setValues({});
-    setStage("idle");
-    setError(null);
   }, [active?.id]);
 
   const apiBase = import.meta.env.BASE_URL.replace(/\/$/, "");
-
-  const missingRequired = active
-    ? active.fields.filter((f) => {
-        if (!f.required) return false;
-        const v = values[f.key];
-        if (Array.isArray(v)) return v.length === 0;
-        return !v || !String(v).trim();
-      })
-    : [];
-
-  const handleTest = async () => {
-    if (!active) return;
-    if (missingRequired.length > 0) {
-      setError(`Please fill required fields: ${missingRequired.map((f) => f.label).join(", ")}`);
-      return;
-    }
-    const startedFor = active.id;
-    setStage("testing");
-    setError(null);
-    await new Promise((r) => setTimeout(r, 900));
-    setActive((current) => {
-      if (current && current.id === startedFor) {
-        setStage("tested");
-      }
-      return current;
-    });
-  };
-
-  const handlePull = async () => {
-    if (!active) return;
-    setStage("pulling");
-    setError(null);
-    try {
-      const res = await fetch(`${apiBase}/samples/${active.sampleFile}`);
-      if (!res.ok) throw new Error(`Could not fetch sample data (HTTP ${res.status})`);
-      const blob = await res.blob();
-      const safeLabel = active.sampleLabel.replace(/[^\w. -]/g, "_");
-      const file = new File([blob], `${safeLabel}.csv`, { type: "text/csv" });
-      setPendingFile(file);
-      onOpenChange(false);
-      setLocation("/upload");
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Pull failed";
-      setError(msg);
-      setStage("tested");
-    }
-  };
 
   const renderField = (field: ConnectorField) => {
     const v = values[field.key];
@@ -276,63 +219,10 @@ export function ConnectorPickerDialog({ open, onOpenChange, autoOpenGoogleSheets
                     {renderField(f)}
                   </div>
                 ))}
+                <p className="text-[12px] text-muted-foreground pt-1">
+                  Live connection coming soon.
+                </p>
               </div>
-            )}
-
-            {stage === "tested" && (
-              <div className="flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-900">
-                <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600 flex-shrink-0" />
-                <div>
-                  <div className="font-semibold">Connection successful</div>
-                  <div className="text-emerald-800/90">{active.discovery}</div>
-                  <div className="mt-1 text-emerald-800/70">
-                    Will pull <span className="font-medium">{active.sampleLabel}</span> into your workspace.
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {error && (
-              <div className="text-[12px] text-destructive">{error}</div>
-            )}
-
-            {!active.live && (
-            <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
-              <Badge variant="outline" className="text-[10px] font-normal">
-                <Sparkles className="w-3 h-3 mr-1" /> Demo
-              </Badge>
-              <div className="flex items-center gap-2">
-                {stage !== "tested" && stage !== "pulling" && (
-                  <Button
-                    onClick={handleTest}
-                    disabled={stage === "testing" || missingRequired.length > 0}
-                    variant="outline"
-                    size="sm"
-                    data-testid="connector-test"
-                  >
-                    {stage === "testing" ? (
-                      <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Testing…</>
-                    ) : (
-                      <>Test connection</>
-                    )}
-                  </Button>
-                )}
-                {(stage === "tested" || stage === "pulling") && (
-                  <Button
-                    onClick={handlePull}
-                    disabled={stage === "pulling"}
-                    size="sm"
-                    data-testid="connector-pull"
-                  >
-                    {stage === "pulling" ? (
-                      <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Pulling…</>
-                    ) : (
-                      <>Pull into workspace <ArrowRight className="w-3.5 h-3.5 ml-1.5" /></>
-                    )}
-                  </Button>
-                )}
-              </div>
-            </div>
             )}
           </>
         )}

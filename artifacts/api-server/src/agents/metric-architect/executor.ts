@@ -46,7 +46,7 @@ export async function readSemanticModel(projectId: number) {
     .select()
     .from(projectSemanticModels)
     .where(and(
-      eq(projectSemanticModels.workspaceId, projectId),
+      eq(projectSemanticModels.projectId, projectId),
       eq(projectSemanticModels.status, "applied"),
     ))
     .orderBy(desc(projectSemanticModels.createdAt))
@@ -218,7 +218,7 @@ export async function saveMeasureMetadata(projectId: number, args: SaveMeasureAr
     .select()
     .from(projectMetrics)
     .where(and(
-      eq(projectMetrics.workspaceId, projectId),
+      eq(projectMetrics.projectId, projectId),
       eq(projectMetrics.metricName, metricName),
     ))
     .limit(1);
@@ -241,7 +241,7 @@ export async function saveMeasureMetadata(projectId: number, args: SaveMeasureAr
   const [row] = await db
     .insert(projectMetrics)
     .values({
-      workspaceId: projectId,
+      projectId: projectId,
       metricName,
       description: args.description ?? null,
       sqlFormula: args.sqlFormula,

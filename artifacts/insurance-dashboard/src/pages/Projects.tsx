@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { CreateProjectDialog } from "@/components/CreateProjectDialog";
-import { Plus, FolderKanban, AlertTriangle, FileSpreadsheet, LayoutDashboard, User, Clock } from "lucide-react";
+import { DeleteProjectDialog } from "@/components/DeleteProjectDialog";
+import { Plus, FolderKanban, AlertTriangle, FileSpreadsheet, LayoutDashboard, User, Clock, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRegisterObservation } from "@/lib/chat-observer";
 
@@ -40,6 +41,7 @@ function formatRelative(iso: string): string {
 
 export default function Projects() {
   const [createOpen, setCreateOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
   const { data, isLoading, error } = useListWorkspaces();
 
   useRegisterObservation(
@@ -122,9 +124,21 @@ export default function Projects() {
                         <p className="text-[11px] text-muted-foreground">Project #{p.id}</p>
                       </div>
                     </div>
-                    <Badge variant="outline" className={cn("text-[10px]", statusTone(p.status))}>
-                      {p.status}
-                    </Badge>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <Badge variant="outline" className={cn("text-[10px]", statusTone(p.status))}>
+                        {p.status}
+                      </Badge>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteTarget({ id: p.id, name: p.name }); }}
+                        title="Delete project"
+                        aria-label={`Delete ${p.name}`}
+                        className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        data-testid={`project-delete-${p.id}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   {p.description && (
@@ -157,6 +171,11 @@ export default function Projects() {
       )}
 
       <CreateProjectDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <DeleteProjectDialog
+        open={deleteTarget !== null}
+        onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}
+        project={deleteTarget}
+      />
     </div>
   );
 }

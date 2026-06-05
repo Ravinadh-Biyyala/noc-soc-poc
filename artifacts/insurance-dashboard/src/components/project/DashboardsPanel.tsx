@@ -1,14 +1,16 @@
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, useMemo, type ReactNode } from "react";
+import { useLocation } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRegisterObservation } from "@/lib/chat-observer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import GeneratedDashboard from "@/components/GeneratedDashboard";
 import {
-  Loader2, RefreshCw, AlertTriangle,
-  ArrowLeft, LayoutDashboard, Plus, FileText, ChevronDown, ChevronRight,
+  Loader2, RefreshCw,
+  ArrowLeft, LayoutDashboard, FileText, ChevronDown, ChevronRight,
 } from "lucide-react";
 
-interface Props { projectId: number; projectName: string }
+interface Props { projectId: number; projectName: string; initialDashId?: number }
 
 interface DashboardListItem { id: number; name: string; createdAt: string; updatedAt: string }
 interface ProjectDashboardDetail { id: number; name: string; config: unknown; report?: string | null }
@@ -25,41 +27,43 @@ function useProjectDashboards(projectId: number) {
   });
 }
 
-export function ProjectDashboardsPanel({ projectId, projectName }: Props) {
+export function ProjectDashboardsPanel({ projectId, projectName, initialDashId }: Props) {
   const qc = useQueryClient();
+  const [, setLocation] = useLocation();
   const listQuery = useProjectDashboards(projectId);
-  const [openDashId, setOpenDashId] = useState<number | null>(null);
-  const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [openDashId, setOpenDashId] = useState<number | null>(initialDashId ?? null);
+
+  // Deep-link / Copilot openDashboard: react when the URL's :dashId changes.
+  useEffect(() => {
+    if (initialDashId != null) setOpenDashId(initialDashId);
+  }, [initialDashId]);
 
   const dashboards = listQuery.data?.dashboards ?? [];
+  // A project carries a single generated dashboard, so when exactly one exists
+  // show it directly — no list/card step. Only keep the list (and the "Back"
+  // button) when there's more than one to choose between.
+  const single = dashboards.length === 1;
+  const effectiveOpenId = openDashId ?? (single ? dashboards[0].id : null);
 
-  const generateDashboard = async () => {
-    setGenerating(true);
-    setError(null);
-    try {
-      const r = await fetch(`/api/projects/${projectId}/agents/data-modeler/generate-dashboard`, {
-        method: "POST",
-        credentials: "include",
-      });
-      const body = await r.json();
-      if (!r.ok) throw new Error(body.error ?? "Dashboard generation failed");
-      if (!body.created) throw new Error("Agent did not create a dashboard. Try again.");
-      qc.invalidateQueries({ queryKey: ["project-dashboards", projectId] });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setGenerating(false);
-    }
+  const openDash = (id: number) => {
+    setOpenDashId(id);
+    setLocation(`/projects/${projectId}/dashboards/${id}`);
+  };
+  const closeDash = () => {
+    setOpenDashId(null);
+    setLocation(`/projects/${projectId}/dashboards`);
   };
 
-  if (openDashId !== null) {
+  if (effectiveOpenId !== null) {
     return (
       <div className="space-y-3">
-        <Button size="sm" variant="outline" onClick={() => setOpenDashId(null)} className="gap-1.5">
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to dashboards
-        </Button>
-        <DashboardViewer projectId={projectId} dashId={openDashId} />
+        {/* Only offer "Back" when there's actually a list to return to. */}
+        {dashboards.length > 1 && (
+          <Button size="sm" variant="outline" onClick={closeDash} className="gap-1.5">
+            <ArrowLeft className="w-3.5 h-3.5" /> Back to dashboards
+          </Button>
+        )}
+        <DashboardViewer projectId={projectId} dashId={effectiveOpenId} />
       </div>
     );
   }
@@ -73,30 +77,15 @@ export function ProjectDashboardsPanel({ projectId, projectName }: Props) {
             Generated dashboards for <span className="font-medium">{projectName}</span>.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => qc.invalidateQueries({ queryKey: ["project-dashboards", projectId] })}
-            className="gap-1.5"
-          >
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh
-          </Button>
-          <Button size="sm" onClick={generateDashboard} disabled={generating} className="gap-1.5">
-            {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-            {generating ? "Generating…" : "New dashboard"}
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => qc.invalidateQueries({ queryKey: ["project-dashboards", projectId] })}
+          className="gap-1.5"
+        >
+          <RefreshCw className="w-3.5 h-3.5" /> Refresh
+        </Button>
       </div>
-
-      {error && (
-        <Card className="border-destructive/40 bg-destructive/5">
-          <CardContent className="py-3 text-sm flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
-            <span>{error}</span>
-          </CardContent>
-        </Card>
-      )}
 
       {listQuery.isLoading ? (
         <Card>
@@ -107,7 +96,7 @@ export function ProjectDashboardsPanel({ projectId, projectName }: Props) {
       ) : dashboards.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No dashboards yet. Click <span className="font-medium">New dashboard</span> to generate one.
+            No dashboards yet. Use the Chat tab to generate visuals.
           </CardContent>
         </Card>
       ) : (
@@ -115,7 +104,7 @@ export function ProjectDashboardsPanel({ projectId, projectName }: Props) {
           {dashboards.map((d) => (
             <Card
               key={d.id}
-              onClick={() => setOpenDashId(d.id)}
+              onClick={() => openDash(d.id)}
               className="cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all"
             >
               <CardContent className="py-4 space-y-1">
@@ -136,7 +125,6 @@ export function ProjectDashboardsPanel({ projectId, projectName }: Props) {
 }
 
 function DashboardViewer({ projectId, dashId }: { projectId: number; dashId: number }) {
-  const qc = useQueryClient();
   const detail = useQuery<ProjectDashboardDetail>({
     queryKey: ["project-dashboard", projectId, dashId],
     queryFn: async () => {
@@ -145,6 +133,34 @@ function DashboardViewer({ projectId, dashId }: { projectId: number; dashId: num
       return r.json();
     },
   });
+
+  // Tell the right-rail Copilot what's on screen — crucially with the project's
+  // workspaceId — so it keeps project context (and can reference the visible
+  // KPIs/charts) while a dashboard is open. Must run before the early returns.
+  const data = detail.data;
+  useRegisterObservation(
+    useMemo(() => {
+      if (!data) return null;
+      const cfg = (data.config ?? {}) as { title?: string; kpis?: Array<{ label: string; value: unknown }>; charts?: Array<{ title: string; type: string }> };
+      const kpis = cfg.kpis ?? [];
+      const charts = cfg.charts ?? [];
+      return {
+        label: data.name,
+        kind: "dashboard" as const,
+        workspaceId: projectId,
+        summary:
+          `User is viewing the generated dashboard "${data.name}" in project id=${projectId}. ` +
+          (kpis.length ? `KPIs: ${kpis.map((k) => `${k.label}=${String(k.value)}`).join(", ")}. ` : "") +
+          (charts.length ? `Charts: ${charts.map((c) => `${c.title} (${c.type})`).join("; ")}. ` : "") +
+          `The active project / workspaceId for any data query or action is ${projectId}.`,
+        suggestions: [
+          `Summarise the "${data.name}" dashboard`,
+          charts[0] ? `Explain the "${charts[0].title}" chart` : "What stands out in this data?",
+          "Which metric needs the most attention?",
+        ],
+      };
+    }, [data, projectId]),
+  );
 
   if (detail.isLoading) return (
     <Card>
@@ -161,28 +177,17 @@ function DashboardViewer({ projectId, dashId }: { projectId: number; dashId: num
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => qc.invalidateQueries({ queryKey: ["project-dashboard", projectId, dashId] })}
-          disabled={detail.isFetching}
-          className="gap-1.5"
-        >
-          {detail.isFetching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-          Refresh data
-        </Button>
-      </div>
-      {detail.data.report && <ReportSection markdown={detail.data.report} />}
       <GeneratedDashboard config={detail.data.config} hidePresenter />
+      {detail.data.report && <ReportSection markdown={detail.data.report} />}
     </div>
   );
 }
 
-/** Collapsible narrative report rendered above the charts (auto-mode dashboards).
+/** Collapsible narrative report rendered below the charts (auto-mode dashboards).
+ *  Collapsed by default so the dashboard visuals lead; the user expands it on demand.
  *  Lightweight markdown: #/## headings, "- " bullets, and paragraphs. */
 function ReportSection({ markdown }: { markdown: string }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   return (
     <Card>
       <CardContent className="p-0">

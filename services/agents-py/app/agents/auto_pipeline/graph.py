@@ -14,11 +14,14 @@ import logging
 from typing import Any
 
 from langgraph.graph import END, START, StateGraph
+from langgraph.types import interrupt
 
 from ...checkpoint.saver import get_saver
 from ..data_modeler.dashboards import create_project_dashboard
 from .analysis import run_analysis_lens
 from .cleaning import run_cleaning
+from .interview import _normalize_intent, generate_questions
+from .kpi_builder import run_kpi_builder
 from .merging import run_merging
 from .profiler import run_profiler
 from .report import assemble_report
@@ -48,6 +51,26 @@ async def _merging_node(state: AutoPipelineState) -> dict[str, Any]:
     return await run_merging(dict(state))
 
 
+async def _generate_questions_node(state: AutoPipelineState) -> dict[str, Any]:
+    return await generate_questions(dict(state))
+
+
+def _interview_node(state: AutoPipelineState) -> dict[str, Any]:
+    """Pause the run to collect the user's intent. Side-effect-free: `interrupt`
+    re-executes this node from the top on resume, returning the user's answers."""
+    s = dict(state)
+    questions = s.get("questions") or []
+    answers = interrupt({"questions": questions})
+    return {
+        "intent_raw": answers if isinstance(answers, dict) else {},
+        "user_intent": _normalize_intent(answers, questions, s.get("project_description")),
+    }
+
+
+async def _kpi_builder_node(state: AutoPipelineState) -> dict[str, Any]:
+    return await run_kpi_builder(dict(state))
+
+
 async def _visualization_node(state: AutoPipelineState) -> dict[str, Any]:
     return await run_visualization(dict(state))
 
@@ -56,9 +79,13 @@ async def _assemble_node(state: AutoPipelineState) -> dict[str, Any]:
     s = dict(state)
     report = assemble_report(s)
     charts = s.get("charts") or []
-    title = f"{s.get('project_name') or 'Project'} — Auto Dashboard"
+    kpi_table = (s.get("kpis") or {}).get("table") or None
+    label = "Guided Dashboard" if kpi_table else "Auto Dashboard"
+    title = f"{s.get('project_name') or 'Project'} — {label}"
     try:
-        res = await create_project_dashboard(s["project_id"], title, charts, report_md=report)
+        res = await create_project_dashboard(
+            s["project_id"], title, charts, report_md=report, kpi_table=kpi_table
+        )
     except Exception as err:  # noqa: BLE001
         log.exception("assemble: create_project_dashboard failed project=%s", s.get("project_id"))
         return {"report": report, "errors": [f"assemble: {err}"]}
@@ -68,7 +95,14 @@ async def _assemble_node(state: AutoPipelineState) -> dict[str, Any]:
     return {"report": report, "dashboard_id": res.get("dashboardId")}
 
 
-def build_auto_pipeline_graph():
+def build_auto_pipeline_graph(*, guided: bool = False):
+    """Compile the auto-mode orchestrator.
+
+    When `guided` is True, two human-in-the-loop nodes are inserted after the
+    profiler (`generate_questions` -> `interview`, which `interrupt`s for the
+    user's KPI intent) and a `kpi_builder` node is inserted after `merging` so
+    the analysis/visualization phases chart the user's derived KPIs.
+    """
     g = StateGraph(AutoPipelineState)
     g.add_node("profiler", _profiler_node)
     g.add_node("cleaning", _cleaning_node)
@@ -79,12 +113,29 @@ def build_auto_pipeline_graph():
     g.add_node("assemble", _assemble_node)
 
     g.add_edge(START, "profiler")
-    g.add_edge("profiler", "cleaning")
+
+    if guided:
+        g.add_node("generate_questions", _generate_questions_node)
+        g.add_node("interview", _interview_node)
+        g.add_node("kpi_builder", _kpi_builder_node)
+        g.add_edge("profiler", "generate_questions")
+        g.add_edge("generate_questions", "interview")
+        g.add_edge("interview", "cleaning")
+    else:
+        g.add_edge("profiler", "cleaning")
+
     g.add_edge("cleaning", "merging")
+
+    lens_source = "merging"
+    if guided:
+        g.add_edge("merging", "kpi_builder")
+        lens_source = "kpi_builder"
+
     for lens in ANALYSIS_LENSES:
-        g.add_edge("merging", f"analysis_{lens}")        # fan-out
+        g.add_edge(lens_source, f"analysis_{lens}")     # fan-out
         g.add_edge(f"analysis_{lens}", "visualization")  # fan-in (barrier)
     g.add_edge("visualization", "assemble")
     g.add_edge("assemble", END)
 
-    return g.compile(checkpointer=get_saver(), name="auto-dashboard-pipeline")
+    name = "guided-dashboard-pipeline" if guided else "auto-dashboard-pipeline"
+    return g.compile(checkpointer=get_saver(), name=name)

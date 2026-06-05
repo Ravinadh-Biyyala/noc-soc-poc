@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
   BrainCircuit, Send, Loader2, Plus, Eye, Sparkles, ChevronRight,
@@ -325,12 +325,6 @@ export function Chat({ onClose }: ChatProps) {
     return () => window.removeEventListener("copilot:focus", onFocus);
   }, []);
 
-  // Suggestion chips from the current page observation, or generic fallback
-  const chips = useMemo(
-    () => observation.suggestions ?? ["Summarise what's on this page", "What should I do next?"],
-    [observation.suggestions],
-  );
-
   const handleNewChat = () => {
     setMessages([]);
     setStreamingMessage("");
@@ -494,28 +488,14 @@ export function Chat({ onClose }: ChatProps) {
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-3">
           {messages.length === 0 && !isStreaming && (
-            <>
-              <div className="bg-muted/50 p-3 rounded-lg text-sm rounded-tl-none self-start mr-8 leading-relaxed">
-                <div className="flex items-center gap-1.5 text-primary text-[10px] font-semibold uppercase tracking-wider mb-1">
-                  <Sparkles className="h-3 w-3" /> Watching this view
-                </div>
-                I can see{" "}
-                <span className="font-medium text-foreground">{observation.label}</span>.
-                Ask me anything about it, or pick one of these to start:
+            <div className="bg-muted/50 p-3 rounded-lg text-sm rounded-tl-none self-start mr-8 leading-relaxed">
+              <div className="flex items-center gap-1.5 text-primary text-[10px] font-semibold uppercase tracking-wider mb-1">
+                <Sparkles className="h-3 w-3" /> Watching this view
               </div>
-              <div className="space-y-1.5 pl-1">
-                {chips.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => handleSend(c)}
-                    disabled={isStreaming}
-                    className="w-full text-left text-[12px] text-foreground bg-background hover:bg-muted/60 border border-border rounded-md px-2.5 py-2 transition-colors disabled:opacity-50"
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-            </>
+              I can see{" "}
+              <span className="font-medium text-foreground">{observation.label}</span>.
+              Ask me anything about it.
+            </div>
           )}
 
           {messages.map((msg, idx) => (

@@ -342,12 +342,46 @@ async def get_dashboard(project_id: int, dash_id: int):
     agent_log = dash.get("agent_log")
     report = agent_log if isinstance(agent_log, str) and agent_log.lstrip().startswith("#") else None
 
+    # Fetch flat-table rows + column metadata for the Advanced Analytics section.
+    # The flat table is named proj_{project_id}_dash_{...} and created by the auto pipeline.
+    ds_rows: list[Any] = []
+    ds_cols: list[Any] = []
+    flat_table = dash.get("flat_table_name")
+    if flat_table:
+        try:
+            col_meta = await db.fetch_all(
+                "SELECT column_name, data_type FROM information_schema.columns "
+                "WHERE table_name = %s AND column_name != '_row_id' ORDER BY ordinal_position",
+                [flat_table],
+            )
+            ds_cols = [
+                {
+                    "name": c["column_name"],
+                    "type": (
+                        "number" if re.search(r"int|float|numeric|double|real|decimal", c["data_type"], re.I)
+                        else "boolean" if re.search(r"bool", c["data_type"], re.I)
+                        else "string"
+                    ),
+                }
+                for c in col_meta
+            ]
+            raw_rows = await db.fetch_all(f'SELECT * FROM "{flat_table}" LIMIT 1000')
+            ds_rows = [{k: v for k, v in row.items() if k != "_row_id"} for row in raw_rows]
+        except Exception:  # noqa: BLE001
+            pass  # flat table missing or inaccessible — skip gracefully
+
     return {
         "id": dash["id"],
         "name": dash["name"],
         "createdAt": dash["created_at"].isoformat(),
         "report": report,
-        "config": {"title": dash["name"], "kpis": kpis, "charts": visual_charts, "tables": tables},
+        "config": {
+            "title": dash["name"],
+            "kpis": kpis,
+            "charts": visual_charts,
+            "tables": tables,
+            "dataScience": {"rows": ds_rows, "columns": ds_cols},
+        },
     }
 
 

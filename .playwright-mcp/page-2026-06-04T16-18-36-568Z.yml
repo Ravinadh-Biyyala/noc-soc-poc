@@ -1,0 +1,244 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - complementary [ref=e4]:
+        - generic [ref=e5]:
+          - link "Geva" [ref=e6] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e7]:
+              - img [ref=e9]
+              - text: Geva
+          - button "Collapse sidebar" [ref=e12]:
+            - img [ref=e13]
+        - navigation [ref=e16]:
+          - link "Home" [ref=e17] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e18]:
+              - img [ref=e19]
+              - generic [ref=e22]: Home
+          - link "Projects" [ref=e23] [cursor=pointer]:
+            - /url: /projects
+            - generic [ref=e24]:
+              - img [ref=e25]
+              - generic [ref=e27]: Projects
+          - link "Dashboards" [ref=e28] [cursor=pointer]:
+            - /url: /dashboards
+            - generic [ref=e29]:
+              - img [ref=e30]
+              - generic [ref=e35]: Dashboards
+          - link "Visuals Catalog" [ref=e36] [cursor=pointer]:
+            - /url: /visuals-catalog
+            - generic [ref=e37]:
+              - img [ref=e38]
+              - generic [ref=e39]: Visuals Catalog
+          - link "Governance" [ref=e40] [cursor=pointer]:
+            - /url: /governance
+            - generic [ref=e41]:
+              - img [ref=e42]
+              - generic [ref=e45]: Governance
+          - link "Settings" [ref=e46] [cursor=pointer]:
+            - /url: /settings
+            - generic [ref=e47]:
+              - img [ref=e48]
+              - generic [ref=e51]: Settings
+        - generic [ref=e52]: Geva 2026
+      - main [ref=e53]:
+        - generic [ref=e54]:
+          - heading "jdcj" [level=1] [ref=e123]
+          - generic [ref=e56]:
+            - generic [ref=e61]: Live
+            - generic [ref=e64]: BK
+        - generic [ref=e124]:
+          - generic [ref=e125]:
+            - link "Projects" [ref=e126] [cursor=pointer]:
+              - /url: /projects
+              - button "Projects" [ref=e127]:
+                - img
+                - text: Projects
+            - heading "jdcj" [level=2] [ref=e129]
+            - generic [ref=e130]: draft
+          - generic [ref=e131]:
+            - tablist [ref=e132]:
+              - tab "Connect to data" [ref=e133]:
+                - img [ref=e134]
+                - text: Connect to data
+              - tab "Raw browser" [ref=e137]:
+                - img [ref=e138]
+                - text: Raw browser
+              - tab "Dashboards" [selected] [ref=e140]:
+                - img [ref=e141]
+                - text: Dashboards
+              - tab "Chat" [ref=e146]:
+                - img [ref=e147]
+                - text: Chat
+            - tabpanel "Dashboards" [ref=e149]:
+              - generic [ref=e150]:
+                - button "Back to dashboards" [ref=e151]:
+                  - img
+                  - text: Back to dashboards
+                - generic [ref=e152]:
+                  - button "Refresh data" [ref=e154]:
+                    - img
+                    - text: Refresh data
+                  - generic [ref=e155]:
+                    - heading "jdcj — Auto Dashboard" [level=1] [ref=e159]
+                    - generic [ref=e160]:
+                      - generic [ref=e163] [cursor=pointer]:
+                        - generic [ref=e164]:
+                          - paragraph [ref=e165]: Total Records
+                          - paragraph [ref=e166]: "178.587"
+                        - generic [ref=e167]:
+                          - button "Explain" [ref=e168]:
+                            - img [ref=e169]
+                          - img [ref=e172]
+                      - generic [ref=e177] [cursor=pointer]:
+                        - generic [ref=e178]:
+                          - paragraph [ref=e179]: Avg Deal Value Usd
+                          - paragraph [ref=e180]: $188.8M
+                        - generic [ref=e181]:
+                          - button "Explain" [ref=e182]:
+                            - img [ref=e183]
+                          - img [ref=e186]
+                      - generic [ref=e190] [cursor=pointer]:
+                        - generic [ref=e191]:
+                          - paragraph [ref=e192]: Total Deal Value Usd
+                          - paragraph [ref=e193]: $40.8B
+                        - generic [ref=e194]:
+                          - button "Explain" [ref=e195]:
+                            - img [ref=e196]
+                          - img [ref=e199]
+                      - generic [ref=e204] [cursor=pointer]:
+                        - generic [ref=e205]:
+                          - paragraph [ref=e206]: Distinct Broker Id
+                          - paragraph [ref=e207]: "176.088"
+                        - generic [ref=e208]:
+                          - button "Explain" [ref=e209]:
+                            - img [ref=e210]
+                          - img [ref=e213]
+                    - generic [ref=e218]:
+                      - generic [ref=e220]:
+                        - generic [ref=e222] [cursor=pointer]:
+                          - generic [ref=e223]: Avg Deal Value Usd by Broker Id
+                          - button "Explain" [ref=e224]:
+                            - img [ref=e225]
+                        - img [ref=e231]:
+                          - generic [ref=e235]:
+                            - generic [ref=e237]: BRK-2044
+                            - generic [ref=e239]: BRK-2193
+                            - generic [ref=e241]: BRK-2192
+                            - generic [ref=e243]: BRK-2005
+                            - generic [ref=e245]: BRK-2135
+                          - generic [ref=e247]:
+                            - generic [ref=e249]: "0"
+                            - generic [ref=e251]: 150.0M
+                            - generic [ref=e253]: 300.0M
+                            - generic [ref=e255]: 450.0M
+                            - generic [ref=e257]: 600.0M
+                      - generic [ref=e259]:
+                        - generic [ref=e261] [cursor=pointer]:
+                          - generic [ref=e262]: Broker Id Distribution
+                          - button "Explain" [ref=e263]:
+                            - img [ref=e264]
+                        - img [ref=e270]
+                      - generic [ref=e272]:
+                        - generic [ref=e274] [cursor=pointer]:
+                          - generic [ref=e275]: Deal Value Usd Trend by Deal Date
+                          - button "Explain" [ref=e276]:
+                            - img [ref=e277]
+                        - img [ref=e283]:
+                          - generic [ref=e287]:
+                            - generic [ref=e289]: "2019"
+                            - generic [ref=e291]: "2019"
+                            - generic [ref=e293]: "2019"
+                            - generic [ref=e295]: "2019"
+                            - generic [ref=e297]: "2019"
+                            - generic [ref=e299]: "2019"
+                            - generic [ref=e301]: "2019"
+                            - generic [ref=e303]: "2019"
+                            - generic [ref=e305]: "2020"
+                            - generic [ref=e307]: "2020"
+                          - generic [ref=e309]:
+                            - generic [ref=e311]: "0"
+                            - generic [ref=e313]: 150.0M
+                            - generic [ref=e315]: 300.0M
+                            - generic [ref=e317]: 450.0M
+                            - generic [ref=e319]: 600.0M
+                      - generic [ref=e323]:
+                        - generic [ref=e325] [cursor=pointer]:
+                          - generic [ref=e326]: Avg Purchase Price Usd by Owner Id
+                          - button "Explain" [ref=e327]:
+                            - img [ref=e328]
+                        - img [ref=e334]:
+                          - generic [ref=e338]:
+                            - generic [ref=e340]: OWN-3144
+                            - generic [ref=e342]: OWN-3090
+                            - generic [ref=e344]: OWN-3214
+                            - generic [ref=e346]: OWN-3012
+                            - generic [ref=e348]: OWN-3081
+                          - generic [ref=e350]:
+                            - generic [ref=e352]: "0"
+                            - generic [ref=e354]: 2500.0M
+                            - generic [ref=e356]: 5000.0M
+                            - generic [ref=e358]: 7500.0M
+                            - generic [ref=e360]: 10000.0M
+                      - generic [ref=e362]:
+                        - generic [ref=e364] [cursor=pointer]:
+                          - generic [ref=e365]: Owner Id Distribution
+                          - button "Explain" [ref=e366]:
+                            - img [ref=e367]
+                        - img [ref=e373]
+                  - button "Insight Report" [ref=e376]:
+                    - img [ref=e377]
+                    - img [ref=e379]
+                    - text: Insight Report
+      - complementary [ref=e73]:
+        - generic [ref=e74]:
+          - generic [ref=e75]:
+            - img [ref=e76]
+            - text: BI Companion
+            - generic [ref=e88]: BI
+          - button "Start a new chat" [ref=e89]:
+            - img
+        - generic [ref=e90]:
+          - img [ref=e91]
+          - generic [ref=e94]: Observing
+          - generic [ref=e95]: Gen-BI workspace
+        - generic [ref=e98]:
+          - generic [ref=e100]:
+            - generic [ref=e101]:
+              - generic [ref=e103]: Ask about your data, or tell me where to go and what to build.
+              - generic [ref=e104]:
+                - button "Regenerate response" [ref=e105] [cursor=pointer]:
+                  - img
+                - button "Copy to clipboard" [ref=e106] [cursor=pointer]:
+                  - img
+                - button "Thumbs up" [ref=e107] [cursor=pointer]:
+                  - img
+                - button "Thumbs down" [ref=e108] [cursor=pointer]:
+                  - img
+            - generic [ref=e382]: Open the first dashboard.
+            - button "openDashboard Done" [ref=e386] [cursor=pointer]:
+              - generic [ref=e387]:
+                - img [ref=e388]
+                - generic [ref=e391]: openDashboard
+              - generic [ref=e392]: Done
+          - generic [ref=e110]:
+            - generic [ref=e111]:
+              - textbox "Ask anything about your data…" [active] [ref=e112]
+              - button "Stop" [ref=e398] [cursor=pointer]:
+                - img [ref=e116]
+            - paragraph [ref=e119]: Powered by CopilotKit
+    - region "Notifications (F8)":
+      - list [ref=e400]:
+        - listitem [ref=e401]:
+          - generic [ref=e402]:
+            - generic [ref=e403]: Opening dashboard
+            - generic [ref=e404]: jdcj — Auto Dashboard
+          - button [ref=e405]:
+            - img [ref=e406]
+    - button "Web Inspector" [ref=e121]:
+      - note [ref=e410]:
+        - generic [ref=e411]: "🪁 Big update: Series A, Threads and CopilotKit Enterprise Intelligence"
+      - img "Inspector logo" [ref=e122]
+  - status [ref=e413]
+  - generic [ref=e414]: 2500.0M

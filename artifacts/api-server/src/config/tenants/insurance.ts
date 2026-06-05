@@ -9,7 +9,7 @@ import { geographyData } from "../../routes/dashboard/data/geography.js";
 export const insuranceConfig: TenantConfig = {
   id: "insurance",
   branding: {
-    name: "Geva",
+    name: "Gen VI",
     copilotName: "BI Companion",
     industry: "Insurance Brokerage",
     currencySymbol: "$",

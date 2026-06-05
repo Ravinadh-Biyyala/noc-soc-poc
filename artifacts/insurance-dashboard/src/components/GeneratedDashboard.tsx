@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useCustomDashboards } from "@/lib/custom-dashboards";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AnimatedNumber } from "@/lib/animated-number";
-import { Sparkles, Maximize2, Wand2, SlidersHorizontal, X } from "lucide-react";
+import { Maximize2, Wand2, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExplainPanel, ExplainButton } from "@/components/ExplainPanel";
 import { autoTidy } from "@/lib/layout-actions";
@@ -77,11 +77,27 @@ function EmptyChartState({ message }: { message: string }) {
   );
 }
 
-const PALETTE = [
+// Fallback palette used only when the AI/generator did not specify colors for
+// a chart. Colors are normally decided by the AI (auto-pipeline visualization
+// agent or the Copilot's pinChartToDashboard) and carried on the chart config.
+const DEFAULT_PALETTE = [
   "#1565C0", "#0288D1", "#00838F", "#00695C", "#2E7D32",
   "#F57F17", "#E65100", "#AD1457", "#6A1B9A", "#4527A0",
   "#5C6BC0", "#26A69A", "#66BB6A", "#FFA726", "#EF5350",
 ];
+
+/** Resolve the colour array for a chart: AI-provided `colors` (array) or
+ *  single `color`, falling back to the default palette. Accepts hex / rgb / hsl. */
+function resolveColors(chart: any, fallback: string[]): string[] {
+  const arr = chart?.colors ?? chart?.config?.colors;
+  if (Array.isArray(arr)) {
+    const valid = arr.filter((c: unknown) => typeof c === "string" && /^(#|rgb|hsl)/i.test(c.trim()));
+    if (valid.length) return valid as string[];
+  }
+  const single = chart?.color ?? chart?.config?.color;
+  if (typeof single === "string" && /^(#|rgb|hsl)/i.test(single.trim())) return [single];
+  return fallback;
+}
 
 const ICON_MAP: Record<string, React.ComponentType<any>> = {
   DollarSign, Users, BarChart3, Activity, Package, Target,
@@ -113,6 +129,33 @@ function formatValue(val: unknown, format?: string): string {
   return num.toLocaleString();
 }
 
+/**
+ * Ask the Copilot to explain a visual. Sends a CONCISE, human-readable message
+ * to the chat (clean bubble) and ships the underlying data separately as hidden
+ * context via a window event — CopilotActions exposes it to the agent as a
+ * readable, so the explanation is grounded without dumping JSON into the bubble.
+ */
+function requestExplain(opts: { title: string; kind: string; xKey?: string; yKey?: string | string[]; data?: any[] }) {
+  const axes = opts.xKey
+    ? ` (x: ${opts.xKey}, y: ${Array.isArray(opts.yKey) ? opts.yKey.join(", ") : opts.yKey})`
+    : "";
+  const message = `Explain the "${opts.title}" ${opts.kind} in detail${axes} — the headline, the key patterns and outliers, and the main takeaways.`;
+  window.dispatchEvent(
+    new CustomEvent("copilot:explain", {
+      detail: {
+        message,
+        context: {
+          title: opts.title,
+          kind: opts.kind,
+          xKey: opts.xKey,
+          yKey: opts.yKey,
+          data: Array.isArray(opts.data) ? opts.data.slice(0, 50) : undefined,
+        },
+      },
+    }),
+  );
+}
+
 function KPICard({ kpi, index = 0 }: { kpi: any; index?: number }) {
   const Icon = getIcon(kpi.icon);
   const isPositive = kpi.trend && (kpi.trend.startsWith("+") || /increase|growth|improved|higher|above/i.test(kpi.trend));
@@ -137,13 +180,13 @@ function KPICard({ kpi, index = 0 }: { kpi: any; index?: number }) {
       <Card
         className="shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 animate-in fade-in slide-in-from-bottom-3 duration-500 group cursor-pointer"
         style={animStyle}
-        onClick={() => askCopilot(`Explain the "${kpi.label}" metric — what is it, what's driving the current value, and is it good or bad?`)}
+        onClick={() => askCopilot(`Explain the "${kpi.label}" KPI (currently ${kpi.value}) in detail — what it measures, what's driving the value (query the project warehouse to break it down if useful), and whether it looks healthy.`)}
       >
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-2">
             <div className="space-y-1 min-w-0">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider truncate">{kpi.label}</p>
-              <p className="text-2xl font-bold text-foreground tracking-tight tabular-nums truncate">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider truncate" title={kpi.label}>{kpi.label}</p>
+              <p className="text-xl font-bold text-foreground tracking-tight tabular-nums leading-tight whitespace-nowrap">
                 {isNumeric ? (
                   <AnimatedNumber value={numericValue} format={(n) => formatValue(n, kpi.format)} />
                 ) : (
@@ -174,12 +217,14 @@ function KPICard({ kpi, index = 0 }: { kpi: any; index?: number }) {
   );
 }
 
-const PINNED_COLORS = ["#1565C0", "#0288D1", "#0097A7", "#00838F", "#00695C", "#6366f1", "#8b5cf6"];
+const DEFAULT_PINNED_COLORS = ["#1565C0", "#0288D1", "#0097A7", "#00838F", "#00695C", "#6366f1", "#8b5cf6"];
 
-function PinnedChart({ chart }: { chart: { type: string; title: string; xKey: string; yKey: string; data: any[] } }) {
+function PinnedChart({ chart }: { chart: { type: string; title: string; xKey: string; yKey: string; data: any[]; colors?: string[] } }) {
   const [explainOpen, setExplainOpen] = useState(false);
   const { askCopilot } = useCopilot();
   const { type, title, xKey, yKey, data } = chart;
+  // AI-decided colours for this pinned chart (falls back to the default set).
+  const PINNED_COLORS = resolveColors(chart, DEFAULT_PINNED_COLORS);
   const fmt = (v: number) => {
     if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
     if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
@@ -203,7 +248,7 @@ function PinnedChart({ chart }: { chart: { type: string; title: string; xKey: st
     return (
       <>
       <Card className="shadow-sm group">
-        <CardHeader className="pb-2 pt-4 px-4 cursor-pointer" onClick={() => askCopilot(`Analyze the "${title}" table that was pinned from chat — what are the key insights?`)}>
+        <CardHeader className="pb-2 pt-4 px-4 cursor-pointer" title="Click to have the Copilot explain this table" onClick={() => requestExplain({ title, kind: "table", data })}>
           <div className="flex items-center justify-between gap-2">
             <CardTitle className="text-sm font-semibold">{title}</CardTitle>
             <ExplainButton onClick={() => setExplainOpen(true)} />
@@ -378,7 +423,7 @@ function PinnedChart({ chart }: { chart: { type: string; title: string; xKey: st
   return (
     <>
     <Card className="shadow-sm group">
-      <CardHeader className="pb-2 pt-4 px-4 cursor-pointer" onClick={() => askCopilot(`Analyze the "${title}" ${type} chart that was pinned from chat — what are the key insights?`)}>
+      <CardHeader className="pb-2 pt-4 px-4 cursor-pointer" title="Click to have the Copilot explain this chart" onClick={() => requestExplain({ title, kind: `${type} chart`, xKey, yKey, data })}>
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-sm font-semibold">{title}</CardTitle>
           <ExplainButton onClick={() => setExplainOpen(true)} />
@@ -417,6 +462,9 @@ function PinnedChart({ chart }: { chart: { type: string; title: string; xKey: st
 function ChartCard({ chart }: { chart: any }) {
   const [explainOpen, setExplainOpen] = useState(false);
   const { askCopilot } = useCopilot();
+  // AI-decided colours for this chart (falls back to the default palette).
+  // Shadows the module name so the renderers below pick up the chart's colours.
+  const PALETTE = resolveColors(chart, DEFAULT_PALETTE);
   const rawData = chart.data || [];
   // node-postgres returns numeric columns as strings — coerce them so Recharts renders correctly.
   const data = rawData.map((row: any) => {
@@ -714,14 +762,7 @@ function ChartCard({ chart }: { chart: any }) {
   return (
     <>
       <Card className={cn("shadow-sm hover:shadow-md transition-shadow group", isWide ? "col-span-2" : "")}>
-        <CardHeader className="pb-1 cursor-pointer" onClick={() => {
-          const sample = Array.isArray(data) && data.length > 0
-            ? JSON.stringify(data.slice(0, 12))
-            : "no data";
-          askCopilot(
-            `Explain the **${chart.title}** ${chart.type} chart — what's the headline and what should I notice?\n\n[[CTX]]\nChart data: ${sample}\nX-axis: ${xKey}, Y-axis: ${yKeys.join(", ")}\n\nRespond with:\n- A short opening sentence summarising the main finding\n- 3–5 bullet points (start each with **bold key insight** then a brief explanation) highlighting patterns, outliers, or actionable takeaways\n- Keep it concise and well-structured with bullets, not a wall of prose`,
-          );
-        }}>
+        <CardHeader className="pb-1 cursor-pointer" title="Click to have the Copilot explain this chart" onClick={() => requestExplain({ title: chart.title, kind: `${chart.type} chart`, xKey, yKey: yKeys, data })}>
           <div className="flex items-center justify-between gap-2">
             <CardTitle className="text-sm font-semibold text-foreground truncate">{chart.title}</CardTitle>
             <ExplainButton onClick={() => setExplainOpen(true)} />
@@ -796,7 +837,7 @@ function WaterfallChart({ data, xKey, yKey }: { data: any[]; xKey: string; yKey:
       const val = Number(d[yKey]) || 0;
       const start = cumulative;
       cumulative += val;
-      return { name: d[xKey], value: val, start, end: cumulative, fill: i === data.length - 1 ? PALETTE[0] : val >= 0 ? PALETTE[4] : PALETTE[14] };
+      return { name: d[xKey], value: val, start, end: cumulative, fill: i === data.length - 1 ? DEFAULT_PALETTE[0] : val >= 0 ? DEFAULT_PALETTE[4] : DEFAULT_PALETTE[14] };
     });
   }, [data, xKey, yKey]);
 
@@ -889,7 +930,7 @@ function ProgressBars({ data, nameKey, valueKey, maxKey }: { data: any[]; nameKe
             <div className="h-2.5 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${pct}%`, backgroundColor: PALETTE[i % PALETTE.length] }}
+                style={{ width: `${pct}%`, backgroundColor: DEFAULT_PALETTE[i % DEFAULT_PALETTE.length] }}
               />
             </div>
           </div>
@@ -920,7 +961,7 @@ function BulletChart({ data, nameKey, actualKey, targetKey }: { data: any[]; nam
             <div className="h-5 bg-muted rounded relative overflow-hidden">
               <div
                 className="h-full rounded transition-all duration-700"
-                style={{ width: `${actualPct}%`, backgroundColor: onTrack ? PALETTE[4] : PALETTE[14] }}
+                style={{ width: `${actualPct}%`, backgroundColor: onTrack ? DEFAULT_PALETTE[4] : DEFAULT_PALETTE[14] }}
               />
               {targetPct !== null && (
                 <div className="absolute top-0 h-full w-[2px] bg-foreground/70" style={{ left: `${targetPct}%` }} />
@@ -1171,14 +1212,14 @@ export default function GeneratedDashboard({ config, hidePresenter, onConfigChan
 
   return (
     <div className="space-y-5">
+      {/* Hero title/Present bar — only on standalone dashboards. Inside a project
+          the page header already names the project + dashboard, so we drop it
+          (and the Refresh row) to give the KPIs/charts the full space. */}
+      {!hidePresenter && (
       <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-br from-primary/5 via-background to-background p-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
         <div className="absolute -top-12 -right-12 w-40 h-40 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-wider mb-2">
-              <Sparkles className="w-3 h-3" />
-              AI Generated
-            </div>
             <h1 className="text-xl font-bold text-foreground tracking-tight">{config.title || "Generated Dashboard"}</h1>
             {config.subtitle && <p className="text-sm text-muted-foreground mt-0.5">{config.subtitle}</p>}
           </div>
@@ -1211,9 +1252,10 @@ export default function GeneratedDashboard({ config, hidePresenter, onConfigChan
           )}
         </div>
       </div>
+      )}
 
       {kpis.length > 0 && (
-        <div className={cn("grid gap-4", kpis.length <= 3 ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-4")}>
+        <div className={cn("grid gap-4", kpis.length <= 3 ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4")}>
           {kpis.map((kpi: any, i: number) => (
             <KPICard key={i} kpi={kpi} index={i} />
           ))}
@@ -1260,20 +1302,31 @@ export default function GeneratedDashboard({ config, hidePresenter, onConfigChan
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        {slicedCharts.map((chart: any, i: number) => (
-          <div
-            key={chart.id}
-            className={cn(
-              "animate-in fade-in slide-in-from-bottom-3 duration-500",
-              // colSpan=2 → take both columns at xl breakpoint and above.
-              chart.colSpan === 2 && "xl:col-span-2",
-            )}
-            style={{ animationDelay: `${kpiStaggerEnd + i * 80}ms`, animationFillMode: "both" }}
-          >
-            <ChartCard chart={chart} />
-          </div>
-        ))}
+      {/* grid-flow-row-dense packs half-width charts into the gaps left by
+          full-width ones, so same-size charts (e.g. the distribution pies) sit
+          adjacent instead of scattered with holes between them. */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 grid-flow-row-dense">
+        {slicedCharts.map((chart: any, i: number) => {
+          // Span both columns for inherently-wide chart types, and for cartesian
+          // charts with many categories (their x-axis labels need the room) —
+          // keeps dense charts readable instead of cramped half-width.
+          const WIDE_TYPES = ["treemap", "heatmap", "stacked-area", "stacked-bar", "waterfall", "scatter", "bubble", "combo", "funnel", "histogram"];
+          const CARTESIAN = ["bar", "line", "area", "histogram", "stacked-bar", "stacked-area", "combo"];
+          const manyCategories = Array.isArray(chart.data) && chart.data.length > 10 && CARTESIAN.includes(chart.type);
+          const wide = chart.colSpan === 2 || WIDE_TYPES.includes(chart.type) || manyCategories;
+          return (
+            <div
+              key={chart.id}
+              className={cn(
+                "animate-in fade-in slide-in-from-bottom-3 duration-500",
+                wide && "xl:col-span-2",
+              )}
+              style={{ animationDelay: `${kpiStaggerEnd + i * 80}ms`, animationFillMode: "both" }}
+            >
+              <ChartCard chart={chart} />
+            </div>
+          );
+        })}
       </div>
 
       {pinnedCharts.length > 0 && (
@@ -1306,7 +1359,7 @@ export default function GeneratedDashboard({ config, hidePresenter, onConfigChan
       {/* Data-Scientist agent surface — only renders when the dataset has
           enough rows / columns / variance to be worth it. The fitness gate
           and all the heavy compute live inside the panel itself. */}
-      {!hidePresenter && config.dataScience?.rows?.length > 0 && (
+      {config.dataScience?.rows?.length > 0 && (
         <AdvancedAnalytics
           rows={config.dataScience.rows}
           columns={config.dataScience.columns ?? []}

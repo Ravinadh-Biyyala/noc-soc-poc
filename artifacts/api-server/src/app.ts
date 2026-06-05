@@ -5,6 +5,7 @@ import pinoHttp from "pino-http";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import router from "./routes";
 import authRouter from "./routes/auth";
+import copilotKitRouter from "./routes/copilotkit";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
@@ -81,6 +82,11 @@ if (agentsServiceUrl) {
   );
   logger.info({ target: agentsServiceUrl }, "Agent routes proxied to Python service");
 }
+
+// CopilotKit runtime (right-rail BI Companion). Mounted BEFORE the body parsers
+// so its GraphQL transport receives the raw request body untouched. The GET
+// /api/copilotkit/instructions sub-route is a no-body request, so it is safe here too.
+app.use(copilotKitRouter);
 
 // Heavy JSON body only for the dashboard-generation route
 app.use("/api/generate-dashboard", express.json({ limit: "25mb" }));

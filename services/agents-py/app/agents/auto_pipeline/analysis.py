@@ -6,13 +6,16 @@ reasoning over SQL aggregates, trends and window functions.
 """
 from __future__ import annotations
 
+import logging
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from ...db.introspection import warehouse_tables_with_columns
 from .auto_tools import make_warehouse_query_tool
 from ._run import make_submit_tool, run_subagent
+
+log = logging.getLogger("agents.auto_pipeline")
 
 LENS_GUIDANCE: dict[str, str] = {
     "descriptive": (
@@ -39,6 +42,12 @@ LENS_GUIDANCE: dict[str, str] = {
 
 
 class Metric(BaseModel):
+    # The model naturally emits numbers here (e.g. 16.72); Pydantic v2 will not
+    # coerce int/float -> str on its own, so an un-stringified value would fail
+    # validation and the agent would loop until it hit the recursion limit and
+    # submitted nothing. Coerce instead of rejecting.
+    model_config = ConfigDict(coerce_numbers_to_str=True)
+
     label: str
     value: str = Field(description="The value as text (e.g. '1,234' or '12.3%').")
 
@@ -64,25 +73,32 @@ def _schema_context(tables: list[dict[str, Any]], targets: list[str], links: lis
     return "\n".join(lines)
 
 
-def _build_prompt(lens: str, project_name: str, description: str | None, schema_ctx: str) -> str:
+def _build_prompt(
+    lens: str, project_name: str, description: str | None, schema_ctx: str, user_intent: str | None = None
+) -> str:
     lines = [
         f"You are the {lens.capitalize()} Analysis agent in an autonomous BI pipeline. Reason in multiple hops.",
         f'PROJECT: "{project_name}".',
     ]
     if description:
         lines.append(f"GOAL: {description}")
+    if user_intent:
+        lines += ["", user_intent]
     lines += [
         "",
         schema_ctx,
         "",
         "FOCUS: " + LENS_GUIDANCE.get(lens, ""),
         "",
-        "YOUR JOB:",
-        "1. Run AT MOST 4 run_sql queries (SELECT-only, warehouse schema, <=200 rows) to gather evidence.",
-        "   Prefer a few well-chosen aggregate queries over many small ones.",
-        "2. Reason over the results.",
-        "3. Then you MUST call submit_finding ONCE with a summary, number-backed key findings, any "
-        "recommendations, and the headline metrics worth charting. Do not exceed 4 queries before submitting.",
+        "YOUR JOB — be decisive and FINISH:",
+        "1. Run a HARD MAXIMUM of 3 run_sql queries (SELECT-only, warehouse schema, <=200 rows). Prefer ONE or TWO "
+        "well-chosen aggregate queries (GROUP BY / window functions). Never run the same query twice.",
+        "2. If a query returns an error, fix it ONCE; if it still errors, abandon that angle and move on — do NOT "
+        "keep retrying.",
+        "3. As soon as you have evidence (or after 3 queries, whichever comes first), STOP querying and call "
+        "submit_finding EXACTLY ONCE with a summary, number-backed key findings, any recommendations, and the "
+        "headline metrics worth charting. Calling submit_finding is REQUIRED and ends your turn — do not run any "
+        "tool after it.",
     ]
     return "\n".join(lines)
 
@@ -109,17 +125,30 @@ async def run_analysis_lens(state: dict[str, Any], lens: str) -> dict[str, Any]:
         ),
     ]
     system_prompt = _build_prompt(
-        lens, state.get("project_name", ""), state.get("project_description"), schema_ctx
+        lens, state.get("project_name", ""), state.get("project_description"), schema_ctx,
+        state.get("user_intent"),
     )
     summary = await run_subagent(
         name=f"auto-analysis-{lens}", project_id=project_id, system_prompt=system_prompt,
-        user_message=f"Perform the {lens} analysis now (max 4 queries), then call submit_finding.",
-        tools=tools, max_iterations=14, max_tokens=4096,
+        user_message=f"Perform the {lens} analysis now (3 queries max), then call submit_finding.",
+        tools=tools, max_iterations=18, max_tokens=4096,
     )
 
     if not holder:
+        # The agent never submitted (e.g. it looped on queries / failed submit
+        # validation and hit the recursion limit). Don't surface the raw error
+        # text as a "finding", but DO log the run summary so an empty lens is
+        # diagnosable instead of silently indistinguishable from "no data".
+        final = summary.get("finalText") or ""
+        log.warning(
+            "auto-analysis-%s produced no finding "
+            "(iterations=%s toolCallCount=%s toolCallsByName=%s finalText=%.200s)",
+            lens, summary.get("iterations"), summary.get("toolCallCount"),
+            summary.get("toolCallsByName"), final,
+        )
+        clean = final if final and "error]" not in final else f"No {lens} findings were produced for this dataset."
         holder = {
-            "summary": summary.get("finalText") or f"No {lens} findings produced.",
+            "summary": clean,
             "keyFindings": [], "recommendations": [], "metrics": [],
         }
     holder["lens"] = lens

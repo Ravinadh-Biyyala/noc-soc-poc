@@ -1,0 +1,369 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - link "Geva" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e7]:
+            - img [ref=e9]
+            - text: Geva
+        - button "Collapse sidebar" [ref=e12]:
+          - img [ref=e13]
+      - navigation [ref=e16]:
+        - link "Home" [ref=e17] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e18]:
+            - img [ref=e19]
+            - generic [ref=e22]: Home
+        - link "Projects" [ref=e23] [cursor=pointer]:
+          - /url: /projects
+          - generic [ref=e24]:
+            - img [ref=e25]
+            - generic [ref=e27]: Projects
+        - link "Dashboards" [ref=e28] [cursor=pointer]:
+          - /url: /dashboards
+          - generic [ref=e29]:
+            - img [ref=e30]
+            - generic [ref=e35]: Dashboards
+        - link "Visuals Catalog" [ref=e36] [cursor=pointer]:
+          - /url: /visuals-catalog
+          - generic [ref=e37]:
+            - img [ref=e38]
+            - generic [ref=e39]: Visuals Catalog
+        - link "Governance" [ref=e40] [cursor=pointer]:
+          - /url: /governance
+          - generic [ref=e41]:
+            - img [ref=e42]
+            - generic [ref=e45]: Governance
+        - link "Settings" [ref=e46] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=e47]:
+            - img [ref=e48]
+            - generic [ref=e51]: Settings
+      - generic [ref=e52]: Geva 2026
+    - main [ref=e53]:
+      - generic [ref=e54]:
+        - heading "Projects" [level=1] [ref=e178]
+        - generic [ref=e56]:
+          - generic [ref=e61]: Live
+          - generic [ref=e64]: BK
+      - generic [ref=e179]:
+        - generic [ref=e180]:
+          - generic [ref=e181]:
+            - heading "Projects" [level=2] [ref=e182]
+            - paragraph [ref=e183]: "Each project has its own raw + warehouse Postgres schemas and walks through three AI-assisted phases: Data Engineering → Dashboards → Chat."
+          - button "Create project" [ref=e184]:
+            - img
+            - text: Create project
+        - generic [ref=e185]:
+          - 'link "jdcj Project #11 draft 0 0 You Updated 7h ago" [ref=e186] [cursor=pointer]':
+            - /url: /projects/11
+            - generic [ref=e188]:
+              - generic [ref=e189]:
+                - generic [ref=e190]:
+                  - img [ref=e192]
+                  - generic:
+                    - paragraph: jdcj
+                    - paragraph: "Project #11"
+                - generic [ref=e194]: draft
+              - generic [ref=e195]:
+                - generic [ref=e196]:
+                  - img [ref=e197]
+                  - text: "0"
+                - generic [ref=e200]:
+                  - img [ref=e201]
+                  - text: "0"
+                - generic [ref=e206]:
+                  - img [ref=e207]
+                  - text: You
+              - generic [ref=e210]:
+                - img [ref=e211]
+                - generic [ref=e214]: Updated 7h ago
+          - 'link "Hilton Project Project #10 draft 0 0 You Updated 1d ago" [ref=e215] [cursor=pointer]':
+            - /url: /projects/10
+            - generic [ref=e217]:
+              - generic [ref=e218]:
+                - generic [ref=e219]:
+                  - img [ref=e221]
+                  - generic:
+                    - paragraph: Hilton Project
+                    - paragraph: "Project #10"
+                - generic [ref=e223]: draft
+              - generic [ref=e224]:
+                - generic [ref=e225]:
+                  - img [ref=e226]
+                  - text: "0"
+                - generic [ref=e229]:
+                  - img [ref=e230]
+                  - text: "0"
+                - generic [ref=e235]:
+                  - img [ref=e236]
+                  - text: You
+              - generic [ref=e239]:
+                - img [ref=e240]
+                - generic [ref=e243]: Updated 1d ago
+          - 'link "Property analysis Project #9 draft 0 0 You Updated 3d ago" [ref=e244] [cursor=pointer]':
+            - /url: /projects/9
+            - generic [ref=e246]:
+              - generic [ref=e247]:
+                - generic [ref=e248]:
+                  - img [ref=e250]
+                  - generic:
+                    - paragraph: Property analysis
+                    - paragraph: "Project #9"
+                - generic [ref=e252]: draft
+              - generic [ref=e253]:
+                - generic [ref=e254]:
+                  - img [ref=e255]
+                  - text: "0"
+                - generic [ref=e258]:
+                  - img [ref=e259]
+                  - text: "0"
+                - generic [ref=e264]:
+                  - img [ref=e265]
+                  - text: You
+              - generic [ref=e268]:
+                - img [ref=e269]
+                - generic [ref=e272]: Updated 3d ago
+          - 'link "Hilton Project Project #8 draft Hilton owners, suppliers, brokers analysis. 0 0 You Updated 4d ago" [ref=e273] [cursor=pointer]':
+            - /url: /projects/8
+            - generic [ref=e275]:
+              - generic [ref=e276]:
+                - generic [ref=e277]:
+                  - img [ref=e279]
+                  - generic:
+                    - paragraph: Hilton Project
+                    - paragraph: "Project #8"
+                - generic [ref=e281]: draft
+              - paragraph [ref=e282]: Hilton owners, suppliers, brokers analysis.
+              - generic [ref=e283]:
+                - generic [ref=e284]:
+                  - img [ref=e285]
+                  - text: "0"
+                - generic [ref=e288]:
+                  - img [ref=e289]
+                  - text: "0"
+                - generic [ref=e294]:
+                  - img [ref=e295]
+                  - text: You
+              - generic [ref=e298]:
+                - img [ref=e299]
+                - generic [ref=e302]: Updated 4d ago
+          - 'link "HILTON Suppliers Project #7 draft 0 0 You Updated 8d ago" [ref=e303] [cursor=pointer]':
+            - /url: /projects/7
+            - generic [ref=e305]:
+              - generic [ref=e306]:
+                - generic [ref=e307]:
+                  - img [ref=e309]
+                  - generic:
+                    - paragraph: HILTON Suppliers
+                    - paragraph: "Project #7"
+                - generic [ref=e311]: draft
+              - generic [ref=e312]:
+                - generic [ref=e313]:
+                  - img [ref=e314]
+                  - text: "0"
+                - generic [ref=e317]:
+                  - img [ref=e318]
+                  - text: "0"
+                - generic [ref=e323]:
+                  - img [ref=e324]
+                  - text: You
+              - generic [ref=e327]:
+                - img [ref=e328]
+                - generic [ref=e331]: Updated 8d ago
+          - 'link "project 6 Project #6 draft - 0 0 You Updated 14d ago" [ref=e332] [cursor=pointer]':
+            - /url: /projects/6
+            - generic [ref=e334]:
+              - generic [ref=e335]:
+                - generic [ref=e336]:
+                  - img [ref=e338]
+                  - generic:
+                    - paragraph: project 6
+                    - paragraph: "Project #6"
+                - generic [ref=e340]: draft
+              - paragraph [ref=e341]: "-"
+              - generic [ref=e342]:
+                - generic [ref=e343]:
+                  - img [ref=e344]
+                  - text: "0"
+                - generic [ref=e347]:
+                  - img [ref=e348]
+                  - text: "0"
+                - generic [ref=e353]:
+                  - img [ref=e354]
+                  - text: You
+              - generic [ref=e357]:
+                - img [ref=e358]
+                - generic [ref=e361]: Updated 14d ago
+          - 'link "Hilton Report Project #5 draft It should create Reports that help BI users to understand for decision making. 0 0 You Updated 14d ago" [ref=e362] [cursor=pointer]':
+            - /url: /projects/5
+            - generic [ref=e364]:
+              - generic [ref=e365]:
+                - generic [ref=e366]:
+                  - img [ref=e368]
+                  - generic:
+                    - paragraph: Hilton Report
+                    - paragraph: "Project #5"
+                - generic [ref=e370]: draft
+              - paragraph [ref=e371]: It should create Reports that help BI users to understand for decision making.
+              - generic [ref=e372]:
+                - generic [ref=e373]:
+                  - img [ref=e374]
+                  - text: "0"
+                - generic [ref=e377]:
+                  - img [ref=e378]
+                  - text: "0"
+                - generic [ref=e383]:
+                  - img [ref=e384]
+                  - text: You
+              - generic [ref=e387]:
+                - img [ref=e388]
+                - generic [ref=e391]: Updated 14d ago
+          - 'link "gyjkj Project #4 draft hch 0 0 You Updated 14d ago" [ref=e392] [cursor=pointer]':
+            - /url: /projects/4
+            - generic [ref=e394]:
+              - generic [ref=e395]:
+                - generic [ref=e396]:
+                  - img [ref=e398]
+                  - generic:
+                    - paragraph: gyjkj
+                    - paragraph: "Project #4"
+                - generic [ref=e400]: draft
+              - paragraph [ref=e401]: hch
+              - generic [ref=e402]:
+                - generic [ref=e403]:
+                  - img [ref=e404]
+                  - text: "0"
+                - generic [ref=e407]:
+                  - img [ref=e408]
+                  - text: "0"
+                - generic [ref=e413]:
+                  - img [ref=e414]
+                  - text: You
+              - generic [ref=e417]:
+                - img [ref=e418]
+                - generic [ref=e421]: Updated 14d ago
+          - 'link "Hilton Project Project #3 draft Analysiss 0 0 You Updated 15d ago" [ref=e422] [cursor=pointer]':
+            - /url: /projects/3
+            - generic [ref=e424]:
+              - generic [ref=e425]:
+                - generic [ref=e426]:
+                  - img [ref=e428]
+                  - generic:
+                    - paragraph: Hilton Project
+                    - paragraph: "Project #3"
+                - generic [ref=e430]: draft
+              - paragraph [ref=e431]: Analysiss
+              - generic [ref=e432]:
+                - generic [ref=e433]:
+                  - img [ref=e434]
+                  - text: "0"
+                - generic [ref=e437]:
+                  - img [ref=e438]
+                  - text: "0"
+                - generic [ref=e443]:
+                  - img [ref=e444]
+                  - text: You
+              - generic [ref=e447]:
+                - img [ref=e448]
+                - generic [ref=e451]: Updated 15d ago
+          - 'link "Hilton Analysis Project #2 draft Analysis of Hilton''s Owner''s and Properties data 0 0 You Updated 15d ago" [ref=e452] [cursor=pointer]':
+            - /url: /projects/2
+            - generic [ref=e454]:
+              - generic [ref=e455]:
+                - generic [ref=e456]:
+                  - img [ref=e458]
+                  - generic:
+                    - paragraph: Hilton Analysis
+                    - paragraph: "Project #2"
+                - generic [ref=e460]: draft
+              - paragraph [ref=e461]: Analysis of Hilton's Owner's and Properties data
+              - generic [ref=e462]:
+                - generic [ref=e463]:
+                  - img [ref=e464]
+                  - text: "0"
+                - generic [ref=e467]:
+                  - img [ref=e468]
+                  - text: "0"
+                - generic [ref=e473]:
+                  - img [ref=e474]
+                  - text: You
+              - generic [ref=e477]:
+                - img [ref=e478]
+                - generic [ref=e481]: Updated 15d ago
+          - 'link "Commerce Sales Project #1 draft 1 0 You Updated 18d ago" [ref=e482] [cursor=pointer]':
+            - /url: /projects/1
+            - generic [ref=e484]:
+              - generic [ref=e485]:
+                - generic [ref=e486]:
+                  - img [ref=e488]
+                  - generic:
+                    - paragraph: Commerce Sales
+                    - paragraph: "Project #1"
+                - generic [ref=e490]: draft
+              - generic [ref=e491]:
+                - generic [ref=e492]:
+                  - img [ref=e493]
+                  - text: "1"
+                - generic [ref=e496]:
+                  - img [ref=e497]
+                  - text: "0"
+                - generic [ref=e502]:
+                  - img [ref=e503]
+                  - text: You
+              - generic [ref=e506]:
+                - img [ref=e507]
+                - generic [ref=e510]: Updated 18d ago
+    - complementary [ref=e73]:
+      - generic [ref=e74]:
+        - generic [ref=e75]:
+          - img [ref=e76]
+          - text: BI Companion
+          - generic [ref=e88]: BI
+        - button "Start a new chat" [ref=e89]:
+          - img
+      - generic [ref=e90]:
+        - img [ref=e91]
+        - generic [ref=e94]: Observing
+        - generic [ref=e95]: Projects
+      - generic [ref=e98]:
+        - generic [ref=e100]:
+          - generic [ref=e101]:
+            - generic [ref=e103]:
+              - text: I can see
+              - strong [ref=e174]: Projects
+              - text: — ask me about it, or tell me what to do (open a dashboard, switch tabs, build a dashboard).
+            - generic [ref=e104]:
+              - button "Regenerate response" [ref=e105] [cursor=pointer]:
+                - img
+              - button "Copy to clipboard" [ref=e106] [cursor=pointer]:
+                - img
+              - button "Thumbs up" [ref=e107] [cursor=pointer]:
+                - img
+              - button "Thumbs down" [ref=e108] [cursor=pointer]:
+                - img
+          - generic [ref=e511]: Take me to the Projects page.
+          - button "navigateTo Done" [ref=e515] [cursor=pointer]:
+            - generic [ref=e516]:
+              - img [ref=e517]
+              - generic [ref=e520]: navigateTo
+            - generic [ref=e521]: Done
+        - generic [ref=e110]:
+          - generic [ref=e111]:
+            - textbox "Ask anything about your data…" [active] [ref=e112]
+            - button "Stop" [ref=e527] [cursor=pointer]:
+              - img [ref=e116]
+          - paragraph [ref=e119]: Powered by CopilotKit
+  - region "Notifications (F8)":
+    - list [ref=e529]:
+      - listitem [ref=e530]:
+        - generic [ref=e531]:
+          - generic [ref=e532]: Opening page…
+          - generic [ref=e533]: User requested to go to the Projects page
+        - button [ref=e534]:
+          - img [ref=e535]
+  - button "Web Inspector" [ref=e121]:
+    - note [ref=e175]:
+      - generic [ref=e176]: "🪁 Big update: Series A, Threads and CopilotKit Enterprise Intelligence"
+    - img "Inspector logo" [ref=e122]

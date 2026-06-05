@@ -179,3 +179,27 @@
     animation: none !important;
   }
 }
+
+/* ── CopilotKit (BI Companion right rail) theming ─────────────────────────────
+   Match the app's primary blue + white surfaces, and make the chat fill the
+   rail so its message list scrolls within the panel. */
+.copilot-rail {
+  --copilot-kit-primary-color: hsl(213 94% 38%);
+  --copilot-kit-contrast-color: #ffffff;
+  --copilot-kit-secondary-color: hsl(210 40% 96%);
+  --copilot-kit-secondary-contrast-color: hsl(222 47% 11%);
+  --copilot-kit-background-color: #ffffff;
+  --copilot-kit-muted-color: hsl(215 16% 47%);
+  --copilot-kit-separator-color: hsl(214 32% 91%);
+  --copilot-kit-input-background-color: hsl(210 40% 98%);
+  min-height: 0;
+}
+/* Stretch the CopilotChat container to fill the rail body. */
+.copilot-rail,
+.copilot-rail > div,
+.copilot-rail .copilotKitChat {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  height: 100%;
+}

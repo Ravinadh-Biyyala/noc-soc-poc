@@ -19,10 +19,16 @@ class AutoPipelineState(TypedDict, total=False):
     project_name: str
     project_description: str | None
 
+    # Guided (human-in-the-loop) mode only
+    questions: list[dict[str, Any]]  # intent questions generated from the profile
+    user_intent: str                 # rendered Q/A block threaded into downstream agents
+    intent_raw: dict[str, Any]       # raw answers keyed by question id
+
     # Phase outputs
     profile: dict[str, Any]          # Data Profiler — raw schema metadata + narrative
     cleaned: dict[str, Any]          # Data Cleaning — {tables: [...], summary}
     merge: dict[str, Any]            # Data Merging — {strategy, flatTable?, links?, summary}
+    kpis: dict[str, Any]             # KPI Builder — {summary, table, columns, categorization}
     findings: Annotated[dict[str, Any], merge_dict]   # lens -> finding (parallel writers)
     charts: list[dict[str, Any]]     # Data Visualization — chart specs
     report: str                      # narrative report (markdown)

@@ -1,7 +1,5 @@
 import {
   Home,
-  Briefcase,
-  Database,
   LayoutDashboard,
   ShieldCheck,
   Settings as SettingsIcon,
@@ -15,7 +13,7 @@ export interface NavLeaf {
   href: string;
   label: string;
   icon: LucideIcon;
-  /** Optional path-prefix used to mark the leaf active for sub-routes (e.g. /workspaces/123). */
+  /** Optional path-prefix used to mark the leaf active for sub-routes (e.g. /projects/123). */
   matchPrefix?: string;
 }
 
@@ -31,7 +29,7 @@ export type NavItem = NavLeaf;
  * items would contradict the chat-first model and create dead ends.
  *
  * - Home         — front door + recent activity
- * - Workspaces   — projects (list + detail with Upload→…→Report stepper)
+ * - Projects     — projects (list + detail with the multi-phase pipeline)
  * - Data         — single landing for ingestion (drop / connect / browse)
  * - Dashboards   — generated dashboards
  * - Governance   — lineage / approvals (placeholder destination, not a SOON pill)
@@ -46,14 +44,6 @@ export const NAV: NavItem[] = [
     icon: FolderKanban,
     matchPrefix: "/projects",
   },
-  {
-    type: "leaf",
-    href: "/workspaces",
-    label: "Workspaces",
-    icon: Briefcase,
-    matchPrefix: "/workspaces",
-  },
-  { type: "leaf", href: "/upload", label: "Data", icon: Database, matchPrefix: "/upload" },
   {
     type: "leaf",
     href: "/dashboards",

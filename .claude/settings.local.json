@@ -1,13 +1,8 @@
 {
-  "mcpServers": {
-    "playwright": {
-      "command": "npx",
-      "args": ["@playwright/mcp@latest", "--browser", "msedge"]
-    }
-  },
+  "enableAllProjectMcpServers": true,
   "permissions": {
     "allow": [
-      "mcp__playwright__browser_navigate"
+      "mcp__playwright"
     ]
   }
 }

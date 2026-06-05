@@ -34,6 +34,25 @@ function buildFewShotBlock(config: TenantConfig): string {
   ).join('\n\n');
 }
 
+const NAVIGATION_RULES = `PAGE NAVIGATION — navigate_to_page tool:
+Use navigate_to_page ONLY when the user explicitly asks to go to a page, open a section, or switch views
+("go to", "take me to", "open", "navigate to", "show me the X page").
+NEVER navigate without being explicitly asked.
+
+CORE APPLICATION PAGES:
+- /               → Home — connect data sources, start new analysis
+- /projects       → Projects — all data projects and their pipeline status
+- /dashboards     → Dashboards — gallery of AI-generated and tenant dashboards
+- /settings       → Settings — theme, AI model, file limits, domain packs
+- /governance     → Governance — Enterprise permissions, lineage, audit (placeholder)
+- /visuals-catalog → Visuals Catalog — all available chart types
+- /postgres-browser → Postgres Browser — run SQL against connected databases
+Dashboard sections are navigable via their routes listed in AVAILABLE DASHBOARDS above.
+
+HINT NAVIGATION (passive suggestion — use [NAVIGATE:/route] in response text):
+After answering a question, include [NAVIGATE:/route] to surface a "View Dashboard" button.
+Do NOT combine navigate_to_page (autonomous) with [NAVIGATE:/route] for the same route in one response.`;
+
 const CHART_RULES = `CRITICAL RULE — GENERATIVE BI VISUALS:
 Every data question gets a visual. Choose the right format:
 
@@ -108,12 +127,39 @@ const RESPONSE_RULES = `ADDITIONAL RESPONSE RULES:
 7. If asked about a specific time range, add a WHERE filter to the SQL and build the chart from those rows.
 8. If execute_dataset_query returns an error, retry once with corrected SQL. Only fall back to approximate data if the dataset genuinely lacks the relevant columns.`;
 
+// Interactive-actions rules for the CopilotKit right-rail. Unlike CHART_RULES /
+// NAVIGATION_RULES (which drive the legacy token-based chat), this tells the
+// agent it can DRIVE the app through real frontend actions exposed by the
+// CopilotKit runtime as tools.
+const ACTIONS_RULES = `INTERACTIVE ACTIONS — you can DRIVE the app, not just answer:
+The runtime exposes frontend actions as tools. When the user asks you to go somewhere or do something, CALL the action — do not just describe what to click.
+- navigateTo({ path }) — go to any app route (e.g. /projects, /dashboards, /settings).
+- openDashboard({ projectId?, dashboardId?, index?, name? }) — open a specific dashboard. Use index for "open the 1st dashboard", name for "open the Executive Summary", or dashboardId when known. This action resolves the LIVE dashboard list itself, so ALWAYS call it to open a dashboard — never conclude "there are no dashboards" from the readable context without calling it first.
+- switchProjectTab({ projectId?, tab }) — switch a project tab: connect | raw | dashboards | chat.
+- createProjectDashboard({ projectId? }) — start AI dashboard generation for a project.
+- pinChartToDashboard({ title, type, xKey, yKey, data, colors? }) — pin a chart to the dashboard the user is currently viewing. Call this AFTER query_project_warehouse (or execute_dataset_query). The data argument MUST be a JSON array STRING of the actual returned rows (e.g. '[{"brand":"X","total_deal_value":123}]') — never an empty array or placeholder. xKey/yKey must be column names present in those rows. CHOOSE the colors: pass a JSON array STRING of hex codes (e.g. '["#1565C0","#2E7D32","#E65100"]') that fit the data — distinct hues for categorical comparisons, a single hue for a single series, and red/green only where it conveys good/bad. Omit colors only if unsure.
+Resolve names and indexes using the CURRENT PAGE context and the PROJECTS / DASHBOARDS lists provided as readable context. If projectId is omitted, use the project of the current page.
+
+DATA QUESTIONS — act as the project's data analyst. Follow this ORDER:
+STEP 1 — DISCOVER THE SCHEMA FIRST. Before any query, you MUST know the exact table and column names. If the PROJECT WAREHOUSE section below already lists them, use those. Otherwise (or if it's missing), call list_warehouse_tables and wait for the result BEFORE querying. NEVER guess or invent a table name (e.g. do not assume "deals" or "sales_data") — discover it.
+STEP 2 — QUERY. Call query_project_warehouse with a single read-only SELECT using the real table/column names from step 1. Reference tables by bare name (the schema is on the search_path); join across tables/views as needed. If a query still errors with "does not exist", call list_warehouse_tables and retry with a corrected name.
+STEP 3 — VISUALISE. Call pinChartToDashboard, passing the returned rows as a JSON array STRING in the data argument (pick a fitting type: bar for comparisons/rankings, line for time trends, pie/donut for composition), so the chart is pinned to the dashboard the user is viewing.
+
+For questions about UPLOADED files (the UPLOADED DATASETS list), use execute_dataset_query instead. Never invent numbers — always base answers and charts on real query results, and never claim you lack the data without first discovering the schema and querying.`;
+
+const ACTIONS_RESPONSE_RULES = `RESPONSE STYLE:
+1. Be concise. Use **bold** for key entities, metrics, and important numbers.
+2. Bullet points must each be on their own line (never inline).
+3. When the user asks to "summarize" or "analyze", lead with a 1-2 sentence finding, then bullets with **bold** entities, then a short closing line.`;
+
 // Cache the system prompt for 60 seconds to avoid a DB query on every chat message.
 let _cache: { value: string; ts: number } | null = null;
+let _copilotCache: { value: string; ts: number } | null = null;
 const CACHE_TTL_MS = 5_000;
 
 export function invalidateSystemPromptCache(): void {
   _cache = null;
+  _copilotCache = null;
 }
 
 async function buildDatasetContext(): Promise<string> {
@@ -167,6 +213,8 @@ export async function buildSystemPrompt(): Promise<string> {
     "",
     CHART_RULES,
     "",
+    NAVIGATION_RULES,
+    "",
     fewShot ? `EXAMPLES:\n${fewShot}` : "",
     "",
     RESPONSE_RULES,
@@ -176,6 +224,53 @@ export async function buildSystemPrompt(): Promise<string> {
 
   const value = parts.filter(Boolean).join('\n');
   _cache = { value, ts: Date.now() };
+  return value;
+}
+
+/**
+ * Base instructions for the CopilotKit right-rail Copilot. Reuses the tenant
+ * persona, data/dataset context, and dashboard list, but swaps the legacy
+ * token rules ([CHART:]/[NAVIGATE:]) for the interactive-actions rules — the
+ * right rail now drives the app via real CopilotKit actions and renders charts
+ * via the pinChartToDashboard action's generative UI. Per-project semantic
+ * model + metric context is appended by the route (it depends on workspaceId).
+ */
+export async function buildCopilotInstructions(): Promise<string> {
+  if (_copilotCache && Date.now() - _copilotCache.ts < CACHE_TTL_MS) {
+    return _copilotCache.value;
+  }
+
+  const config = getTenantConfig();
+  const [dataContext, datasetContext] = await Promise.all([
+    buildDataContext(),
+    buildDatasetContext(),
+  ]);
+
+  const persona = interpolateBranding(config.prompt.persona, config);
+  const dashboards = buildDashboardList(config);
+  const terminology = buildTerminologyBlock(config);
+  const fewShot = buildFewShotBlock(config);
+
+  const parts = [
+    persona,
+    "",
+    dataContext,
+    "",
+    datasetContext,
+    "",
+    `AVAILABLE DASHBOARDS:\n${dashboards}`,
+    "",
+    ACTIONS_RULES,
+    "",
+    fewShot ? `EXAMPLES:\n${fewShot}` : "",
+    "",
+    ACTIONS_RESPONSE_RULES,
+    terminology ? `\n${terminology}` : "",
+    `You have data from ${config.branding.dateRange}. Reference the most relevant periods.`,
+  ];
+
+  const value = parts.filter(Boolean).join('\n');
+  _copilotCache = { value, ts: Date.now() };
   return value;
 }
 

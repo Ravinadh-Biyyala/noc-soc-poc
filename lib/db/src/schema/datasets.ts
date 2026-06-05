@@ -15,7 +15,7 @@ export interface DatasetColumn {
 
 export const datasets = pgTable("datasets", {
   id: serial("id").primaryKey(),
-  workspaceId: integer("workspace_id").references(() => workspaces.id, { onDelete: "set null" }),
+  projectId: integer("project_id").references(() => workspaces.id, { onDelete: "set null" }),
   fileName: text("file_name").notNull(),
   sheetName: text("sheet_name").notNull(),
   tableName: text("table_name").notNull().unique(),

@@ -227,7 +227,7 @@ async function persistSheetToProjectDb(
   const [meta] = await db
     .insert(datasetsTable)
     .values({
-      workspaceId: projectId,
+      projectId: projectId,
       fileName,
       sheetName: sheet.name,
       tableName: fullyQualified,
@@ -475,7 +475,7 @@ router.post("/projects/:id/ingest/postgres/import", async (req: Request, res: Re
       const [meta] = await db
         .insert(datasetsTable)
         .values({
-          workspaceId: projectId,
+          projectId: projectId,
           fileName: table,
           sheetName: schema,
           tableName: fullyQualified,

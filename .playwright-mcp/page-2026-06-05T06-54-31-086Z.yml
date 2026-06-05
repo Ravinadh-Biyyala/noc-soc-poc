@@ -1,0 +1,163 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - link "Geva" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e7]:
+            - img [ref=e9]
+            - text: Geva
+        - button "Collapse sidebar" [ref=e12]:
+          - img [ref=e13]
+      - navigation [ref=e16]:
+        - link "Home" [ref=e17] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e18]:
+            - img [ref=e19]
+            - generic [ref=e22]: Home
+        - link "Projects" [ref=e23] [cursor=pointer]:
+          - /url: /projects
+          - generic [ref=e24]:
+            - img [ref=e25]
+            - generic [ref=e27]: Projects
+        - link "Dashboards" [ref=e28] [cursor=pointer]:
+          - /url: /dashboards
+          - generic [ref=e29]:
+            - img [ref=e30]
+            - generic [ref=e35]: Dashboards
+        - link "Visuals Catalog" [ref=e36] [cursor=pointer]:
+          - /url: /visuals-catalog
+          - generic [ref=e37]:
+            - img [ref=e38]
+            - generic [ref=e39]: Visuals Catalog
+        - link "Governance" [ref=e40] [cursor=pointer]:
+          - /url: /governance
+          - generic [ref=e41]:
+            - img [ref=e42]
+            - generic [ref=e45]: Governance
+        - link "Settings" [ref=e46] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=e47]:
+            - img [ref=e48]
+            - generic [ref=e51]: Settings
+      - generic [ref=e52]: Geva 2026
+    - main [ref=e53]:
+      - generic [ref=e54]:
+        - heading "hilton" [level=1] [ref=e55]
+        - generic [ref=e56]:
+          - generic [ref=e61]: Live
+          - generic [ref=e64]: BK
+      - generic [ref=e66]:
+        - generic [ref=e67]:
+          - link "Projects" [ref=e68] [cursor=pointer]:
+            - /url: /projects
+            - button "Projects" [ref=e69]:
+              - img
+              - text: Projects
+          - heading "hilton" [level=2] [ref=e71]
+          - generic [ref=e72]: draft
+        - generic [ref=e73]:
+          - tablist [ref=e74]:
+            - tab "Connect to data" [ref=e75]:
+              - img [ref=e76]
+              - text: Connect to data
+            - tab "Raw browser" [selected] [ref=e79]:
+              - img [ref=e80]
+              - text: Raw browser
+            - tab "Dashboards" [ref=e82]:
+              - img [ref=e83]
+              - text: Dashboards
+          - tabpanel "Raw browser" [ref=e281]:
+            - generic [ref=e282]:
+              - generic [ref=e283]:
+                - generic [ref=e284]:
+                  - paragraph [ref=e285]: Ready to build your dashboard?
+                  - paragraph [ref=e286]: A multi-agent system will profile, clean, merge, analyse and visualise these tables. Use the Chat tab to add more visuals afterwards.
+                - button "Create Dashboard" [ref=e287]:
+                  - img
+                  - text: Create Dashboard
+              - generic [ref=e288]:
+                - generic [ref=e289]:
+                  - generic [ref=e290]:
+                    - generic [ref=e291]:
+                      - paragraph [ref=e292]: Raw tables
+                      - paragraph [ref=e293]:
+                        - code [ref=e294]: proj_13.raw
+                    - button "Refresh" [ref=e295]:
+                      - img
+                      - text: Refresh
+                  - generic [ref=e296]:
+                    - button "test_upload_sheet1 ~-1" [ref=e297]:
+                      - generic [ref=e298]:
+                        - img [ref=e299]
+                        - generic [ref=e301]: test_upload_sheet1
+                      - generic [ref=e302]: ~-1
+                    - button "test_upload_sheet1_2 ~-1" [ref=e303]:
+                      - generic [ref=e304]:
+                        - img [ref=e305]
+                        - generic [ref=e307]: test_upload_sheet1_2
+                      - generic [ref=e308]: ~-1
+                - generic [ref=e309]:
+                  - generic [ref=e310]:
+                    - generic [ref=e311]:
+                      - img [ref=e312]
+                      - generic [ref=e314]: test_upload_sheet1
+                    - generic [ref=e315]: 3 rows shown
+                  - table [ref=e317]:
+                    - rowgroup [ref=e318]:
+                      - row "_row_id id name amount" [ref=e319]:
+                        - columnheader "_row_id" [ref=e320]
+                        - columnheader "id" [ref=e321]
+                        - columnheader "name" [ref=e322]
+                        - columnheader "amount" [ref=e323]
+                    - rowgroup [ref=e324]:
+                      - row "1 1 Alice 100" [ref=e325]:
+                        - cell "1" [ref=e326]
+                        - cell "1" [ref=e327]
+                        - cell "Alice" [ref=e328]
+                        - cell "100" [ref=e329]
+                      - row "2 2 Bob 200" [ref=e330]:
+                        - cell "2" [ref=e331]
+                        - cell "2" [ref=e332]
+                        - cell "Bob" [ref=e333]
+                        - cell "200" [ref=e334]
+                      - row "3 3 Carol 300" [ref=e335]:
+                        - cell "3" [ref=e336]
+                        - cell "3" [ref=e337]
+                        - cell "Carol" [ref=e338]
+                        - cell "300" [ref=e339]
+    - complementary [ref=e200]:
+      - generic [ref=e201]:
+        - generic [ref=e202]:
+          - img [ref=e203]
+          - text: BI Companion
+          - generic [ref=e215]: BI
+        - button "Start a new chat" [ref=e216]:
+          - img
+      - generic [ref=e217]:
+        - img [ref=e218]
+        - generic [ref=e221]: Observing
+        - generic [ref=e222]: hilton — Raw browser (Bronze layer)
+      - generic [ref=e225]:
+        - generic [ref=e228]:
+          - generic [ref=e230]:
+            - text: I can see
+            - strong [ref=e231]: hilton — Raw browser (Bronze layer)
+            - text: — ask me about it, or tell me what to do (open a dashboard, switch tabs, build a dashboard).
+          - generic [ref=e232]:
+            - button "Regenerate response" [ref=e233] [cursor=pointer]:
+              - img
+            - button "Copy to clipboard" [ref=e234] [cursor=pointer]:
+              - img
+            - button "Thumbs up" [ref=e235] [cursor=pointer]:
+              - img
+            - button "Thumbs down" [ref=e236] [cursor=pointer]:
+              - img
+        - generic [ref=e238]:
+          - generic [ref=e239]:
+            - textbox "Ask anything about your data…" [ref=e240]
+            - button "Send" [disabled] [ref=e243]:
+              - img [ref=e244]
+          - paragraph [ref=e247]: Powered by CopilotKit
+  - region "Notifications (F8)":
+    - list

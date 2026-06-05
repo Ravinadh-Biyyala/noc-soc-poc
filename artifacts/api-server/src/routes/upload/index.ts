@@ -168,7 +168,7 @@ async function persistSheetToDb(
   const [meta] = await db
     .insert(datasetsTable)
     .values({
-      workspaceId,
+      projectId: workspaceId,
       fileName,
       sheetName: sheet.name,
       tableName,

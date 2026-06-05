@@ -2,11 +2,21 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import {
   db,
   workspaces as workspacesTable,
+  datasets as datasetsTable,
+  projectDataSources,
+  projectMetrics,
+  projectRelationshipLinks,
+  projectSemanticModels,
+  projectTransformations,
+  userDashboards,
+  dashboardCharts,
+  sectionPinnedCharts,
   createProjectSchemas,
   dropProjectSchemas,
+  dropLegacyProjectDatabase,
   countWarehouseTables,
 } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, like, inArray } from "drizzle-orm";
 import {
   CreateWorkspaceBody,
 } from "@workspace/api-zod";
@@ -126,18 +136,45 @@ router.delete("/workspaces/:id", async (req: Request, res: Response) => {
     res.status(404).json({ error: "Workspace not found" });
     return;
   }
+
+  // Cascade-delete everything tied to this project: dashboards + their charts,
+  // pinned charts, datasets, and the data-modeling artefacts (transformations,
+  // semantic models, metrics, relationship links, data sources). Each step is
+  // best-effort so a single missing table can't strip the rest.
+  const step = async (label: string, fn: () => Promise<unknown>) => {
+    try { await fn(); } catch (err) { req.log.warn({ workspaceId: id, step: label, err }, "cascade delete step failed"); }
+  };
+
+  // Dashboards live in user_dashboards with a flat_table_name like proj_{id}_dash_*.
+  await step("dashboard_charts", async () => {
+    const dashes = await db
+      .select({ dashId: userDashboards.id })
+      .from(userDashboards)
+      .where(like(userDashboards.flatTableName, `proj_${id}_dash_%`));
+    const dashIds = dashes.map((d) => d.dashId);
+    if (dashIds.length) await db.delete(dashboardCharts).where(inArray(dashboardCharts.dashboardId, dashIds));
+    await db.delete(userDashboards).where(like(userDashboards.flatTableName, `proj_${id}_dash_%`));
+  });
+  // Charts pinned from the Copilot are keyed by the project's route.
+  await step("section_pinned_charts", () =>
+    db.delete(sectionPinnedCharts).where(like(sectionPinnedCharts.sectionRoute, `/projects/${id}/%`)));
+  // Data + modeling artefacts (all keyed by project_id).
+  await step("datasets", () => db.delete(datasetsTable).where(eq(datasetsTable.projectId, id)));
+  await step("project_transformations", () => db.delete(projectTransformations).where(eq(projectTransformations.projectId, id)));
+  await step("project_semantic_models", () => db.delete(projectSemanticModels).where(eq(projectSemanticModels.projectId, id)));
+  await step("project_metrics", () => db.delete(projectMetrics).where(eq(projectMetrics.projectId, id)));
+  await step("project_relationship_links", () => db.delete(projectRelationshipLinks).where(eq(projectRelationshipLinks.projectId, id)));
+  await step("project_data_sources", () => db.delete(projectDataSources).where(eq(projectDataSources.projectId, id)));
+
+  // Finally remove the workspace row itself.
   await db.delete(workspacesTable).where(eq(workspacesTable.id, id));
 
-  // Best-effort cleanup of per-project schemas. If the row was a legacy
-  // workspace these schemas may not exist; DROP IF EXISTS in the helper makes
-  // this safe.
-  try {
-    await dropProjectSchemas(id);
-  } catch (err) {
-    req.log.warn({ workspaceId: id, err }, "Failed to drop project schemas");
-  }
+  // Drop the per-project Postgres schemas (current architecture) and the legacy
+  // per-project database (old architecture), if present. DROP IF EXISTS-safe.
+  await step("drop_schemas", () => dropProjectSchemas(id));
+  await step("drop_legacy_db", () => dropLegacyProjectDatabase(id));
 
-  req.log.info({ workspaceId: id }, "Workspace deleted");
+  req.log.info({ workspaceId: id }, "Workspace deleted (cascade)");
   res.status(204).send();
 });
 

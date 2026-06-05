@@ -35,7 +35,7 @@ def transformation(row: dict[str, Any]) -> dict[str, Any]:
 def semantic_model(row: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": row["id"],
-        "workspaceId": row["workspace_id"],
+        "workspaceId": row["project_id"],
         "status": row["status"],
         "graphDefinition": row["graph_definition"],
         "agentRationale": row["agent_rationale"],
@@ -47,7 +47,7 @@ def semantic_model(row: dict[str, Any]) -> dict[str, Any]:
 def metric(row: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": row["id"],
-        "workspaceId": row["workspace_id"],
+        "workspaceId": row["project_id"],
         "metricName": row["metric_name"],
         "description": row["description"],
         "sqlFormula": row["sql_formula"],

@@ -1,0 +1,54 @@
+[     318ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:17986
+[    1723ms] [ERROR] Each child in a list should have a unique "key" prop.%s%s See https://react.dev/link/warning-keys for more information. 
+
+Check the render method of `GeneratedDashboard`.  @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:17516
+[  149388ms] ReferenceError: MessageSquare is not defined
+    at ProjectDetail (http://localhost:5173/src/pages/ProjectDetail.tsx?t=1780595189569:244:34)
+    at react-stack-bottom-frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:17424:20)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:4206:24)
+    at updateFunctionComponent (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:6619:21)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:7654:20)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:1485:72)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:10868:98)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:10728:43)
+    at renderRootSync (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:10711:13)
+    at performWorkOnRoot (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:10359:46)
+[  149389ms] [WARNING] %s
+
+%s
+ An error occurred in the <ProjectDetail> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:6228
+[  165799ms] ReferenceError: MessageSquare is not defined
+    at ProjectDetail (http://localhost:5173/src/pages/ProjectDetail.tsx?t=1780595206298:243:34)
+    at react-stack-bottom-frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:17424:20)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:4206:24)
+    at updateFunctionComponent (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:6619:21)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:7654:20)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:1485:72)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:10868:98)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:10728:43)
+    at renderRootSync (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:10711:13)
+    at performWorkOnRoot (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:10359:46)
+[  165800ms] [WARNING] %s
+
+%s
+ An error occurred in the <ProjectDetail> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:6228
+[  174961ms] ReferenceError: MessageSquare is not defined
+    at ProjectDetail (http://localhost:5173/src/pages/ProjectDetail.tsx?t=1780595215458:242:34)
+    at react-stack-bottom-frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:17424:20)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:4206:24)
+    at updateFunctionComponent (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:6619:21)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:7654:20)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:1485:72)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:10868:98)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:10728:43)
+    at renderRootSync (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:10711:13)
+    at performWorkOnRoot (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:10359:46)
+[  174962ms] [WARNING] %s
+
+%s
+ An error occurred in the <ProjectDetail> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:6228
+[  261968ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:5173/src/components/project/ChatPanel.tsx?t=1780595302533:0
+[  261969ms] [ERROR] [vite] Failed to reload /src/components/project/ChatPanel.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:808

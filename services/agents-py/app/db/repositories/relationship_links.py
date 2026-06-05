@@ -23,11 +23,11 @@ async def replace_for_project(project_id: int, links: list[dict[str, Any]]) -> i
     async with db.get_pool().connection() as conn:
         async with conn.transaction():
             async with conn.cursor() as cur:
-                await cur.execute(f"DELETE FROM {TABLE} WHERE workspace_id = %s", [project_id])
+                await cur.execute(f"DELETE FROM {TABLE} WHERE project_id = %s", [project_id])
                 for ln in links:
                     await cur.execute(
                         f"INSERT INTO {TABLE} "
-                        "(workspace_id, from_table, from_column, to_table, to_column, cardinality, rationale) "
+                        "(project_id, from_table, from_column, to_table, to_column, cardinality, rationale) "
                         "VALUES (%s, %s, %s, %s, %s, %s, %s)",
                         [
                             project_id,
@@ -44,7 +44,7 @@ async def replace_for_project(project_id: int, links: list[dict[str, Any]]) -> i
 
 async def list_for_project(project_id: int) -> list[dict[str, Any]]:
     rows = await db.fetch_all(
-        f"SELECT * FROM {TABLE} WHERE workspace_id = %s ORDER BY id ASC",
+        f"SELECT * FROM {TABLE} WHERE project_id = %s ORDER BY id ASC",
         [project_id],
     )
     return [

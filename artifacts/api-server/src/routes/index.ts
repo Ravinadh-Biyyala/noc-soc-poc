@@ -14,9 +14,6 @@ import copilotDashboardsRouter from "./copilot-dashboards";
 import sectionPinnedChartsRouter from "./section-pinned-charts";
 import projectAgentsRouter from "./project-agents";
 import projectIngestRouter from "./project-ingest";
-import projectTransformationsRouter from "./project-transformations";
-import projectModelingRouter from "./project-modeling";
-import projectMetricsRouter from "./project-metrics";
 
 const router: IRouter = Router();
 
@@ -35,8 +32,5 @@ router.use(copilotDashboardsRouter);
 router.use(sectionPinnedChartsRouter);
 router.use(projectAgentsRouter);
 router.use(projectIngestRouter);
-router.use(projectTransformationsRouter);
-router.use(projectModelingRouter);
-router.use(projectMetricsRouter);
 
 export default router;

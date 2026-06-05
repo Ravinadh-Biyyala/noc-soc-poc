@@ -14,7 +14,7 @@ function parseId(raw: string): number | null {
 function serializeDataset(d: typeof datasetsTable.$inferSelect) {
   return {
     id: d.id,
-    workspaceId: d.workspaceId,
+    workspaceId: d.projectId,
     fileName: d.fileName,
     sheetName: d.sheetName,
     tableName: d.tableName,
@@ -32,7 +32,7 @@ router.get("/datasets", async (req: Request, res: Response) => {
   const rows = await db
     .select()
     .from(datasetsTable)
-    .where(wid !== null && Number.isFinite(wid) ? eq(datasetsTable.workspaceId, wid) : undefined)
+    .where(wid !== null && Number.isFinite(wid) ? eq(datasetsTable.projectId, wid) : undefined)
     .orderBy(desc(datasetsTable.createdAt));
   res.json(rows.map(serializeDataset));
 });

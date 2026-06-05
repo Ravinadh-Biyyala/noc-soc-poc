@@ -12,6 +12,7 @@
  * pool removes that ceiling.
  */
 import { sql } from "drizzle-orm";
+import pg from "pg";
 import { db, pool as masterPool } from "./index";
 
 export type SchemaLayer = "raw" | "warehouse";
@@ -83,6 +84,37 @@ export async function dropProjectSchemas(projectId: number): Promise<void> {
   await masterPool.query(`DROP SCHEMA IF EXISTS ${quoteIdent(warehouse)} CASCADE`);
 }
 
+/**
+ * Drops the LEGACY per-project DATABASE (`proj_{id}`) left over from the old
+ * database-per-tenant architecture. The current design stores everything in the
+ * master DB under per-project schemas, so these databases are orphaned. We
+ * cannot drop the DB we're connected to, so this opens a short-lived connection
+ * to the `postgres` maintenance DB, terminates any stragglers, and drops it.
+ * Returns true if a database was dropped, false if none existed. No-op safe.
+ */
+export async function dropLegacyProjectDatabase(projectId: number): Promise<boolean> {
+  assertValidProjectId(projectId);
+  const dbName = `proj_${projectId}`;
+  const url = process.env.DATABASE_URL;
+  if (!url) return false;
+  // Reuse the same credentials/host but target the `postgres` maintenance DB.
+  const maintenanceUrl = url.replace(/\/[^/?]+(\?|$)/, "/postgres$1");
+  const client = new pg.Client({ connectionString: maintenanceUrl, connectionTimeoutMillis: 5_000 });
+  try {
+    await client.connect();
+    const exists = await client.query("SELECT 1 FROM pg_database WHERE datname = $1", [dbName]);
+    if (exists.rowCount === 0) return false;
+    await client.query(
+      "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1 AND pid <> pg_backend_pid()",
+      [dbName],
+    );
+    await client.query(`DROP DATABASE IF EXISTS ${quoteIdent(dbName)} WITH (FORCE)`);
+    return true;
+  } finally {
+    await client.end().catch(() => {});
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Back-compat aliases for callers that still use the old DB-per-tenant names.
 // They now delegate to the schema-per-tenant implementation.
@@ -133,7 +165,27 @@ async function listTablesInSchema(schemaName: string) {
     ORDER BY c.relname`,
     [schemaName],
   );
-  return result.rows.map((r) => ({ tableName: r.table_name, rowCount: Number(r.row_count) }));
+
+  // pg_class.reltuples is a planner estimate that is -1 ("unknown") until the
+  // table has been ANALYZEd — which never happens for a freshly-uploaded table.
+  // Surfacing that -1 makes the Raw browser show "~-1 rows", which looks like a
+  // failed import. For any table whose estimate is missing/negative, fall back
+  // to an exact COUNT(*) so the count is correct (these are small uploads).
+  return Promise.all(
+    result.rows.map(async (r) => {
+      let rowCount = Number(r.row_count);
+      if (!Number.isFinite(rowCount) || rowCount < 0) {
+        try {
+          const qualified = `${quoteIdent(schemaName)}.${quoteIdent(r.table_name)}`;
+          const exact = await masterPool.query<{ n: string }>(`SELECT COUNT(*)::bigint AS n FROM ${qualified}`);
+          rowCount = Number(exact.rows[0]?.n ?? 0);
+        } catch {
+          rowCount = 0;
+        }
+      }
+      return { tableName: r.table_name, rowCount };
+    }),
+  );
 }
 
 export async function listRawTables(projectId: number) {

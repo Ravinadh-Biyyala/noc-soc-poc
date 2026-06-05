@@ -120,10 +120,10 @@ export function CreateProjectDialog({ open, onOpenChange }: Props) {
                 )}
               >
                 <span className="flex items-center gap-1.5 text-sm font-medium">
-                  <SlidersHorizontal className="w-3.5 h-3.5" /> Manual
+                  <SlidersHorizontal className="w-3.5 h-3.5" /> Guided
                 </span>
                 <span className="text-xs text-muted-foreground leading-snug">
-                  Step through Connect → Transform → Model → Metrics → Dashboards with agent help at each phase.
+                  Connect data, answer a few questions about the KPIs you care about, and a multi-agent system builds a tailored dashboard and report.
                 </span>
               </button>
               <button

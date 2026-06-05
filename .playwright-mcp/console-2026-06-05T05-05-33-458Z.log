@@ -1,0 +1,20 @@
+[     519ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:17986
+[    1675ms] [ERROR] Each child in a list should have a unique "key" prop.%s%s See https://react.dev/link/warning-keys for more information. 
+
+Check the render method of `GeneratedDashboard`.  @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:17516
+[  526955ms] ReferenceError: PALETTE is not defined
+    at http://localhost:5173/src/components/GeneratedDashboard.tsx?t=1780636459843:980:129
+    at Array.map (<anonymous>)
+    at renderChart (http://localhost:5173/src/components/GeneratedDashboard.tsx?t=1780636459843:979:17)
+    at ChartCard (http://localhost:5173/src/components/GeneratedDashboard.tsx?t=1780636459843:1514:264)
+    at react-stack-bottom-frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:17424:20)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:4206:24)
+    at updateFunctionComponent (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:6619:21)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:7654:20)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:1485:72)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:10868:98)
+[  526955ms] [WARNING] %s
+
+%s
+ An error occurred in the <ChartCard> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:6228

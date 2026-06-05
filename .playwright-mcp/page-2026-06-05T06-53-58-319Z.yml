@@ -1,0 +1,215 @@
+- generic:
+  - generic:
+    - generic:
+      - complementary:
+        - generic:
+          - link:
+            - /url: /
+            - generic:
+              - generic:
+                - img
+              - text: Geva
+          - button:
+            - img
+        - navigation:
+          - link:
+            - /url: /
+            - generic:
+              - img
+              - generic: Home
+          - link:
+            - /url: /projects
+            - generic:
+              - img
+              - generic: Projects
+          - link:
+            - /url: /dashboards
+            - generic:
+              - img
+              - generic: Dashboards
+          - link:
+            - /url: /visuals-catalog
+            - generic:
+              - img
+              - generic: Visuals Catalog
+          - link:
+            - /url: /governance
+            - generic:
+              - img
+              - generic: Governance
+          - link:
+            - /url: /settings
+            - generic:
+              - img
+              - generic: Settings
+        - generic: Geva 2026
+      - main:
+        - generic:
+          - heading [level=1]: hilton
+          - generic:
+            - generic:
+              - generic: Live
+            - generic:
+              - generic: BK
+        - generic:
+          - generic:
+            - generic:
+              - link:
+                - /url: /projects
+                - button:
+                  - img
+                  - text: Projects
+              - generic:
+                - heading [level=2]: hilton
+              - generic: draft
+            - generic:
+              - tablist:
+                - tab [selected]:
+                  - img
+                  - text: Connect to data
+                - tab:
+                  - img
+                  - text: Raw browser
+                - tab:
+                  - img
+                  - text: Dashboards
+              - tabpanel:
+                - generic:
+                  - generic:
+                    - heading [level=3]:
+                      - img
+                      - text: Connect a data source
+                    - paragraph: Pick a source. Add credentials and choose what to pull — Gen-BI does the rest.
+                  - generic:
+                    - button:
+                      - generic:
+                        - generic:
+                          - img
+                        - generic:
+                          - generic:
+                            - generic: Upload files
+                            - generic: demo
+                            - img
+                          - paragraph: XLSX / XLS / CSV — multi-file picker. Every sheet becomes a raw table.
+                    - button:
+                      - generic:
+                        - generic:
+                          - img
+                        - generic:
+                          - generic:
+                            - generic: Google Sheets
+                            - img
+                          - paragraph: Browse your Google Drive and pull a real spreadsheet into Gen-BI.
+                    - button:
+                      - generic:
+                        - generic:
+                          - img
+                        - generic:
+                          - generic:
+                            - generic: Salesforce
+                            - generic: demo
+                            - img
+                          - paragraph: Pull Accounts, Opportunities and Cases via REST or SOQL.
+                    - button:
+                      - generic:
+                        - generic:
+                          - img
+                        - generic:
+                          - generic:
+                            - generic: Snowflake
+                            - generic: demo
+                            - img
+                          - paragraph: Query a warehouse, database and schema in your Snowflake account.
+                    - button:
+                      - generic:
+                        - generic:
+                          - img
+                        - generic:
+                          - generic:
+                            - generic: Databricks
+                            - generic: demo
+                            - img
+                          - paragraph: Pull tables from Unity Catalog or run a SQL Warehouse query.
+                    - button:
+                      - generic:
+                        - generic:
+                          - img
+                        - generic:
+                          - generic:
+                            - generic: SharePoint
+                            - generic: demo
+                            - img
+                          - paragraph: Pull files from a SharePoint site or document library.
+                    - button:
+                      - generic:
+                        - generic:
+                          - img
+                        - generic:
+                          - generic:
+                            - generic: Postgres
+                            - img
+                          - paragraph: Connect to any Postgres database, browse tables and build a joined dashboard.
+                  - generic:
+                    - img
+                    - text: Demo mode — connections return curated sample data. Live OAuth + drivers wire in per-customer.
+      - complementary:
+        - generic:
+          - generic:
+            - img
+            - text: BI Companion
+            - generic: BI
+          - button:
+            - img
+        - generic:
+          - img
+          - generic: Observing
+          - generic: hilton — Connect to data (Bronze ingestion)
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - text: I can see
+                        - strong: hilton — Connect to data (Bronze ingestion)
+                        - text: — ask me about it, or tell me what to do (open a dashboard, switch tabs, build a dashboard).
+                    - generic:
+                      - button:
+                        - img
+                      - button:
+                        - img
+                      - button:
+                        - img
+                      - button:
+                        - img
+              - generic:
+                - generic:
+                  - textbox:
+                    - /placeholder: Ask anything about your data…
+                  - generic:
+                    - button [disabled]:
+                      - img
+                - generic:
+                  - paragraph: Powered by CopilotKit
+    - list
+  - dialog "Upload files" [ref=e249]:
+    - generic [ref=e250]:
+      - heading "Upload files" [level=2] [ref=e251]
+      - paragraph [ref=e252]:
+        - text: XLSX / XLS / CSV. Each sheet becomes a table in the project's
+        - code [ref=e253]: raw
+        - text: schema. You can drop multiple files at once.
+    - generic [ref=e255] [cursor=pointer]:
+      - img [ref=e256]
+      - paragraph [ref=e259]: Click to choose or drop files here
+      - paragraph [ref=e260]: Multiple files supported · max 60 MB per file · up to 10 files
+    - generic [ref=e261]:
+      - button "Cancel" [active] [ref=e262]
+      - button "Import" [disabled]:
+        - img
+        - text: Import
+    - button "Close" [ref=e263]:
+      - img [ref=e264]
+      - generic [ref=e267]: Close

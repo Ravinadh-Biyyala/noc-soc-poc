@@ -30,14 +30,36 @@ def _exec_summary(state: dict[str, Any]) -> list[str]:
     return bullets[:6]
 
 
+def _questions_section(state: dict[str, Any]) -> list[str]:
+    """Render the guided-mode interview Q/A so the report explicitly answers the user."""
+    answers = state.get("intent_raw") or {}
+    questions = state.get("questions") or []
+    if not isinstance(answers, dict) or not answers:
+        return []
+    q_by_id = {q.get("id"): q for q in questions}
+    rows: list[str] = []
+    for qid, val in answers.items():
+        text = (str(val) if val is not None else "").strip()
+        if not text:
+            continue
+        label = (q_by_id.get(qid) or {}).get("question") or qid
+        rows.append(f"- **{label}** {text}")
+    if not rows:
+        return []
+    return ["## What You Asked", "", *rows, ""]
+
+
 def assemble_report(state: dict[str, Any]) -> str:
     name = state.get("project_name") or "Project"
     profile = state.get("profile") or {}
     cleaned = state.get("cleaned") or {}
     merge = state.get("merge") or {}
+    kpis = state.get("kpis") or {}
     findings = state.get("findings") or {}
 
     out: list[str] = [f"# {name} — Automated Insight Report", ""]
+
+    out += _questions_section(state)
 
     summary_bullets = _exec_summary(state)
     if summary_bullets:
@@ -52,6 +74,10 @@ def assemble_report(state: dict[str, Any]) -> str:
     if merge.get("summary"):
         strat = merge.get("strategy", "")
         out.append(f"**Merging ({strat}):** {merge['summary']}")
+    if kpis.get("summary"):
+        out.append(f"**KPIs built:** {kpis['summary']}")
+        if kpis.get("categorization"):
+            out.append(f"**Performance rule:** {kpis['categorization']}")
     out.append("")
 
     # Per-lens findings

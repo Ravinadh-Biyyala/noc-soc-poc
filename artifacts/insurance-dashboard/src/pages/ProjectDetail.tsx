@@ -7,23 +7,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ArrowLeft, AlertTriangle, Upload, Table, Wand2, LayoutDashboard, Lock, Network, Gauge, MessageSquare } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Upload, Table, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ProjectConnectDataPanel, ProjectRawBrowserPanel, ProjectTransformationsPanel } from "@/components/project/DataEngineeringPanel";
+import { ProjectConnectDataPanel, ProjectRawBrowserPanel } from "@/components/project/DataEngineeringPanel";
 import { ProjectDashboardsPanel } from "@/components/project/DashboardsPanel";
-import { ProjectSemanticModelPanel } from "@/components/project/SemanticModelPanel";
-import { ProjectMetricArchitectPanel } from "@/components/project/MetricArchitectPanel";
-import { ProjectChatPanel } from "@/components/project/ChatPanel";
 
-type Phase = "connect" | "raw" | "transform" | "semantic-model" | "metrics" | "dashboards" | "chat";
+// The per-project Chat tab was removed — the right-rail BI Companion (Copilot)
+// is the single place to chat with project data.
+type Phase = "connect" | "raw" | "dashboards";
 
-const VALID_TABS: ReadonlySet<Phase> = new Set([
-  "connect", "raw", "transform",
-  "semantic-model", "metrics", "dashboards", "chat",
-]);
-
-// Auto-mode projects expose a streamlined subset (no transform/model/metrics tabs).
-const AUTO_TABS: ReadonlySet<Phase> = new Set(["connect", "raw", "dashboards", "chat"]);
+const VALID_TABS: ReadonlySet<Phase> = new Set(["connect", "raw", "dashboards"]);
 
 interface WarehouseStatus {
   tableCount: number;
@@ -47,11 +40,14 @@ function useWarehouseStatus(projectId: number | null) {
 
 export default function ProjectDetail() {
   const [, params] = useRoute("/projects/:id/:tab?");
+  // Deep-link to a specific dashboard: /projects/:id/dashboards/:dashId
+  const [matchDash, dashParams] = useRoute("/projects/:id/dashboards/:dashId");
   const [, setLocation] = useLocation();
 
-  const idStr = params?.id ?? "";
-  const tabParam = (params?.tab ?? "connect") as Phase;
+  const idStr = (dashParams?.id ?? params?.id) ?? "";
+  const tabParam = (matchDash ? "dashboards" : (params?.tab ?? "connect")) as Phase;
   const tab: Phase = VALID_TABS.has(tabParam) ? tabParam : "connect";
+  const deepLinkDashId = dashParams?.dashId ? Number(dashParams.dashId) : undefined;
 
   const id = parseInt(idStr, 10);
   const validId = Number.isFinite(id) && id > 0 ? id : null;
@@ -61,10 +57,6 @@ export default function ProjectDetail() {
     query: { enabled: validId !== null, queryKey: getGetWorkspaceQueryKey(lookupId) },
   });
   const { data: warehouseStatus } = useWarehouseStatus(validId);
-  const warehouseReady = (warehouseStatus?.tableCount ?? 0) > 0;
-
-  // packId doubles as the project mode discriminator (set in CreateProjectDialog).
-  const autoMode = project?.packId === "auto";
 
   useRegisterObservation(
     useMemo(() => {
@@ -72,31 +64,21 @@ export default function ProjectDetail() {
       const phaseLabel: Record<Phase, string> = {
         "connect": "Connect to data (Bronze ingestion)",
         "raw": "Raw browser (Bronze layer)",
-        "transform": "Transformations (Bronze → Silver)",
-        "semantic-model": "Semantic Model (Silver → Semantic)",
-        "metrics": "Metric Architect (Gold layer)",
         "dashboards": "Dashboards",
-        "chat": "Chat",
       };
       return {
         label: `${project.name} — ${phaseLabel[tab]}`,
         kind: "workspace" as const,
         workspaceId: id,
-        summary: `Project "${project.name}" (id=${id}). Current phase: ${phaseLabel[tab]}. Warehouse has ${warehouseStatus?.tableCount ?? 0} table(s). The project pipeline goes: Connect data → Raw browser → Transformations → Semantic Model → Metrics → Dashboards. The active workspaceId for queries is ${id}.`,
+        summary: `Project "${project.name}" (id=${id}). Current tab: ${phaseLabel[tab]}. Warehouse has ${warehouseStatus?.tableCount ?? 0} table(s). The active workspaceId for queries is ${id}.`,
         suggestions: [
           tab === "connect"
             ? "What data sources should I connect?"
             : tab === "raw"
               ? "What raw tables look most important?"
-              : tab === "transform"
-                ? "What transformations should I apply?"
-                : tab === "semantic-model"
-                  ? "Which tables look like facts vs dimensions?"
-                  : tab === "metrics"
-                    ? "What standard KPIs should I define?"
-                    : "Summarise what this dashboard shows",
-          "What's blocking me from advancing to the next phase?",
-          "Audit my pipeline so far",
+              : "Summarise what this dashboard shows",
+          "What's the current state of this project?",
+          "Show me insights from the data",
         ],
       };
     }, [project, tab, id, warehouseStatus?.tableCount]),
@@ -159,113 +141,32 @@ export default function ProjectDetail() {
         <Badge variant="outline" className="text-[10px]">{project.status}</Badge>
       </div>
 
-      {autoMode ? (
-        <Tabs value={AUTO_TABS.has(tab) ? tab : "connect"} onValueChange={(v) => goTab(v as Phase)}>
-          <TabsList className="h-10 flex-wrap">
-            <TabsTrigger value="connect" className="gap-1.5">
-              <Upload className="w-3.5 h-3.5" /> Connect to data
-            </TabsTrigger>
-            <TabsTrigger value="raw" className="gap-1.5">
-              <Table className="w-3.5 h-3.5" /> Raw browser
-            </TabsTrigger>
-            <TabsTrigger value="dashboards" className="gap-1.5">
-              <LayoutDashboard className="w-3.5 h-3.5" /> Dashboards
-            </TabsTrigger>
-            <TabsTrigger value="chat" className="gap-1.5">
-              <MessageSquare className="w-3.5 h-3.5" /> Chat
-            </TabsTrigger>
-          </TabsList>
+      <Tabs value={VALID_TABS.has(tab) ? tab : "connect"} onValueChange={(v) => goTab(v as Phase)}>
+        <TabsList className="h-10 flex-wrap">
+          <TabsTrigger value="connect" className="gap-1.5">
+            <Upload className="w-3.5 h-3.5" /> Connect to data
+          </TabsTrigger>
+          <TabsTrigger value="raw" className="gap-1.5">
+            <Table className="w-3.5 h-3.5" /> Raw browser
+          </TabsTrigger>
+          <TabsTrigger value="dashboards" className="gap-1.5">
+            <LayoutDashboard className="w-3.5 h-3.5" /> Dashboards
+          </TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="connect" className="pt-4">
-            <ProjectConnectDataPanel projectId={id} onImported={() => goTab("raw")} />
-          </TabsContent>
-          <TabsContent value="raw" className="pt-4">
-            <ProjectRawBrowserPanel projectId={id} autoMode onDashboardCreated={() => goTab("dashboards")} />
-          </TabsContent>
-          <TabsContent value="dashboards" className="pt-4">
-            <ProjectDashboardsPanel projectId={id} projectName={project.name} />
-          </TabsContent>
-          <TabsContent value="chat" className="pt-4">
-            <ProjectChatPanel projectId={id} />
-          </TabsContent>
-        </Tabs>
-      ) : (
-        <Tabs value={tab === "chat" ? "connect" : tab} onValueChange={(v) => goTab(v as Phase)}>
-          <TabsList className="h-10 flex-wrap">
-            <TabsTrigger value="connect" className="gap-1.5">
-              <Upload className="w-3.5 h-3.5" /> Connect to data
-            </TabsTrigger>
-            <TabsTrigger value="raw" className="gap-1.5">
-              <Table className="w-3.5 h-3.5" /> Raw browser
-            </TabsTrigger>
-            <TabsTrigger value="transform" className="gap-1.5">
-              <Wand2 className="w-3.5 h-3.5" /> Transformations
-            </TabsTrigger>
-            <TabsTrigger value="semantic-model" disabled={!warehouseReady} className="gap-1.5">
-              {warehouseReady ? <Network className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-              Semantic Model
-            </TabsTrigger>
-            <TabsTrigger value="metrics" disabled={!warehouseReady} className="gap-1.5">
-              {warehouseReady ? <Gauge className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-              Metrics
-            </TabsTrigger>
-            <TabsTrigger value="dashboards" disabled={!warehouseReady} className="gap-1.5">
-              {warehouseReady ? <LayoutDashboard className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-              Dashboards
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="connect" className="pt-4">
-            <ProjectConnectDataPanel projectId={id} onImported={() => goTab("raw")} />
-          </TabsContent>
-          <TabsContent value="raw" className="pt-4">
-            <ProjectRawBrowserPanel projectId={id} />
-          </TabsContent>
-          <TabsContent value="transform" className="pt-4">
-            <ProjectTransformationsPanel projectId={id} projectName={project.name} />
-          </TabsContent>
-          <TabsContent value="semantic-model" className="pt-4">
-            {warehouseReady ? (
-              <ProjectSemanticModelPanel projectId={id} projectName={project.name} />
-            ) : (
-              <WarehouseEmptyCard />
-            )}
-          </TabsContent>
-          <TabsContent value="metrics" className="pt-4">
-            {warehouseReady ? (
-              <ProjectMetricArchitectPanel projectId={id} projectName={project.name} />
-            ) : (
-              <WarehouseEmptyCard />
-            )}
-          </TabsContent>
-          <TabsContent value="dashboards" className="pt-4">
-            {warehouseReady ? (
-              <ProjectDashboardsPanel projectId={id} projectName={project.name} />
-            ) : (
-              <WarehouseEmptyCard />
-            )}
-          </TabsContent>
-        </Tabs>
-      )}
+        <TabsContent value="connect" className="pt-4">
+          <ProjectConnectDataPanel projectId={id} onImported={() => goTab("raw")} />
+        </TabsContent>
+        <TabsContent value="raw" className="pt-4">
+          <ProjectRawBrowserPanel
+            projectId={id}
+            onDashboardCreated={() => goTab("dashboards")}
+          />
+        </TabsContent>
+        <TabsContent value="dashboards" className="pt-4">
+          <ProjectDashboardsPanel projectId={id} projectName={project.name} initialDashId={deepLinkDashId} />
+        </TabsContent>
+      </Tabs>
     </div>
-  );
-}
-
-function WarehouseEmptyCard() {
-  return (
-    <Card>
-      <CardContent className="py-12 flex flex-col items-center gap-3 text-center">
-        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-          <Lock className="w-6 h-6 text-muted-foreground" />
-        </div>
-        <div>
-          <p className="text-base font-semibold">Data warehouse is empty</p>
-          <p className="text-xs text-muted-foreground mt-1 max-w-md">
-            Finish the Data Engineering phase to populate the warehouse schema. Once you accept
-            and save at least one transformation, this section unlocks.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
   );
 }

@@ -8,14 +8,12 @@ import { TenantConfigProvider, useTenantConfig } from "@/lib/tenant-config";
 import NotFound from "@/pages/not-found";
 import Layout from "@/components/layout";
 import DashboardSection from "@/components/DashboardSection";
-import UploadPage from "@/components/UploadPage";
 import GeneratedDashboard from "@/components/GeneratedDashboard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GeneratedDashboardProvider, useGeneratedDashboards } from "@/lib/generated-dashboards";
-import { ChatObserverProvider } from "@/lib/chat-observer";
+import { ChatObserverProvider, useChatObserver } from "@/lib/chat-observer";
+import { CopilotKit } from "@copilotkit/react-core";
 import Home from "@/pages/Home";
-import WorkspacesList from "@/pages/WorkspacesList";
-import WorkspaceDetail from "@/pages/WorkspaceDetail";
 import Projects from "@/pages/Projects";
 import ProjectDetail from "@/pages/ProjectDetail";
 import Settings from "@/pages/Settings";
@@ -85,15 +83,14 @@ function ConfigDrivenRoutes() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/workspaces" component={WorkspacesList} />
-      <Route path="/workspaces/:id/:tab" component={WorkspaceDetail} />
-      <Route path="/workspaces/:id" component={WorkspaceDetail} />
       <Route path="/projects" component={Projects} />
+      {/* Deep-link to a specific project dashboard so the Copilot's openDashboard
+          action (and shareable URLs) can open one directly. */}
+      <Route path="/projects/:id/dashboards/:dashId" component={ProjectDetail} />
       <Route path="/projects/:id/:tab" component={ProjectDetail} />
       <Route path="/projects/:id" component={ProjectDetail} />
       <Route path="/settings" component={Settings} />
       <Route path="/governance" component={GovernancePlaceholder} />
-      <Route path="/upload" component={() => <UploadPage onDashboardGenerated={addDashboard} />} />
       <Route path="/dashboards" component={Dashboards} />
       <Route path="/my-dashboards/:id" component={UserDashboardPage} />
       <Route path="/postgres-browser" component={PostgresBrowserPage} />
@@ -143,6 +140,31 @@ function Router() {
   );
 }
 
+/**
+ * Wraps the app in the CopilotKit (AG-UI) provider. Reads the active project
+ * from the chat-observer so the runtime receives the current workspaceId as a
+ * request property — the server scopes the dataset-query tool and instructions
+ * to that project. Must sit inside ChatObserverProvider.
+ */
+function CopilotKitBridge({ children }: { children: React.ReactNode }) {
+  const { observation } = useChatObserver();
+  const runtimeUrl = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/api/copilotkit`;
+  return (
+    <CopilotKit
+      runtimeUrl={runtimeUrl}
+      credentials="include"
+      showDevConsole={false}
+      // Hide CopilotKit's floating dev Inspector (AG-UI events / threads panel).
+      // It's a developer debugging overlay — not part of the protocol — and
+      // defaults to enabled; users shouldn't see it.
+      enableInspector={false}
+      properties={{ workspaceId: observation.workspaceId ?? null }}
+    >
+      {children}
+    </CopilotKit>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -151,12 +173,14 @@ function App() {
           <CustomDashboardsProvider>
             <GeneratedDashboardProvider>
               <ChatObserverProvider>
-                <TooltipProvider>
-                  <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-                    <Router />
-                  </WouterRouter>
-                  <Toaster />
-                </TooltipProvider>
+                <CopilotKitBridge>
+                  <TooltipProvider>
+                    <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                      <Router />
+                    </WouterRouter>
+                    <Toaster />
+                  </TooltipProvider>
+                </CopilotKitBridge>
               </ChatObserverProvider>
             </GeneratedDashboardProvider>
           </CustomDashboardsProvider>

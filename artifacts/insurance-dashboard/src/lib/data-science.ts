@@ -262,6 +262,77 @@ export function linearForecast(
 export interface ClusterPoint { x: number; y: number; cluster: number; row: Row }
 export interface ClusterResult { points: ClusterPoint[]; centroids: { x: number; y: number }[] }
 
+// ---------------------------------------------------------------------------
+// 5b. Box-plot statistics (5-number summary + IQR whiskers)
+// ---------------------------------------------------------------------------
+
+export interface BoxStats {
+  col: string;
+  min: number;
+  q1: number;
+  median: number;
+  mean: number;
+  q3: number;
+  max: number;
+  whiskerLow: number;
+  whiskerHigh: number;
+  outliers: number[];
+}
+
+function quantile(sorted: number[], p: number): number {
+  const idx = p * (sorted.length - 1);
+  const lo = Math.floor(idx);
+  const hi = Math.ceil(idx);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
+}
+
+export function boxPlotStats(rows: Row[], col: string): BoxStats | null {
+  const vals: number[] = [];
+  for (const r of rows) {
+    const v = Number(r[col]);
+    if (Number.isFinite(v)) vals.push(v);
+  }
+  if (vals.length < 4) return null;
+  vals.sort((a, b) => a - b);
+  const q1 = quantile(vals, 0.25);
+  const median = quantile(vals, 0.5);
+  const q3 = quantile(vals, 0.75);
+  const iqr = q3 - q1;
+  const whiskerLow = Math.max(vals[0], q1 - 1.5 * iqr);
+  const whiskerHigh = Math.min(vals[vals.length - 1], q3 + 1.5 * iqr);
+  const outliers = vals.filter((v) => v < whiskerLow || v > whiskerHigh);
+  const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+  return { col, min: vals[0], q1, median, mean, q3, max: vals[vals.length - 1], whiskerLow, whiskerHigh, outliers };
+}
+
+// ---------------------------------------------------------------------------
+// 5c. Histogram bins for distribution chart
+// ---------------------------------------------------------------------------
+
+export interface HistBin {
+  label: string;
+  count: number;
+}
+
+export function histogramBins(rows: Row[], col: string, bins = 10): HistBin[] {
+  const vals: number[] = [];
+  for (const r of rows) {
+    const v = Number(r[col]);
+    if (Number.isFinite(v)) vals.push(v);
+  }
+  if (vals.length < 2) return [];
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  if (min === max) return [{ label: String(min), count: vals.length }];
+  const w = (max - min) / bins;
+  const counts = new Array<number>(bins).fill(0);
+  for (const v of vals) counts[Math.min(bins - 1, Math.floor((v - min) / w))]++;
+  const fmt = (n: number) => Math.abs(n) >= 10000 ? (n / 1000).toFixed(0) + "k" : Math.abs(n) >= 1000 ? n.toFixed(0) : n.toFixed(1);
+  return counts.map((c, i) => ({ label: fmt(min + i * w), count: c }));
+}
+
+// ---------------------------------------------------------------------------
+
 export function kmeansClusters(
   rows: Row[],
   cols: [string, string],

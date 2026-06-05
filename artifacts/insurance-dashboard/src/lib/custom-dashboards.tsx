@@ -7,6 +7,8 @@ export interface CustomChart {
   xKey: string;
   yKey: string;
   data: any[];
+  /** Optional AI-chosen colour palette (hex/rgb/hsl) for this chart. */
+  colors?: string[];
   section: string;
   sectionLabel: string;
   addedAt: number;
@@ -88,6 +90,7 @@ function rowToChart(row: any): CustomChart {
     xKey: row.config.xKey ?? "x",
     yKey: row.config.yKey ?? "y",
     data: row.config.data ?? [],
+    colors: Array.isArray(row.config.colors) ? row.config.colors : undefined,
     section: row.sectionRoute,
     sectionLabel: row.config.sectionLabel ?? row.sectionRoute,
     addedAt: new Date(row.createdAt).getTime(),
@@ -129,6 +132,7 @@ export function CustomDashboardsProvider({ children }: { children: React.ReactNo
         xKey: chart.xKey,
         yKey: chart.yKey,
         data: chart.data,
+        ...(chart.colors?.length ? { colors: chart.colors } : {}),
         sectionLabel: chart.sectionLabel,
       };
 

@@ -3,16 +3,15 @@ import type { Request, Response } from "express";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import {
   db,
-  pool,
   conversations as conversationsTable,
   messages as messagesTable,
-  datasets as datasetsTable,
-  projectMetrics,
-  projectSemanticModels,
-  warehouseSchema,
 } from "@workspace/db";
-import type { DatasetColumn } from "@workspace/db";
-import { and, eq, desc } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
+import {
+  runDatasetQuery,
+  loadProjectCopilotContext,
+  renderProjectContextBlock,
+} from "./agent-tools.js";
 import {
   CreateOpenaiConversationBody,
   SendOpenaiMessageBody,
@@ -32,94 +31,65 @@ function normalizeMarkdown(text: string): string {
     .replace(/\n{3,}/g, "\n\n");
 }
 
+// Strip the "[USER]\n" context-injection prefix the client prepends on the
+// first message of a thread, leaving just what the user actually typed.
+function rawUserText(content: string): string {
+  return content.includes("\n\n[USER]\n") ? (content.split("\n\n[USER]\n").pop() ?? content) : content;
+}
+
+// Page-aware follow-up suggestions, grounded in the actual answer rather than a
+// keyword guess on the client. One cheap, bounded, non-streaming call after the
+// reply completes; returns [] on any failure so it never blocks the response.
+const FOLLOWUP_TIMEOUT_MS = 10_000;
+
+async function generateFollowups(userText: string, answer: string): Promise<string[]> {
+  if (!answer.trim()) return [];
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FOLLOWUP_TIMEOUT_MS);
+  try {
+    const completion = await openai.chat.completions.create(
+      {
+        model: process.env.OPENAI_MODEL ?? "gpt-4.1-mini",
+        max_completion_tokens: 200,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You suggest the next questions a user would ask a BI assistant. Ground every suggestion strictly in the " +
+              "conversation provided — the specific entities, metrics and framing actually discussed. Never flip the framing " +
+              "(e.g. do NOT suggest 'top performers' when the topic is underperformers). Return STRICT JSON only.",
+          },
+          {
+            role: "user",
+            content:
+              `USER ASKED:\n${rawUserText(userText).slice(0, 800)}\n\n` +
+              `ASSISTANT ANSWERED:\n${answer.slice(0, 1800)}\n\n` +
+              `Propose 2-3 follow-up questions the user is most likely to ask NEXT. Each must be specific to the data above, ` +
+              `<= 70 characters, phrased as the user would type it, and must not repeat what was already answered. ` +
+              `Return JSON: {"questions": ["...", "..."]}.`,
+          },
+        ],
+        response_format: { type: "json_object" },
+      },
+      { signal: controller.signal },
+    );
+    const raw = completion.choices[0]?.message?.content ?? "{}";
+    const parsed = JSON.parse(raw) as { questions?: unknown };
+    const qs = Array.isArray(parsed.questions) ? parsed.questions : [];
+    return qs
+      .filter((q): q is string => typeof q === "string" && q.trim().length > 0)
+      .map((q) => q.trim())
+      .slice(0, 3);
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 const router: IRouter = Router();
 
-// ─── Project-scoped context (semantic model + applied metrics) ───────────────
-
-interface ProjectCopilotContext {
-  semanticGraph: { facts: string[]; dimensions: string[]; joins: Array<{ from: string; to: string; cardinality: string }> } | null;
-  metrics: Array<{ metricName: string; description: string | null; sqlFormula: string; dependsOnTables: string[] }>;
-  warehouseSchema: string;
-}
-
-async function loadProjectCopilotContext(projectId: number): Promise<ProjectCopilotContext | null> {
-  if (!Number.isFinite(projectId) || projectId <= 0) return null;
-
-  const [sm] = await db
-    .select()
-    .from(projectSemanticModels)
-    .where(and(
-      eq(projectSemanticModels.workspaceId, projectId),
-      eq(projectSemanticModels.status, "applied"),
-    ))
-    .orderBy(desc(projectSemanticModels.createdAt))
-    .limit(1);
-
-  const metrics = await db
-    .select()
-    .from(projectMetrics)
-    .where(and(
-      eq(projectMetrics.workspaceId, projectId),
-      eq(projectMetrics.status, "applied"),
-    ))
-    .orderBy(desc(projectMetrics.createdAt));
-
-  return {
-    semanticGraph: sm?.graphDefinition ?? null,
-    metrics: metrics.map((m) => ({
-      metricName: m.metricName,
-      description: m.description,
-      sqlFormula: m.sqlFormula,
-      dependsOnTables: m.dependsOnTables,
-    })),
-    warehouseSchema: warehouseSchema(projectId),
-  };
-}
-
-function renderProjectContextBlock(ctx: ProjectCopilotContext | null): string {
-  if (!ctx) return "";
-  const semanticBlock = !ctx.semanticGraph ? "(no semantic model accepted)" : [
-    `Facts: ${ctx.semanticGraph.facts.join(", ") || "(none)"}`,
-    `Dimensions: ${ctx.semanticGraph.dimensions.join(", ") || "(none)"}`,
-    `Joins: ${ctx.semanticGraph.joins.map((j) => `${j.from} → ${j.to} (${j.cardinality})`).join("; ") || "(none)"}`,
-  ].join("\n  ");
-
-  const metricsBlock = ctx.metrics.length === 0
-    ? "(no metrics defined yet)"
-    : ctx.metrics.map((m) => `- ${m.metricName} := ${m.sqlFormula}${m.description ? ` — ${m.description}` : ""}`).join("\n");
-
-  return [
-    ``,
-    `PROJECT WAREHOUSE: ${ctx.warehouseSchema}`,
-    `SEMANTIC MODEL:`,
-    `  ${semanticBlock}`,
-    ``,
-    `AVAILABLE METRICS (use {{metric:name}} in SQL to inject the formula):`,
-    metricsBlock,
-    ``,
-    `RULES:`,
-    `- When the user asks about a known metric, reference it by name in your prose AND use {{metric:name}} in SQL — the server substitutes the formula at query time. Do NOT inline the formula yourself.`,
-    `- When joining warehouse tables, use only the joins listed above. If a needed join is missing, say so plainly rather than improvising.`,
-  ].join("\n");
-}
-
-/**
- * Substitutes {{metric:name}} placeholders in a SQL string with the stored
- * sqlFormula from project_metrics. The replacement is wrapped in parens so it
- * stays a single SELECT expression. Unknown metric names are left intact so
- * the executor surfaces a clear "column does not exist" error rather than
- * silently dropping the placeholder.
- */
-function substituteMetricPlaceholders(sql: string, metrics: ProjectCopilotContext["metrics"]): string {
-  if (!sql.includes("{{metric:")) return sql;
-  const byName = new Map(metrics.map((m) => [m.metricName, m.sqlFormula]));
-  return sql.replace(/\{\{metric:([a-z][a-z0-9_]*)\}\}/gi, (match, name: string) => {
-    const formula = byName.get(name);
-    return formula ? `(${formula})` : match;
-  });
-}
-
-// ─── Dataset query tool ───────────────────────────────────────────────────────
+// ─── Agent tools (dataset query + frontend navigation) ───────────────────────
 
 const DATASET_TOOLS = [
   {
@@ -147,58 +117,31 @@ const DATASET_TOOLS = [
   },
 ];
 
-async function runDatasetQuery(
-  datasetId: number,
-  sql: string,
-  projectCtx: ProjectCopilotContext | null = null,
-): Promise<{ columns: string[]; rows: Record<string, unknown>[]; rowCount: number; error?: string }> {
-  const [dataset] = await db
-    .select()
-    .from(datasetsTable)
-    .where(eq(datasetsTable.id, datasetId))
-    .limit(1);
+const NAVIGATION_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "navigate_to_page",
+    description:
+      "Navigate the user's browser to a different page in the application. Use ONLY when the user explicitly asks to go somewhere, open a page, or switch views. Never call this unsolicited.",
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description:
+            "URL path to navigate to (e.g. '/dashboards', '/projects', '/settings', '/governance', '/dashboards/claims').",
+        },
+        reason: {
+          type: "string",
+          description: "One-sentence explanation shown to the user as a toast notification.",
+        },
+      },
+      required: ["path", "reason"],
+    },
+  },
+};
 
-  if (!dataset) {
-    return { columns: [], rows: [], rowCount: 0, error: `Dataset ${datasetId} not found` };
-  }
-
-  const cols = dataset.columnSchema as DatasetColumn[];
-
-  // Substitute {{metric:name}} placeholders BEFORE the SELECT guard so the
-  // user can reference metric names directly.
-  const substitutedSql = projectCtx ? substituteMetricPlaceholders(sql, projectCtx.metrics) : sql;
-
-  const firstWord = substitutedSql.replace(/^\s*\/\*[\s\S]*?\*\/\s*/g, "").trim().split(/\s+/)[0]?.toUpperCase();
-  if (firstWord !== "SELECT") {
-    return { columns: [], rows: [], rowCount: 0, error: "Only SELECT queries are allowed" };
-  }
-
-  if (!substitutedSql.includes(dataset.tableName)) {
-    return { columns: [], rows: [], rowCount: 0, error: `Query must reference table "${dataset.tableName}"` };
-  }
-
-  const client = await pool.connect();
-  try {
-    await client.query("SET statement_timeout = 3000");
-    const result = await client.query(substitutedSql);
-    const nameMap = new Map(cols.map((c) => [c.pgName, c.originalName]));
-    const rows: Record<string, unknown>[] = result.rows.map((r: Record<string, unknown>) => {
-      const out: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(r)) {
-        if (k === "_row_id") continue;
-        out[nameMap.get(k) ?? k] = v;
-      }
-      return out;
-    });
-    const columns = result.fields
-      .map((f: { name: string }) => f.name)
-      .filter((c: string) => c !== "_row_id")
-      .map((c: string) => nameMap.get(c) ?? c);
-    return { columns, rows, rowCount: rows.length };
-  } finally {
-    client.release();
-  }
-}
+const AGENT_TOOLS = [...DATASET_TOOLS, NAVIGATION_TOOL];
 
 router.get("/openai/conversations", async (_req: Request, res: Response) => {
   const rows = await db
@@ -374,7 +317,7 @@ router.post("/openai/conversations/:id/messages", async (req: Request, res: Resp
           model: process.env.OPENAI_MODEL ?? "gpt-4.1-mini",
           max_completion_tokens: Number(process.env.OPENAI_MAX_TOKENS) || 8192,
           messages: chatMessages,
-          tools: DATASET_TOOLS,
+          tools: AGENT_TOOLS,
           tool_choice: "auto",
           stream: true,
         }, { signal: callController.signal });
@@ -430,6 +373,15 @@ router.post("/openai/conversations/:id/messages", async (req: Request, res: Resp
           } catch (err) {
             toolResult = JSON.stringify({ error: String(err), columns: [], rows: [], rowCount: 0 });
           }
+        } else if (toolCall.function.name === "navigate_to_page") {
+          try {
+            const args = JSON.parse(toolCall.function.arguments) as { path: string; reason: string };
+            req.log.info({ path: args.path }, "Tool: navigate_to_page");
+            res.write(`data: ${JSON.stringify({ navigate: args.path, navigateReason: args.reason })}\n\n`);
+            toolResult = JSON.stringify({ success: true, navigatedTo: args.path, message: `Navigation to ${args.path} initiated in the browser.` });
+          } catch (err) {
+            toolResult = JSON.stringify({ error: String(err) });
+          }
         } else {
           toolResult = JSON.stringify({ error: "Unknown tool" });
         }
@@ -447,6 +399,11 @@ router.post("/openai/conversations/:id/messages", async (req: Request, res: Resp
       { conversationId: id, streamDurationMs: Date.now() - streamStart, responseLen: fullResponse.length },
       "Chat stream complete"
     );
+
+    const followups = await generateFollowups(displayContent, fullResponse);
+    if (followups.length) {
+      res.write(`data: ${JSON.stringify({ followups })}\n\n`);
+    }
 
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
@@ -508,7 +465,7 @@ router.post("/openai/chat", async (req: Request, res: Response) => {
         model: process.env.OPENAI_MODEL ?? "gpt-4.1-mini",
         max_completion_tokens: Number(process.env.OPENAI_MAX_TOKENS) || 8192,
         messages: chatMessages,
-        tools: DATASET_TOOLS,
+        tools: AGENT_TOOLS,
         tool_choice: "auto",
         stream: true,
       }, { signal: callController.signal });
@@ -579,6 +536,15 @@ router.post("/openai/chat", async (req: Request, res: Response) => {
           } catch (err) {
             toolResult = JSON.stringify({ error: String(err), columns: [], rows: [], rowCount: 0 });
           }
+        } else if (toolCall.function.name === "navigate_to_page") {
+          try {
+            const args = JSON.parse(toolCall.function.arguments) as { path: string; reason: string };
+            req.log.info({ path: args.path }, "Tool: navigate_to_page");
+            res.write(`data: ${JSON.stringify({ navigate: args.path, navigateReason: args.reason })}\n\n`);
+            toolResult = JSON.stringify({ success: true, navigatedTo: args.path, message: `Navigation to ${args.path} initiated in the browser.` });
+          } catch (err) {
+            toolResult = JSON.stringify({ error: String(err) });
+          }
         } else {
           toolResult = JSON.stringify({ error: "Unknown tool" });
         }
@@ -598,6 +564,13 @@ router.post("/openai/chat", async (req: Request, res: Response) => {
     if (normalized !== fullResponse) {
       res.write(`data: ${JSON.stringify({ finalText: normalized })}\n\n`);
     }
+
+    const lastUser = [...clientMessages].reverse().find((m) => m.role === "user")?.content ?? "";
+    const followups = await generateFollowups(lastUser, fullResponse);
+    if (followups.length) {
+      res.write(`data: ${JSON.stringify({ followups })}\n\n`);
+    }
+
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
   } catch (error) {

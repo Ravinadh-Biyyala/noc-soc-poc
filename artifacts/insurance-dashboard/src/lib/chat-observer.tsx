@@ -46,6 +46,8 @@ export interface AgentSuggestion {
 interface Ctx {
   observation: ChatObservation;
   setObservation: (next: ChatObservation | null) => void;
+  /** Reset to default ONLY if `obs` is still the active observation (owner check). */
+  clearObservation: (obs: ChatObservation) => void;
   agentSuggestions: AgentSuggestion[];
   pushAgentSuggestion: (s: Omit<AgentSuggestion, "id"> & { id?: string }) => string;
   dismissAgentSuggestion: (id: string) => void;
@@ -65,6 +67,7 @@ const DEFAULT: ChatObservation = {
 const ChatObserverContext = createContext<Ctx>({
   observation: DEFAULT,
   setObservation: () => {},
+  clearObservation: () => {},
   agentSuggestions: [],
   pushAgentSuggestion: () => "",
   dismissAgentSuggestion: () => {},
@@ -78,6 +81,14 @@ export function ChatObserverProvider({ children }: { children: React.ReactNode }
 
   const setObservation = useCallback((next: ChatObservation | null) => {
     setObs(next ?? DEFAULT);
+  }, []);
+
+  // Owner-checked reset: the functional updater reads the LIVE observation, so a
+  // component unmounting only clears its OWN observation — it never clobbers one
+  // that a newer page/panel already registered (fixes lost context on tab/route
+  // switches where cleanup and re-register race).
+  const clearObservation = useCallback((obs: ChatObservation) => {
+    setObs((current) => (current === obs ? DEFAULT : current));
   }, []);
 
   const pushAgentSuggestion = useCallback<Ctx["pushAgentSuggestion"]>((s) => {
@@ -102,12 +113,13 @@ export function ChatObserverProvider({ children }: { children: React.ReactNode }
     () => ({
       observation,
       setObservation,
+      clearObservation,
       agentSuggestions,
       pushAgentSuggestion,
       dismissAgentSuggestion,
       clearAgentSuggestions,
     }),
-    [observation, setObservation, agentSuggestions, pushAgentSuggestion, dismissAgentSuggestion, clearAgentSuggestions],
+    [observation, setObservation, clearObservation, agentSuggestions, pushAgentSuggestion, dismissAgentSuggestion, clearAgentSuggestions],
   );
 
   return <ChatObserverContext.Provider value={value}>{children}</ChatObserverContext.Provider>;
@@ -123,11 +135,20 @@ export function useChatObserver() {
  * it can see.
  */
 export function useRegisterObservation(obs: ChatObservation | null) {
-  const { setObservation } = useChatObserver();
+  const { setObservation, clearObservation } = useChatObserver();
   const key = JSON.stringify(obs ?? null);
   useEffect(() => {
+    // A null observation means "this component opts out" — it must NOT clobber
+    // an observation a parent already registered (e.g. an embedded
+    // GeneratedDashboard with hidePresenter would otherwise wipe the project's
+    // workspaceId context). Skip entirely so the parent's observation stands.
+    if (obs == null) return;
     setObservation(obs);
-    return () => setObservation(null);
+    // Owner-checked cleanup: only reset to default if OUR observation is still
+    // active. On a tab/route switch the next view registers its own observation
+    // first; without this check our unmount cleanup would wipe it and the
+    // Copilot would lose project context.
+    return () => clearObservation(obs);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 }

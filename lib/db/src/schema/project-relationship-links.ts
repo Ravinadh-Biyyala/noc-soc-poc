@@ -9,7 +9,7 @@ import { workspaces } from "./workspaces";
  */
 export const projectRelationshipLinks = pgTable("project_relationship_links", {
   id: serial("id").primaryKey(),
-  workspaceId: integer("workspace_id")
+  projectId: integer("project_id")
     .notNull()
     .references(() => workspaces.id, { onDelete: "cascade" }),
   fromTable: text("from_table").notNull(),

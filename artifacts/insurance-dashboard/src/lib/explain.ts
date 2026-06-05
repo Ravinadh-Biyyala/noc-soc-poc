@@ -161,7 +161,7 @@ export function exportAuditorBundle(
   // 1. JSON bundle
   const bundle = {
     generatedAt: stamp,
-    artifact: "Geva",
+    artifact: "Gen VI",
     kind: ctx.kind,
     title: ctx.title,
     value: ctx.value,
@@ -218,7 +218,7 @@ export function exportAuditorBundle(
 </style></head><body>
 <header>
   <h1>${esc(ctx.title)}</h1>
-  <div class="meta">Geva · ${ctx.kind === "kpi" ? "KPI" : `Chart (${esc(ctx.chartType ?? "")})`} · Generated ${esc(stamp)}</div>
+  <div class="meta">Gen VI · ${ctx.kind === "kpi" ? "KPI" : `Chart (${esc(ctx.chartType ?? "")})`} · Generated ${esc(stamp)}</div>
 </header>
 ${sections}
 <footer>Auditor export — narrative and lineage are produced deterministically from the same data the dashboard renders.</footer>

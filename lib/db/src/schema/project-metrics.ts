@@ -5,7 +5,7 @@ export type MetricStatus = "proposed" | "applied" | "rejected";
 
 export const projectMetrics = pgTable("project_metrics", {
   id: serial("id").primaryKey(),
-  workspaceId: integer("workspace_id")
+  projectId: integer("project_id")
     .notNull()
     .references(() => workspaces.id, { onDelete: "cascade" }),
   metricName: varchar("metric_name", { length: 128 }).notNull(),

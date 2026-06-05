@@ -18,7 +18,7 @@ export interface SemanticGraphDefinition {
 
 export const projectSemanticModels = pgTable("project_semantic_models", {
   id: serial("id").primaryKey(),
-  workspaceId: integer("workspace_id")
+  projectId: integer("project_id")
     .notNull()
     .references(() => workspaces.id, { onDelete: "cascade" }),
   status: varchar("status", { length: 32 }).notNull().default("proposed"),

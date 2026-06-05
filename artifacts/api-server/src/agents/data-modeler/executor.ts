@@ -86,7 +86,7 @@ export async function saveSemanticGraph(
   await db
     .delete(projectSemanticModels)
     .where(and(
-      eq(projectSemanticModels.workspaceId, projectId),
+      eq(projectSemanticModels.projectId, projectId),
       eq(projectSemanticModels.status, "proposed"),
     ));
 
@@ -99,7 +99,7 @@ export async function saveSemanticGraph(
   const [row] = await db
     .insert(projectSemanticModels)
     .values({
-      workspaceId: projectId,
+      projectId: projectId,
       status: "proposed",
       graphDefinition,
       agentRationale: args.rationale,
@@ -114,7 +114,7 @@ export async function getAppliedSemanticGraph(projectId: number) {
     .select()
     .from(projectSemanticModels)
     .where(and(
-      eq(projectSemanticModels.workspaceId, projectId),
+      eq(projectSemanticModels.projectId, projectId),
       eq(projectSemanticModels.status, "applied"),
     ))
     .orderBy(desc(projectSemanticModels.createdAt))

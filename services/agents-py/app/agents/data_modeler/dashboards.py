@@ -17,6 +17,8 @@ NUMERIC_TYPE = re.compile(r"int|float|numeric|double|real|decimal|money|serial",
 BOOL_TYPE = re.compile(r"bool", re.IGNORECASE)
 NUM_KEYWORD = re.compile(r"revenue|amount|sales|price|value|total|cost|fee|premium|spend|deal|commission", re.IGNORECASE)
 CAT_KEYWORD = re.compile(r"customer|category|region|product|user|type|status|name|brand|city|segment|tier|owner|broker|supplier", re.IGNORECASE)
+# Categorical column that buckets entities into performance tiers (built by the guided KPI agent).
+PERF_KEYWORD = re.compile(r"performance|perf_cat|tier|grade|rating", re.IGNORECASE)
 
 
 def _col_to_label(raw: str) -> str:
@@ -107,9 +109,13 @@ def normalize_agent_charts(charts: list[dict[str, Any]]) -> list[dict[str, Any]]
     return out
 
 
-async def ensure_project_kpis(project_id: int, dash_id: int) -> None:
+async def ensure_project_kpis(project_id: int, dash_id: int, preferred_table: str | None = None) -> None:
     """Guarantee up to 4 KPI stat cards by querying the warehouse directly.
-    Skips silently on any failure so a missing KPI never blocks creation."""
+    Skips silently on any failure so a missing KPI never blocks creation.
+
+    When `preferred_table` is given (the guided KPI table), its columns drive the
+    cards — including a performance-tier count (e.g. underperforming entities) so
+    the cards reflect what the user asked about rather than a generic total."""
     existing = await repo.charts_for_dashboard(dash_id)
     existing_kpis = [c for c in existing if c["chart_type"] == "kpi"]
     if len(existing_kpis) >= 4:
@@ -125,7 +131,9 @@ async def ensure_project_kpis(project_id: int, dash_id: int) -> None:
     if not tables:
         return
 
-    chosen = next((t for t in tables if any(NUMERIC_TYPE.search(c["type"]) and NUM_KEYWORD.search(c["name"]) for c in t["columns"])), None)
+    chosen = next((t for t in tables if t["tableName"] == preferred_table), None) if preferred_table else None
+    if not chosen:
+        chosen = next((t for t in tables if any(NUMERIC_TYPE.search(c["type"]) and NUM_KEYWORD.search(c["name"]) for c in t["columns"])), None)
     if not chosen:
         chosen = next((t for t in tables if any(NUMERIC_TYPE.search(c["type"]) for c in t["columns"])), None)
     if not chosen:
@@ -135,14 +143,21 @@ async def ensure_project_kpis(project_id: int, dash_id: int) -> None:
     categorical_cols = [c["name"] for c in chosen["columns"] if not NUMERIC_TYPE.search(c["type"]) and not BOOL_TYPE.search(c["type"])]
     best_numeric = next((c for c in numeric_cols if NUM_KEYWORD.search(c)), numeric_cols[0] if numeric_cols else None)
     best_categorical = next((c for c in categorical_cols if CAT_KEYWORD.search(c)), categorical_cols[0] if categorical_cols else None)
+    perf_col = next((c for c in categorical_cols if PERF_KEYWORD.search(c)), None)
 
     schema = warehouse_schema(project_id)
     qualified = f"{quote_ident(schema)}.{quote_ident(chosen['tableName'])}"
 
     candidates: list[dict[str, str]] = [{"title": "Total Records", "expr": "COUNT(*)"}]
+    # Lead with the performance-tier count so the user's question is answered up front.
+    if perf_col:
+        candidates.insert(0, {
+            "title": "Underperforming",
+            "expr": f"COUNT(*) FILTER (WHERE {quote_ident(perf_col)} ILIKE '%underperf%')",
+        })
     if best_numeric:
-        candidates.append({"title": f"Total {_col_to_label(best_numeric)}", "expr": f"SUM({quote_ident(best_numeric)})"})
         candidates.append({"title": f"Avg {_col_to_label(best_numeric)}", "expr": f"ROUND(AVG({quote_ident(best_numeric)})::numeric, 2)"})
+        candidates.append({"title": f"Total {_col_to_label(best_numeric)}", "expr": f"SUM({quote_ident(best_numeric)})"})
     if best_categorical:
         candidates.append({"title": f"Distinct {_col_to_label(best_categorical)}", "expr": f"COUNT(DISTINCT {quote_ident(best_categorical)})"})
 
@@ -183,7 +198,8 @@ async def ensure_project_kpis(project_id: int, dash_id: int) -> None:
 
 
 async def create_project_dashboard(
-    project_id: int, title: str, charts: list[dict[str, Any]], report_md: str | None = None
+    project_id: int, title: str, charts: list[dict[str, Any]], report_md: str | None = None,
+    kpi_table: str | None = None,
 ) -> dict[str, Any]:
     if not title or not isinstance(charts, list) or not charts:
         return {"error": "title and at least one chart are required"}
@@ -217,5 +233,5 @@ async def create_project_dashboard(
             ]
         )
 
-    await ensure_project_kpis(project_id, dashboard["id"])
+    await ensure_project_kpis(project_id, dashboard["id"], preferred_table=kpi_table)
     return {"dashboardId": dashboard["id"], "name": safe_title, "chartCount": len(normalized)}
