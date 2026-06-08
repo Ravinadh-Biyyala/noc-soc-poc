@@ -1,0 +1,444 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - complementary [ref=e4]:
+        - generic [ref=e5]:
+          - link "Gen VI" [ref=e6] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e7]:
+              - img [ref=e9]
+              - text: Gen VI
+          - button "Collapse sidebar" [ref=e12]:
+            - img [ref=e13]
+        - navigation [ref=e16]:
+          - link "Home" [ref=e17] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e18]:
+              - img [ref=e19]
+              - generic [ref=e22]: Home
+          - link "Projects" [ref=e23] [cursor=pointer]:
+            - /url: /projects
+            - generic [ref=e24]:
+              - img [ref=e25]
+              - generic [ref=e27]: Projects
+          - link "Dashboards" [ref=e28] [cursor=pointer]:
+            - /url: /dashboards
+            - generic [ref=e29]:
+              - img [ref=e30]
+              - generic [ref=e35]: Dashboards
+          - link "Visuals Catalog" [ref=e36] [cursor=pointer]:
+            - /url: /visuals-catalog
+            - generic [ref=e37]:
+              - img [ref=e38]
+              - generic [ref=e39]: Visuals Catalog
+          - link "Governance" [ref=e40] [cursor=pointer]:
+            - /url: /governance
+            - generic [ref=e41]:
+              - img [ref=e42]
+              - generic [ref=e45]: Governance
+          - link "Settings" [ref=e46] [cursor=pointer]:
+            - /url: /settings
+            - generic [ref=e47]:
+              - img [ref=e48]
+              - generic [ref=e51]: Settings
+        - generic [ref=e52]: Gen VI 2026
+      - main [ref=e53]:
+        - generic [ref=e54]:
+          - heading "Hilton Report" [level=1] [ref=e120]
+          - generic [ref=e56]:
+            - generic [ref=e61]: Live
+            - generic [ref=e64]: BK
+        - generic [ref=e121]:
+          - generic [ref=e122]:
+            - link "Projects" [ref=e123] [cursor=pointer]:
+              - /url: /projects
+              - button "Projects" [ref=e124]:
+                - img
+                - text: Projects
+            - heading "Hilton Report" [level=2] [ref=e126]
+            - generic [ref=e127]: draft
+          - generic [ref=e128]:
+            - tablist [ref=e129]:
+              - tab "Connect to data" [ref=e130]:
+                - img [ref=e131]
+                - text: Connect to data
+              - tab "Raw browser" [ref=e134]:
+                - img [ref=e135]
+                - text: Raw browser
+              - tab "Dashboards" [selected] [ref=e137]:
+                - img [ref=e138]
+                - text: Dashboards
+            - tabpanel "Dashboards" [ref=e143]:
+              - generic [ref=e145]:
+                - generic [ref=e146]:
+                  - generic [ref=e147]:
+                    - generic [ref=e150] [cursor=pointer]:
+                      - generic [ref=e151]:
+                        - paragraph [ref=e152]: Total Records
+                        - paragraph [ref=e153]: "218"
+                      - generic [ref=e154]:
+                        - button "Explain" [ref=e155]:
+                          - img [ref=e156]
+                        - img [ref=e159]
+                    - generic [ref=e164] [cursor=pointer]:
+                      - generic [ref=e165]:
+                        - paragraph [ref=e166]: Avg Deal Value Usd
+                        - paragraph [ref=e167]: $229.2M
+                      - generic [ref=e168]:
+                        - button "Explain" [ref=e169]:
+                          - img [ref=e170]
+                        - img [ref=e173]
+                    - generic [ref=e177] [cursor=pointer]:
+                      - generic [ref=e178]:
+                        - paragraph [ref=e179]: Total Deal Value Usd
+                        - paragraph [ref=e180]: $49.7B
+                      - generic [ref=e181]:
+                        - button "Explain" [ref=e182]:
+                          - img [ref=e183]
+                        - img [ref=e186]
+                    - generic [ref=e191] [cursor=pointer]:
+                      - generic [ref=e192]:
+                        - paragraph [ref=e193]: Distinct Broker Id
+                        - paragraph [ref=e194]: "215"
+                      - generic [ref=e195]:
+                        - button "Explain" [ref=e196]:
+                          - img [ref=e197]
+                        - img [ref=e200]
+                  - generic [ref=e205]:
+                    - generic [ref=e207]:
+                      - generic "Click to have the Copilot explain this chart" [ref=e208] [cursor=pointer]:
+                        - generic [ref=e209]:
+                          - generic [ref=e210]: Avg Deal Value Usd by Broker Id
+                          - button "Explain" [ref=e211]:
+                            - img [ref=e212]
+                      - img [ref=e218]:
+                        - generic [ref=e222]:
+                          - generic [ref=e224]: BRK-2033
+                          - generic [ref=e226]: BRK-2020
+                          - generic [ref=e228]: BRK-2086
+                          - generic [ref=e230]: BRK-2044
+                          - generic [ref=e232]: BRK-2110
+                          - generic [ref=e234]: BRK-2012
+                          - generic [ref=e236]: BRK-2193
+                          - generic [ref=e238]: BRK-2019
+                          - generic [ref=e240]: BRK-2036
+                          - generic [ref=e242]: BRK-2192
+                          - generic [ref=e244]: BRK-2182
+                          - generic [ref=e246]: BRK-2017
+                          - generic [ref=e248]: BRK-2005
+                          - generic [ref=e250]: BRK-2157
+                          - generic [ref=e252]: BRK-2196
+                        - generic [ref=e254]:
+                          - generic [ref=e256]: "0"
+                          - generic [ref=e258]: 150.0M
+                          - generic [ref=e260]: 300.0M
+                          - generic [ref=e262]: 450.0M
+                          - generic [ref=e264]: 600.0M
+                    - generic [ref=e297]:
+                      - generic "Click to have the Copilot explain this chart" [ref=e298] [cursor=pointer]:
+                        - generic [ref=e299]:
+                          - generic [ref=e300]: Broker Id Distribution
+                          - button "Explain" [ref=e301]:
+                            - img [ref=e302]
+                      - img [ref=e308]:
+                        - generic [ref=e309]:
+                          - generic [ref=e310]:
+                            - img [ref=e766]
+                            - img [ref=e768]
+                            - img [ref=e770]
+                            - img [ref=e772]
+                            - img [ref=e774]
+                            - img [ref=e776]
+                            - img [ref=e778]
+                            - img [ref=e780]
+                          - generic [ref=e781]:
+                            - generic [ref=e783]: BRK-2076 18%
+                            - generic [ref=e785]: BRK-2031 18%
+                            - generic [ref=e787]: BRK-2009 18%
+                            - generic [ref=e789]: BRK-2179 9%
+                            - generic [ref=e791]: BRK-2065 9%
+                            - generic [ref=e793]: BRK-2157 9%
+                            - generic [ref=e795]: BRK-2211 9%
+                            - generic [ref=e797]: BRK-2146 9%
+                    - generic [ref=e328]:
+                      - generic "Click to have the Copilot explain this chart" [ref=e329] [cursor=pointer]:
+                        - generic [ref=e330]:
+                          - generic [ref=e331]: Deal Value Usd Trend by Deal Date
+                          - button "Explain" [ref=e332]:
+                            - img [ref=e333]
+                      - img [ref=e339]:
+                        - generic [ref=e343]:
+                          - generic [ref=e345]: "2019"
+                          - generic [ref=e347]: "2019"
+                          - generic [ref=e349]: "2019"
+                          - generic [ref=e351]: "2019"
+                          - generic [ref=e353]: "2019"
+                          - generic [ref=e355]: "2019"
+                          - generic [ref=e357]: "2019"
+                          - generic [ref=e359]: "2019"
+                          - generic [ref=e361]: "2019"
+                          - generic [ref=e363]: "2019"
+                          - generic [ref=e365]: "2019"
+                          - generic [ref=e367]: "2020"
+                          - generic [ref=e369]: "2020"
+                          - generic [ref=e371]: "2020"
+                          - generic [ref=e373]: "2020"
+                        - generic [ref=e375]:
+                          - generic [ref=e377]: "0"
+                          - generic [ref=e379]: 150.0M
+                          - generic [ref=e381]: 300.0M
+                          - generic [ref=e383]: 450.0M
+                          - generic [ref=e385]: 600.0M
+                    - generic [ref=e420]:
+                      - generic "Click to have the Copilot explain this chart" [ref=e421] [cursor=pointer]:
+                        - generic [ref=e422]:
+                          - generic [ref=e423]: Avg Purchase Price Usd by Owner Id
+                          - button "Explain" [ref=e424]:
+                            - img [ref=e425]
+                      - img [ref=e431]:
+                        - generic [ref=e435]:
+                          - generic [ref=e437]: OWN-3041
+                          - generic [ref=e439]: OWN-3016
+                          - generic [ref=e441]: OWN-3144
+                          - generic [ref=e443]: OWN-3201
+                          - generic [ref=e445]: OWN-3049
+                          - generic [ref=e447]: OWN-3090
+                          - generic [ref=e449]: OWN-3117
+                          - generic [ref=e451]: OWN-3191
+                          - generic [ref=e453]: OWN-3214
+                          - generic [ref=e455]: OWN-3083
+                          - generic [ref=e457]: OWN-3024
+                          - generic [ref=e459]: OWN-3012
+                          - generic [ref=e461]: OWN-3067
+                          - generic [ref=e463]: OWN-3187
+                          - generic [ref=e465]: OWN-3081
+                        - generic [ref=e467]:
+                          - generic [ref=e469]: "0"
+                          - generic [ref=e471]: 2500.0M
+                          - generic [ref=e473]: 5000.0M
+                          - generic [ref=e475]: 7500.0M
+                          - generic [ref=e477]: 10000.0M
+                    - generic [ref=e512]:
+                      - generic "Click to have the Copilot explain this chart" [ref=e513] [cursor=pointer]:
+                        - generic [ref=e514]:
+                          - generic [ref=e515]: Owner Id Distribution
+                          - button "Explain" [ref=e516]:
+                            - img [ref=e517]
+                      - img [ref=e523]:
+                        - generic [ref=e524]:
+                          - generic [ref=e525]:
+                            - img [ref=e799]
+                            - img [ref=e801]
+                            - img [ref=e803]
+                            - img [ref=e805]
+                            - img [ref=e807]
+                            - img [ref=e809]
+                            - img [ref=e811]
+                            - img [ref=e813]
+                          - generic [ref=e814]:
+                            - generic [ref=e816]: OWN-3015 17%
+                            - generic [ref=e818]: OWN-3104 17%
+                            - generic [ref=e820]: OWN-3051 17%
+                            - generic [ref=e822]: OWN-3161 17%
+                            - generic [ref=e824]: OWN-3128 8%
+                            - generic [ref=e826]: OWN-3001 8%
+                            - generic [ref=e828]: OWN-3053 8%
+                            - generic [ref=e830]: OWN-3139 8%
+                    - generic [ref=e543]:
+                      - generic "Click to have the Copilot explain this chart" [ref=e544] [cursor=pointer]:
+                        - generic [ref=e545]:
+                          - generic [ref=e546]: Purchase Price Usd Trend by Acquisition Date
+                          - button "Explain" [ref=e547]:
+                            - img [ref=e548]
+                      - img [ref=e554]:
+                        - generic [ref=e558]:
+                          - generic [ref=e560]: "2010"
+                          - generic [ref=e562]: "2010"
+                          - generic [ref=e564]: "2010"
+                          - generic [ref=e566]: "2010"
+                          - generic [ref=e568]: "2010"
+                          - generic [ref=e570]: "2010"
+                          - generic [ref=e572]: "2010"
+                          - generic [ref=e574]: "2010"
+                          - generic [ref=e576]: "2011"
+                          - generic [ref=e578]: "2011"
+                          - generic [ref=e580]: "2011"
+                          - generic [ref=e582]: "2011"
+                          - generic [ref=e584]: "2011"
+                          - generic [ref=e586]: "2011"
+                          - generic [ref=e588]: "2012"
+                        - generic [ref=e590]:
+                          - generic [ref=e592]: "0"
+                          - generic [ref=e594]: 150.0M
+                          - generic [ref=e596]: 300.0M
+                          - generic [ref=e598]: 450.0M
+                          - generic [ref=e600]: 600.0M
+                    - generic [ref=e635]:
+                      - generic "Click to have the Copilot explain this chart" [ref=e636] [cursor=pointer]:
+                        - generic [ref=e637]:
+                          - generic [ref=e638]: Avg Annual Spend Usd by Supplier Id
+                          - button "Explain" [ref=e639]:
+                            - img [ref=e640]
+                      - img [ref=e646]:
+                        - generic [ref=e650]:
+                          - generic [ref=e652]: SUP-1028
+                          - generic [ref=e654]: SUP-1064
+                          - generic [ref=e656]: SUP-1203
+                          - generic [ref=e658]: SUP-1167
+                          - generic [ref=e660]: SUP-1067
+                          - generic [ref=e662]: SUP-1030
+                          - generic [ref=e664]: SUP-1057
+                          - generic [ref=e666]: SUP-1010
+                          - generic [ref=e668]: SUP-1174
+                          - generic [ref=e670]: SUP-1075
+                          - generic [ref=e672]: SUP-1073
+                          - generic [ref=e674]: SUP-1086
+                          - generic [ref=e676]: SUP-1130
+                          - generic [ref=e678]: SUP-1135
+                          - generic [ref=e680]: SUP-1123
+                        - generic [ref=e682]:
+                          - generic [ref=e684]: "0"
+                          - generic [ref=e686]: 25.0M
+                          - generic [ref=e688]: 50.0M
+                          - generic [ref=e690]: 75.0M
+                          - generic [ref=e692]: 100.0M
+                    - generic [ref=e725]:
+                      - generic "Click to have the Copilot explain this chart" [ref=e726] [cursor=pointer]:
+                        - generic [ref=e727]:
+                          - generic [ref=e728]: Supplier Id Distribution
+                          - button "Explain" [ref=e729]:
+                            - img [ref=e730]
+                      - img [ref=e736]:
+                        - generic [ref=e737]:
+                          - generic [ref=e738]:
+                            - img [ref=e832]
+                            - img [ref=e834]
+                            - img [ref=e836]
+                            - img [ref=e838]
+                            - img [ref=e840]
+                            - img [ref=e842]
+                            - img [ref=e844]
+                            - img [ref=e846]
+                          - generic [ref=e847]:
+                            - generic [ref=e849]: SUP-1013 20%
+                            - generic [ref=e851]: SUP-1006 20%
+                            - generic [ref=e853]: SUP-1200 10%
+                            - generic [ref=e855]: SUP-1053 10%
+                            - generic [ref=e857]: SUP-1016 10%
+                            - generic [ref=e859]: SUP-1166 10%
+                            - generic [ref=e861]: SUP-1036 10%
+                            - generic [ref=e863]: SUP-1205 10%
+                - generic [ref=e756]:
+                  - button "Insight Report" [active] [ref=e757]:
+                    - img [ref=e864]
+                    - img [ref=e760]
+                    - text: Insight Report
+                  - generic [ref=e866]:
+                    - heading "Hilton Report — Automated Insight Report" [level=3] [ref=e867]
+                    - heading "Executive Summary" [level=4] [ref=e868]
+                    - list [ref=e869]:
+                      - listitem [ref=e870]: 215 brokers from 12 firms completed 218 deals worth $49.7 billion with an average commission of 2.03%.
+                      - listitem [ref=e871]: Caribbean region has the highest average deal value for brokers at $254M with 54 deals, followed by North America and APAC.
+                      - listitem [ref=e872]: Monthly deal counts range from 1 to 7 with spikes indicating growth periods.
+                      - listitem [ref=e873]: Caribbean region has the highest total deal value at $13.7B with 52 brokers, average commission 2.01%.
+                      - listitem [ref=e874]: North America brokers have the highest average deal value at $322.5M and average commission of $7.39M, surpassing other regions by 27% or more.
+                    - heading "How This Was Built" [level=4] [ref=e875]
+                    - paragraph [ref=e876]:
+                      - strong [ref=e877]: "Data profiled:"
+                      - text: The Hilton Report dataset contains transactional and reference data related to Hilton's brokers, property owners, and suppliers. It includes deal transactions, property ownership details, and supplier contracts with financial and performance metrics. The data spans multiple regions and property brands, with some data quality issues such as negative values and missing states.
+                    - paragraph [ref=e878]:
+                      - strong [ref=e879]: "Cleaning:"
+                      - text: "Cleaned three raw tables: hilton_brokers_brokers, hilton_owners_owners, and hilton_suppliers_suppliers. Standardized text fields by trimming and casing, filtered out negative and outlier numeric values, validated date ranges, and harmonized status values. Nulls were handled for key columns and invalid states were set to null."
+                    - paragraph [ref=e880]:
+                      - strong [ref=e881]: "Merging (metadata):"
+                      - text: Auto-resolved merge decision.
+                    - heading "Descriptive Analysis — What Happened" [level=4] [ref=e882]
+                    - paragraph [ref=e883]: The Hilton Report descriptive analysis reveals key metrics across brokers, owners, and suppliers. There are 215 brokers from 12 firms involved in 218 deals totaling nearly $50 billion in deal value, with an average commission of 2.03%. Hilton owners include 220 owners managing 174 properties with nearly 100,000 rooms, averaging $34.9 million in annual revenue and a 66.9% occupancy rate. Suppliers number 211 with 213 contracts and an annual spend of $256 million. The Caribbean region leads in deal value, and LXR Hotels & Resorts and Waldorf Astoria are the top brands by property count and occupancy rate respectively.
+                    - list [ref=e884]:
+                      - listitem [ref=e885]: 215 brokers from 12 firms completed 218 deals worth $49.7 billion with an average commission of 2.03%.
+                      - listitem [ref=e886]: 220 owners manage 174 properties with 99,899 rooms, averaging $34.9 million annual revenue and 66.9% occupancy.
+                      - listitem [ref=e887]: 211 suppliers hold 213 contracts with $256 million annual spend and an average performance rating of 3.84.
+                      - listitem [ref=e888]: Caribbean region leads deal value with $13.7 billion across 54 deals, followed by APAC and EMEA regions.
+                      - listitem [ref=e889]: LXR Hotels & Resorts and Waldorf Astoria are the top brands by property count (21 each) with Waldorf Astoria having higher average occupancy (71.9%).
+                    - heading "Diagnostic Analysis — Why It Happened" [level=4] [ref=e890]
+                    - paragraph [ref=e891]: The diagnostic analysis of Hilton's brokers, owners, and suppliers reveals key insights into regional deal values, owner types, and supplier performance. The Caribbean region leads in average deal value among brokers, while family offices and individuals show the highest average annual revenue among owners. Laundry Services and Spa & Wellness categories have the highest supplier performance ratings.
+                    - list [ref=e892]:
+                      - listitem [ref=e893]: Caribbean region has the highest average deal value for brokers at $254M with 54 deals, followed by North America and APAC.
+                      - listitem [ref=e894]: Family Office owners have the highest average annual revenue at $43.6M with an occupancy rate of 83.65%.
+                      - listitem [ref=e895]: Private Equity owners have the highest average purchase price at $685M but lower annual revenue compared to Family Offices.
+                      - listitem [ref=e896]: Laundry Services suppliers have the highest average performance rating of 4.24 with an average annual spend of $736K.
+                      - listitem [ref=e897]: Spa & Wellness suppliers also perform well with a rating of 4.24 and $696K average annual spend.
+                    - heading "Predictive Analysis — What's Likely Next" [level=4] [ref=e898]
+                    - paragraph [ref=e899]: Monthly deal counts and total deal values in Hilton broker transactions show significant month-to-month variability with occasional spikes. Recent months indicate steady but moderate deal activity without a clear consistent growth trend. Monitoring these metrics can help identify emerging opportunities and market shifts.
+                    - list [ref=e900]:
+                      - listitem [ref=e901]: Monthly deal counts range from 1 to 7 with spikes indicating growth periods.
+                      - listitem [ref=e902]: Total deal values vary widely from $100M to over $1.4B monthly.
+                      - listitem [ref=e903]: Recent months show steady deal counts mostly between 1 and 3.
+                      - listitem [ref=e904]: Deal value spikes suggest external factors influencing market activity.
+                      - listitem [ref=e905]: No clear consistent upward or downward trend in recent months.
+                    - heading "Prescriptive Analysis — Recommended Actions" [level=4] [ref=e906]
+                    - paragraph [ref=e907]: The analysis of Hilton's brokers, owners, and suppliers reveals key regional and segment opportunities and risks. The Caribbean region leads in deal value and commission, indicating a strong market presence. Among owners, REITs and Sovereign Wealth Funds show higher occupancy and revenue metrics, suggesting they are valuable segments. Maintenance & Repair is the largest supplier spend category but has a relatively low performance rating, highlighting an area for improvement.
+                    - list [ref=e908]:
+                      - listitem [ref=e909]: Caribbean region has the highest total deal value at $13.7B with 52 brokers, average commission 2.01%.
+                      - listitem [ref=e910]: REIT owners manage 17,224 rooms with the highest average occupancy (69.06%) and RevPAR ($256.52).
+                      - listitem [ref=e911]: Maintenance & Repair suppliers have the highest annual spend ($106.5M) but a low average performance rating (3.28/5).
+                    - heading "Comparative Analysis — How Groups Differ" [level=4] [ref=e912]
+                    - paragraph [ref=e913]: The comparative analysis across Hilton brokers, owners, and suppliers reveals distinct patterns in deal values, purchase prices, and supplier spend. Brokers in North America have the highest average deal values and commissions, while family offices and individuals lead in average purchase prices and annual revenues among owners. Maintenance & Repair suppliers command the highest annual spend but have moderate performance ratings compared to other categories.
+                    - list [ref=e914]:
+                      - listitem [ref=e915]: North America brokers have the highest average deal value at $322.5M and average commission of $7.39M, surpassing other regions by 27% or more.
+                      - listitem [ref=e916]: Family Office owners have the highest average annual revenue at $43.6M and a purchase price averaging $320.2M, indicating strong financial performance.
+                      - listitem [ref=e917]: Maintenance & Repair suppliers have the highest average annual spend at $8.88M but a moderate performance rating of 3.28, suggesting room for improvement in service quality.
+                    - heading "Recommended Actions" [level=4] [ref=e918]
+                    - list [ref=e919]:
+                      - listitem [ref=e920]: Focus on expanding broker relationships in the Caribbean region to leverage the highest deal values.
+                      - listitem [ref=e921]: Explore opportunities to increase occupancy rates in brands with lower performance compared to Waldorf Astoria.
+                      - listitem [ref=e922]: Optimize supplier contracts to improve performance ratings and manage annual spend effectively.
+                      - listitem [ref=e923]: Focus on expanding broker deals in the Caribbean region to leverage high deal values.
+                      - listitem [ref=e924]: Engage more with Family Office owners for potential revenue growth opportunities.
+                      - listitem [ref=e925]: Prioritize supplier relationships in Laundry Services and Spa & Wellness categories to maintain high performance and service quality.
+                      - listitem [ref=e926]: Monitor monthly deal activity to catch early growth signals.
+                      - listitem [ref=e927]: Analyze high-value deal months to understand success drivers.
+                      - listitem [ref=e928]: Explore regional and brand-specific trends for targeted growth.
+                      - listitem [ref=e929]: Maintain flexible deal strategies to adapt to market fluctuations.
+                      - listitem [ref=e930]: Focus growth efforts on the Caribbean region to leverage its high deal volume and commission potential.
+                      - listitem [ref=e931]: Prioritize partnerships and tailored services for REIT and Sovereign Wealth Fund owners due to their superior occupancy and revenue metrics.
+                      - listitem [ref=e932]: Improve supplier performance in Maintenance & Repair category through stricter contract management or supplier development programs to enhance service quality and reduce risks.
+                      - listitem [ref=e933]: Focus on expanding broker activities in North America to leverage higher deal values and commissions.
+                      - listitem [ref=e934]: Engage more with Family Office and Individual owners for potential high-value acquisitions and partnerships.
+                      - listitem [ref=e935]: Review and enhance supplier performance in the Maintenance & Repair category to improve service quality and ROI.
+      - complementary [ref=e73]:
+        - generic [ref=e74]:
+          - generic [ref=e75]:
+            - img [ref=e76]
+            - text: BI Companion
+            - generic [ref=e88]: BI
+          - button "Start a new chat" [ref=e89]:
+            - img
+        - generic [ref=e90]:
+          - img [ref=e91]
+          - generic [ref=e94]: Observing
+          - generic [ref=e95]: Hilton Report — Auto Dashboard
+        - generic [ref=e98]:
+          - generic [ref=e101]:
+            - generic [ref=e103]:
+              - text: I can see
+              - strong [ref=e763]: Hilton Report — Auto Dashboard
+              - text: — ask me about it, or tell me what to do (open a dashboard, switch tabs, build a dashboard).
+            - generic [ref=e104]:
+              - button "Regenerate response" [ref=e105] [cursor=pointer]:
+                - img
+              - button "Copy to clipboard" [ref=e106] [cursor=pointer]:
+                - img
+              - button "Thumbs up" [ref=e107] [cursor=pointer]:
+                - img
+              - button "Thumbs down" [ref=e108] [cursor=pointer]:
+                - img
+          - generic [ref=e110]:
+            - generic [ref=e111]:
+              - textbox "Ask anything about your data…" [ref=e112]
+              - button "Send" [disabled] [ref=e115]:
+                - img [ref=e116]
+            - paragraph [ref=e119]: Powered by CopilotKit
+    - region "Notifications (F8)":
+      - list
+  - generic [ref=e764]: 25.0M

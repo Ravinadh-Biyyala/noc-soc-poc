@@ -19,6 +19,24 @@ NUM_KEYWORD = re.compile(r"revenue|amount|sales|price|value|total|cost|fee|premi
 CAT_KEYWORD = re.compile(r"customer|category|region|product|user|type|status|name|brand|city|segment|tier|owner|broker|supplier", re.IGNORECASE)
 # Categorical column that buckets entities into performance tiers (built by the guided KPI agent).
 PERF_KEYWORD = re.compile(r"performance|perf_cat|tier|grade|rating", re.IGNORECASE)
+# Primary-key / identifier columns. These make terrible chart dimensions — one
+# value per row gives a meaningless 200-bar chart or a useless pie — so they are
+# excluded from categorical candidates in favour of real business dimensions
+# (region, owner type, brand, category, status, ...).
+ID_KEYWORD = re.compile(r"(^|_)(id|ids|guid|uuid|key|code|no|num|number)$", re.IGNORECASE)
+
+
+def pick_category(categorical: list[str]) -> str | None:
+    """Choose the best categorical column to chart by, never an identifier.
+
+    Prefers a performance tier, then a known business dimension, then any non-id
+    column; only falls back to an id-like column when nothing else exists."""
+    pool = [c for c in categorical if not ID_KEYWORD.search(c)] or categorical
+    return (
+        next((c for c in pool if PERF_KEYWORD.search(c)), None)
+        or next((c for c in pool if CAT_KEYWORD.search(c)), None)
+        or (pool[0] if pool else None)
+    )
 
 
 def _col_to_label(raw: str) -> str:
@@ -93,6 +111,25 @@ def normalize_agent_charts(charts: list[dict[str, Any]]) -> list[dict[str, Any]]
                     y_key = y_str
                 else:
                     y_key = next((k for k in numeric_keys if k != x_key), numeric_keys[1] if len(numeric_keys) > 1 else numeric_keys[0])
+        elif ctype == "heatmap":
+            # Heatmap needs TWO categorical axes (xKey, yKey) + a numeric cell value
+            # (valueKey). The generic branch would wrongly force yKey to the numeric
+            # column and never set valueKey, so the renderer reads a missing "value"
+            # field and paints every cell 0. Map the axes explicitly here.
+            if len(categorical_keys) < 2 or not numeric_keys:
+                if not categorical_keys or not numeric_keys:
+                    continue
+                chart["chartType"] = "bar"  # not enough dimensions for a heatmap
+                x_key = categorical_keys[0]
+                y_key = numeric_keys[0]
+            else:
+                if not x_key or x_key not in categorical_keys:
+                    x_key = categorical_keys[0]
+                y_str = y_key if isinstance(y_key, str) else None
+                if not y_str or y_str not in categorical_keys or y_str == x_key:
+                    y_str = next((k for k in categorical_keys if k != x_key), categorical_keys[1])
+                y_key = y_str
+                cfg["valueKey"] = next((k for k in numeric_keys), None)
         else:
             if not categorical_keys or not numeric_keys:
                 continue
@@ -139,10 +176,10 @@ async def ensure_project_kpis(project_id: int, dash_id: int, preferred_table: st
     if not chosen:
         chosen = tables[0]
 
-    numeric_cols = [c["name"] for c in chosen["columns"] if NUMERIC_TYPE.search(c["type"])]
+    numeric_cols = [c["name"] for c in chosen["columns"] if NUMERIC_TYPE.search(c["type"]) and not ID_KEYWORD.search(c["name"])]
     categorical_cols = [c["name"] for c in chosen["columns"] if not NUMERIC_TYPE.search(c["type"]) and not BOOL_TYPE.search(c["type"])]
     best_numeric = next((c for c in numeric_cols if NUM_KEYWORD.search(c)), numeric_cols[0] if numeric_cols else None)
-    best_categorical = next((c for c in categorical_cols if CAT_KEYWORD.search(c)), categorical_cols[0] if categorical_cols else None)
+    best_categorical = pick_category(categorical_cols)
     perf_col = next((c for c in categorical_cols if PERF_KEYWORD.search(c)), None)
 
     schema = warehouse_schema(project_id)

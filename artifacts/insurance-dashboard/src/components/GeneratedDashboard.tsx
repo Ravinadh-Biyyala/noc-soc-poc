@@ -387,7 +387,7 @@ function PinnedChart({ chart }: { chart: { type: string; title: string; xKey: st
       case "treemap":
         return (
           <Treemap
-            data={data.map((d: any, i: number) => ({ ...d, fill: PINNED_COLORS[i % PINNED_COLORS.length] }))}
+            data={data.map((d: any, i: number) => ({ ...d, name: d[xKey], fill: PINNED_COLORS[i % PINNED_COLORS.length] }))}
             dataKey={yKeys[0]}
             nameKey={xKey}
             aspectRatio={4 / 3}
@@ -646,7 +646,7 @@ function ChartCard({ chart }: { chart: any }) {
       case "treemap":
         return (
           <Treemap
-            data={data.map((d: any, i: number) => ({ ...d, fill: PALETTE[i % PALETTE.length] }))}
+            data={data.map((d: any, i: number) => ({ ...d, name: d[xKey], fill: PALETTE[i % PALETTE.length] }))}
             dataKey={yKeys[0]}
             nameKey={xKey}
             aspectRatio={4 / 3}

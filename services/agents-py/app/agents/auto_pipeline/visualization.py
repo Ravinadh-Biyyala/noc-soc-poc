@@ -17,18 +17,45 @@ from ...db.introspection import execute_warehouse_query, warehouse_tables_with_c
 from ...db.schemas import quote_ident, warehouse_schema
 from ..data_modeler.dashboards import (
     BOOL_TYPE,
-    CAT_KEYWORD,
+    ID_KEYWORD,
     NUM_KEYWORD,
     NUMERIC_TYPE,
-    PERF_KEYWORD,
     _col_to_label,
+    pick_category,
 )
 from .auto_tools import make_catalog_tool, make_warehouse_query_tool
-from .catalog import catalog_digest, supported_chart_types
+from .catalog import catalog_digest_by_category, supported_chart_types
 from ._run import make_submit_tool, run_subagent
 
 log = logging.getLogger("agents.auto_pipeline")
 NAME = "auto-visualization"
+
+# The LLM often names a chart by its catalog NAME or a near-synonym rather than
+# the exact renderable dashboardChartType. Map those near-misses onto a supported
+# type instead of silently dropping the chart (which used to leave the dashboard
+# with nothing but the programmatic fallback).
+_CHART_TYPE_ALIASES = {
+    "grouped-bar": "bar", "grouped bar": "bar", "groupedbar": "bar",
+    "column": "bar", "column-chart": "bar", "vertical-bar": "bar", "clustered-bar": "bar",
+    "horizontal bar": "horizontal-bar", "hbar": "horizontal-bar", "h-bar": "horizontal-bar",
+    "stacked": "stacked-bar", "stacked bar": "stacked-bar",
+    "100%-stacked-bar": "stacked-bar", "100% stacked bar": "stacked-bar", "normalized-bar": "stacked-bar",
+    "stacked-area": "area", "stacked area": "area", "stackedarea": "area",
+    "ring": "donut", "doughnut": "donut",
+    "spider": "radar", "spider-chart": "radar", "radar-chart": "radar",
+    "matrix": "table", "pivot": "table", "pivot-table": "table", "crosstab": "table",
+    "datatable": "table", "data-table": "table", "data table": "table", "grid": "table",
+    "scatter-plot": "scatter", "scatterplot": "scatter",
+    "step": "line", "step-line": "line", "slope": "line", "spline": "line", "trend": "line",
+    "progress": "progress-bar", "radial-bar": "progress-bar", "radialbar": "progress-bar", "radial": "progress-bar",
+    "dial": "gauge", "speedometer": "gauge",
+    "donut-chart": "donut", "pie-chart": "pie", "bar-chart": "bar", "line-chart": "line", "area-chart": "area",
+}
+
+
+def _canonical_chart_type(raw: str) -> str:
+    ct = (raw or "").strip().lower()
+    return _CHART_TYPE_ALIASES.get(ct, ct)
 
 
 class ChartSpec(BaseModel):
@@ -58,7 +85,10 @@ def _findings_digest(findings: dict[str, Any]) -> str:
 
 def _build_prompt(project_name: str, schema_ctx: str, findings: dict[str, Any], user_intent: str | None = None) -> str:
     lines = [
-        "You are the Data Visualization agent in an autonomous BI pipeline.",
+        "You are the Data Visualization agent in an autonomous BI pipeline. You are the FINAL "
+        "storyteller: you turn the analysis findings into an industry-standard BI dashboard that "
+        "tells the BUSINESS STORY of this data — what is happening, why, who leads or lags, and "
+        "what to do — NOT a handful of generic aggregate bars.",
         f'PROJECT: "{project_name}".',
         "",
     ]
@@ -70,22 +100,67 @@ def _build_prompt(project_name: str, schema_ctx: str, findings: dict[str, Any], 
         "ANALYSIS FINDINGS to visualise:",
         _findings_digest(findings),
         "",
-        "SUPPORTED CHART TYPES (pick chartType from the FIRST token of each line):",
-        catalog_digest(),
+        "THE VISUALS CATALOG — walk EVERY category. The token right after the dash on each line is "
+        "the chartType you emit:",
+        catalog_digest_by_category(),
         "",
-        "YOUR JOB:",
-        "1. For each important finding, pick the BEST chart type for its data shape (use get_visuals_catalog if unsure).",
+        "HOW A GREAT DASHBOARD READS (the whole point — build the narrative in this order):",
+        "  1. COMPOSITION — what the whole is made of (pie / donut / treemap / stacked-bar / 100% stacked).",
+        "  2. TREND — how the key metrics move over time (line / area / stacked-area / combo).",
+        "  3. COMPARISON & RANKING — who/what leads or lags (bar / horizontal-bar / grouped bar).",
+        "  4. DISTRIBUTION & RELATIONSHIP — spread and correlation (histogram / scatter / bubble / heatmap).",
+        "  5. PERFORMANCE & FLOW — vs target and through stages (gauge / bullet / progress / radar / funnel / waterfall).",
+        "  6. DETAIL — a multi-KPI breakdown grid (matrix/pivot 'table').",
+        "  (KPI scorecards are generated automatically — do NOT emit 'kpi'.)",
+        "",
+        "YOUR JOB — be DIVERSE and business-driven, but DECISIVE: you MUST finish and call submit_charts.",
+        "1. Go through the catalog category by category. For each chart type ask: 'does THIS data shape support "
+        "it, and does it carry a real business message here?' If yes, BUILD it; if not, skip it and move on. Do "
+        "NOT stop after the first few easy bars. Fit cues: pie/donut want <=5 categories, treemap wants many, "
+        "histogram wants a continuous numeric, scatter/bubble want two numerics, funnel/waterfall want ordered "
+        "stages, line/area want a date column, combo pairs a measure with a rate. HEATMAP is special: it needs TWO "
+        "categorical dimensions (xKey AND yKey both categorical) plus a numeric measure — put that measure's column "
+        "name in config.valueKey (e.g. xKey=region, yKey=deal_type, valueKey=total_deal_value). Use "
+        "get_visuals_catalog if unsure; you may run one quick COUNT(DISTINCT col) to check cardinality.",
+        "2. TARGET 10-14 strong charts that span as MANY of the categories above as the data supports — diversity "
+        "over volume. A chart type MAY repeat for a genuinely different business question (revenue by region AND "
+        "by brand), but never pad with near-duplicates. Don't chase all 39 types; pick the ones that tell the story.",
+        "2a. DO NOT default everything to bar charts. A wall of bars is NOT a BI dashboard. Aim for AT LEAST 5-6 "
+        "DISTINCT chart types, and deliberately reach past bar/line/pie into the under-used families WHENEVER the "
+        "data supports them: treemap (one categorical with many values + a measure, e.g. deal value by property "
+        "brand or by city); scatter/bubble (two/three numeric columns at row grain, e.g. commission_pct vs "
+        "deal_value, bubble size = rooms); histogram (CASE/width_bucket bins of a continuous numeric, e.g. deal "
+        "value distribution); donut/stacked-bar/100%-stacked (composition of a total); funnel (ordered pipeline "
+        "stages, e.g. deal status Pending->In Progress->Closed counts); gauge/bullet (a single rate vs a sensible "
+        "target, e.g. avg occupancy vs 70%); radar (one entity scored across 5-8 normalised metrics); combo (an "
+        "absolute measure as bars + a rate as a line). A bar is the fallback only when no better-fitting type "
+        "applies — justify each bar by its message, not its convenience.",
+        "3. CRITICAL — never group or slice by an identifier / primary-key column (e.g. broker_id, owner_id, "
+        "supplier_id, *_id, codes): those have one value per row and make meaningless 200-bar charts and pies. "
+        "ALWAYS group by real business dimensions: region, owner/customer type, property brand, supplier category, "
+        "status, segment, or a month/year bucket.",
+        "4. Build at least ONE rich MATRIX/PIVOT 'table' chart: rows = a key dimension, columns = SEVERAL measures "
+        "side by side (e.g. record count, total revenue, avg cost, a ratio, occupancy %), so a manager reads "
+        "multiple KPIs per segment at a glance. This is what separates a real BI dashboard from a chart dump.",
     ]
     if user_intent:
-        lines.append("   Prioritise charts that directly answer the user's questions (e.g. performing vs underperforming).")
+        lines.append("5. PRIORITISE charts that directly answer the user's questions (e.g. performing vs "
+                     "underperforming entities and why) — lead the dashboard with those.")
+    else:
+        lines.append("5. PRIORITISE the charts that best explain the findings above — the headline movements, "
+                     "the biggest segments, the clearest comparisons, and the notable outliers.")
     lines += [
-        "2. Write the SELECT that produces that chart's data and run it with run_sql to get the rows.",
-        "3. Build 5-8 charts total. Each chart config MUST include: sql (the exact SELECT), data (the returned rows),",
-        "   xKey (categorical column) and yKey (numeric column, or list for multi-series), and colors",
-        "   (an array of hex codes YOU choose that fit the chart — a coherent, professional palette; distinct hues",
-        "   for categorical comparisons, a single hue for a single series; reserve red/green for good/bad meaning).",
-        "4. Do NOT emit 'kpi' cards — those are generated automatically.",
-        "5. Call submit_charts ONCE with all charts. Then stop.",
+        "6. For each chart: write ONE focused SELECT (GROUP BY / window functions / CASE bins as needed), run it "
+        "with run_sql to get the REAL rows, then move on. Never run the same query twice; if a query errors, fix "
+        "it once or skip that chart. emit chartType EXACTLY as the token after the dash in the catalog.",
+        "7. Each chart config MUST include: sql (the exact SELECT), data (the returned rows), xKey (categorical "
+        "column) and yKey (numeric column, or a list of columns for multi-series / grouped / stacked / combo / "
+        "pivot charts), and colors (an array of hex codes YOU choose — a coherent, professional palette: distinct "
+        "hues for categorical comparisons, a single hue for a single series; reserve red/green for good/bad meaning).",
+        "8. WORK EFFICIENTLY so you don't run out of turns: one SELECT per chart, no re-querying. As SOON as you "
+        "have a diverse 10-14 chart set spanning the categories, STOP and call submit_charts ONCE with ALL the "
+        "charts. Calling submit_charts is REQUIRED — a run that ends without it produces a generic fallback "
+        "dashboard. Do not run any tool after submit_charts.",
     ]
     return "\n".join(lines)
 
@@ -97,16 +172,15 @@ async def _aggregate_chart(
     performance/category dimension and a meaningful numeric measure with the
     same heuristics the KPI synthesiser uses. Returns None if the table has no
     chartable category column."""
-    numeric = [c["name"] for c in columns if NUMERIC_TYPE.search(c["type"])]
+    numeric = [
+        c["name"] for c in columns
+        if NUMERIC_TYPE.search(c["type"]) and not ID_KEYWORD.search(c["name"])
+    ]
     categorical = [
         c["name"] for c in columns
         if not NUMERIC_TYPE.search(c["type"]) and not BOOL_TYPE.search(c["type"])
     ]
-    cat = (
-        next((c for c in categorical if PERF_KEYWORD.search(c)), None)
-        or next((c for c in categorical if CAT_KEYWORD.search(c)), None)
-        or (categorical[0] if categorical else None)
-    )
+    cat = pick_category(categorical)
     if not cat:
         return None
     num = next((c for c in numeric if NUM_KEYWORD.search(c)), None) or (numeric[0] if numeric else None)
@@ -212,18 +286,19 @@ async def _supplement_charts(
         if len(out) >= needed:
             break
         cols = cols_by_table.get(table) or []
-        numeric = [c["name"] for c in cols if NUMERIC_TYPE.search(c["type"])]
+        numeric = [
+            c["name"] for c in cols
+            if NUMERIC_TYPE.search(c["type"]) and not ID_KEYWORD.search(c["name"])
+        ]
         categorical = [
             c["name"] for c in cols
             if not NUMERIC_TYPE.search(c["type"]) and not BOOL_TYPE.search(c["type"])
         ]
         date_cols = [c for c in categorical if re.search(r"date|year|month|quarter|week|period|time", c, re.I)]
-        cat = (
-            next((c for c in categorical if PERF_KEYWORD.search(c)), None)
-            or next((c for c in categorical if CAT_KEYWORD.search(c)), None)
-            or (categorical[0] if categorical else None)
-        )
-        cat2 = next((c for c in categorical if c != cat), None) if cat else (categorical[0] if categorical else None)
+        # Real business dimensions only — never group by an id (one bar per row).
+        dim_pool = [c for c in categorical if not ID_KEYWORD.search(c) and c not in date_cols]
+        cat = pick_category(dim_pool)
+        cat2 = next((c for c in dim_pool if c != cat), None) if cat else None
         num = next((c for c in numeric if NUM_KEYWORD.search(c)), None) or (numeric[0] if numeric else None)
         qtable = f"{quote_ident(wh)}.{quote_ident(table)}"
 
@@ -313,21 +388,33 @@ async def run_visualization(state: dict[str, Any]) -> dict[str, Any]:
     await run_subagent(
         name=NAME, project_id=project_id,
         system_prompt=_build_prompt(state.get("project_name", ""), schema_ctx, findings, state.get("user_intent")),
-        user_message="Design 5-6 charts, fetch each chart's data with one run_sql call, then call submit_charts.",
-        tools=tools, max_iterations=20, max_tokens=12000,
+        user_message=(
+            "Walk the visuals catalog category by category and build a DIVERSE set of 10-14 charts that tell the "
+            "business story — span composition, trend, comparison, distribution, relationship, performance and "
+            "flow, and include at least one multi-KPI pivot 'table'. Group by real business dimensions, never by "
+            "id columns. Fetch each chart's real data with one run_sql call, then call submit_charts ONCE with "
+            "all of them."
+        ),
+        tools=tools, max_iterations=46, max_tokens=16000,
     )
 
     charts = holder.get("charts") or []
-    # Keep only supported chart types; drop anything malformed.
+    # Canonicalise near-miss chart types, keep only supported ones, drop malformed.
     clean: list[dict[str, Any]] = []
+    dropped: list[str] = []
     for c in charts:
-        ct = (c.get("chartType") or "").strip()
+        ct = _canonical_chart_type(c.get("chartType") or "")
         if ct in supported and isinstance(c.get("config"), dict):
             clean.append({"title": c.get("title") or ct, "chartType": ct, "config": c["config"]})
+        else:
+            dropped.append(c.get("chartType") or "?")
+    if dropped:
+        log.warning("viz dropped %d unsupported/malformed charts: %s", len(dropped), dropped)
 
-    # Always supplement with programmatic charts to guarantee at least 5 visible charts.
-    # This runs even when the LLM produced some charts — it only fills the gap.
-    MIN_CHARTS = 5
+    # Always supplement with programmatic charts to guarantee a baseline of visible
+    # charts. This runs even when the LLM produced some charts — it only fills the gap,
+    # so a thin LLM run still yields a reasonably populated dashboard.
+    MIN_CHARTS = 8
     if len(clean) < MIN_CHARTS:
         supplement = await _supplement_charts(
             project_id=project_id,

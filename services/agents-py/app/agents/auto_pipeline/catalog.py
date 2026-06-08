@@ -44,6 +44,55 @@ def catalog_digest() -> str:
     return "\n".join(lines)
 
 
+# Categories ordered so the digest reads top-to-bottom like a real dashboard
+# narrative: headline scorecards first, then what-it's-made-of, how-it-moves,
+# who-leads, how-it-spreads, what-relates, what-flows, and finally the detail grid.
+_CATEGORY_ORDER = [
+    "performance",
+    "composition",
+    "trend",
+    "comparison",
+    "distribution",
+    "relationship",
+    "flow",
+    "tabular",
+]
+_CATEGORY_LABEL = {
+    "performance": "PERFORMANCE vs TARGET — scorecards & dials",
+    "composition": "COMPOSITION — part-to-whole",
+    "trend": "TREND — change over time",
+    "comparison": "COMPARISON & RANKING",
+    "distribution": "DISTRIBUTION & SPREAD",
+    "relationship": "RELATIONSHIP & CORRELATION",
+    "flow": "FLOW & CHANGE",
+    "tabular": "DETAIL & MULTI-KPI TABLES",
+}
+
+
+def catalog_digest_by_category() -> str:
+    """The supported catalog grouped by business category.
+
+    Lets the visualization agent walk the catalog systematically — one category
+    at a time — instead of cherry-picking the first easy bar chart. The token
+    immediately after the leading dash on each line is the `chartType` to emit.
+    """
+    by_cat: dict[str, list[dict[str, Any]]] = {}
+    for c in supported_charts():
+        by_cat.setdefault(c.get("category") or "other", []).append(c)
+
+    ordered = [c for c in _CATEGORY_ORDER if c in by_cat]
+    ordered += [c for c in by_cat if c not in _CATEGORY_ORDER]
+
+    lines: list[str] = []
+    for cat in ordered:
+        lines.append(_CATEGORY_LABEL.get(cat, cat.upper()) + ":")
+        for c in by_cat[cat]:
+            lines.append(
+                f"  - {c['dashboardChartType']} ({c['name']}): {c['whenToUse']} Needs: {c['dataNeeded']}"
+            )
+    return "\n".join(lines)
+
+
 def lookup(query: str | None = None) -> list[dict[str, Any]]:
     """Return full catalog entries, optionally filtered by category or a term in
     name/tags/whenToUse. Used by the get_visuals_catalog tool."""

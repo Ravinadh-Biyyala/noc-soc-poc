@@ -1,0 +1,863 @@
+- generic:
+  - generic:
+    - generic:
+      - complementary:
+        - generic:
+          - link:
+            - /url: /
+            - generic:
+              - generic:
+                - img
+              - text: Gen VI
+          - button:
+            - img
+        - navigation:
+          - link:
+            - /url: /
+            - generic:
+              - img
+              - generic: Home
+          - link:
+            - /url: /projects
+            - generic:
+              - img
+              - generic: Projects
+          - link:
+            - /url: /dashboards
+            - generic:
+              - img
+              - generic: Dashboards
+          - link:
+            - /url: /visuals-catalog
+            - generic:
+              - img
+              - generic: Visuals Catalog
+          - link:
+            - /url: /governance
+            - generic:
+              - img
+              - generic: Governance
+          - link:
+            - /url: /settings
+            - generic:
+              - img
+              - generic: Settings
+        - generic: Gen VI 2026
+      - main:
+        - generic:
+          - heading [level=1]: Hilton Auto Test
+          - generic:
+            - generic:
+              - generic: Live
+            - generic:
+              - generic: BK
+        - generic:
+          - generic:
+            - generic:
+              - link:
+                - /url: /projects
+                - button:
+                  - img
+                  - text: Projects
+              - generic:
+                - heading [level=2]: Hilton Auto Test
+                - paragraph: "Analyse Hilton's ecosystem — brokers, property owners, and suppliers — to surface a business story: where deal value and revenue concentrate, which owner/supplier segments perform, and what to act on."
+              - generic: draft
+            - generic:
+              - tablist:
+                - tab:
+                  - img
+                  - text: Connect to data
+                - tab [selected]:
+                  - img
+                  - text: Raw browser
+                - tab:
+                  - img
+                  - text: Dashboards
+              - tabpanel:
+                - generic:
+                  - generic:
+                    - generic:
+                      - paragraph: Ready to build your dashboard?
+                      - paragraph: A multi-agent system will profile, clean, merge, analyse and visualise these tables. Use the Chat tab to add more visuals afterwards.
+                    - button:
+                      - img
+                      - text: Create Dashboard
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - paragraph: Raw tables
+                          - paragraph:
+                            - code: proj_16.raw
+                        - button:
+                          - img
+                          - text: Refresh
+                      - generic:
+                        - button:
+                          - generic:
+                            - img
+                            - generic: hilton_brokers_brokers
+                          - generic: ~218
+                        - button:
+                          - generic:
+                            - img
+                            - generic: hilton_owners_owners
+                          - generic: ~224
+                        - button:
+                          - generic:
+                            - img
+                            - generic: hilton_suppliers_suppliers
+                          - generic: ~213
+                    - generic:
+                      - generic:
+                        - generic:
+                          - img
+                          - generic: hilton_brokers_brokers
+                        - generic: 30 rows shown
+                      - generic:
+                        - table:
+                          - rowgroup:
+                            - row:
+                              - columnheader: _row_id
+                              - columnheader: broker_id
+                              - columnheader: broker_name
+                              - columnheader: firm
+                              - columnheader: license_number
+                              - columnheader: region
+                              - columnheader: property_name
+                              - columnheader: brand
+                              - columnheader: city
+                              - columnheader: country
+                              - columnheader: deal_type
+                              - columnheader: deal_value_usd
+                              - columnheader: commission_pct
+                              - columnheader: commission_usd
+                              - columnheader: rooms_in_deal
+                              - columnheader: deal_date
+                              - columnheader: email
+                              - columnheader: phone
+                              - columnheader: years_experience
+                              - columnheader: status
+                          - rowgroup:
+                            - row:
+                              - cell: "1"
+                              - cell: BRK-2168
+                              - cell: William Miller
+                              - cell: Avison Young
+                              - cell: LIC-104539
+                              - cell: North America
+                              - cell: Curio Collection Tokyo
+                              - cell: Curio Collection
+                              - cell: Tokyo
+                              - cell: Japan
+                              - cell: Acquisition
+                              - cell: "324388742.23"
+                              - cell: "3.39"
+                              - cell: "10996778.36"
+                              - cell: "630"
+                              - cell: 2020-12-04T00:00:00.000Z
+                              - cell: miller28@hvs.com
+                              - cell: "3896502758"
+                              - cell: "12"
+                              - cell: On Hold
+                            - row:
+                              - cell: "2"
+                              - cell: BRK-2195
+                              - cell: Yuki Wang
+                              - cell: Cushman & Wakefield
+                              - cell: LIC-820216
+                              - cell: EMEA
+                              - cell: Canopy by Hilton Seattle
+                              - cell: Canopy by Hilton
+                              - cell: Seattle
+                              - cell: USA
+                              - cell: Refinance
+                              - cell: "45896493.86"
+                              - cell: "1.91"
+                              - cell: "876623.03"
+                              - cell: "487"
+                              - cell: 2022-08-17T00:00:00.000Z
+                              - cell: wang92@colliers.com
+                              - cell: "+19538115198"
+                              - cell: "5"
+                              - cell: Closed
+                            - row:
+                              - cell: "3"
+                              - cell: BRK-2200
+                              - cell: Paul Torres
+                              - cell: Berkadia Hotels
+                              - cell: LIC-289340
+                              - cell: Latin America
+                              - cell: Curio Collection Las Vegas
+                              - cell: Curio Collection
+                              - cell: Las Vegas
+                              - cell: USA
+                              - cell: Joint Venture
+                              - cell: "265927946.81"
+                              - cell: "3.41"
+                              - cell: "9068142.99"
+                              - cell: "664"
+                              - cell: 2024-11-24T00:00:00.000Z
+                              - cell: paultorres@cushwake.com
+                              - cell: (536) 226-5657
+                              - cell: "8"
+                              - cell: In Progress
+                            - row:
+                              - cell: "4"
+                              - cell: BRK-2149
+                              - cell: Anthony Rodriguez
+                              - cell: Colliers Hotels
+                              - cell: LIC-889759
+                              - cell: EMEA
+                              - cell: LXR Hotels & Resorts Bangalore
+                              - cell: LXR Hotels & Resorts
+                              - cell: Bangalore
+                              - cell: India
+                              - cell: Disposition
+                              - cell: "294874972.95"
+                              - cell: "2.71"
+                              - cell: "7991111.77"
+                              - cell: "294"
+                              - cell: 2025-07-04T00:00:00.000Z
+                              - cell: arodriguez@hvs.com
+                              - cell: "8966335540"
+                              - cell: "4"
+                              - cell: Closed
+                            - row:
+                              - cell: "5"
+                              - cell: BRK-2151
+                              - cell: Susan Hernandez
+                              - cell: Newmark Hospitality
+                              - cell: LIC-407410
+                              - cell: Latin America
+                              - cell: Signia by Hilton Chicago
+                              - cell: Signia by Hilton
+                              - cell: Chicago
+                              - cell: USA
+                              - cell: Acquisition
+                              - cell: "227377300.86"
+                              - cell: "3.12"
+                              - cell: "7094171.79"
+                              - cell: "-50"
+                              - cell: 2024-11-02T00:00:00.000Z
+                              - cell: susanhernandez@cushwake.com
+                              - cell: 630.654.1351
+                              - cell: "19"
+                              - cell: Closed
+                            - row:
+                              - cell: "6"
+                              - cell: BRK-2085
+                              - cell: Richard Chen
+                              - cell: Colliers Hotels
+                              - cell: LIC-847078
+                              - cell: North America
+                              - cell: Hilton Hotels & Resorts Paris
+                              - cell: Hilton Hotels & Resorts
+                              - cell: Paris
+                              - cell: France
+                              - cell: Franchise
+                              - cell: "90396485.24"
+                              - cell: "2"
+                              - cell: "1807929.7"
+                              - cell: "654"
+                              - cell: 2024-02-19T00:00:00.000Z
+                              - cell: richardchen@newmark.com
+                              - cell: 541.701.7445
+                              - cell: "11"
+                              - cell: Closed
+                            - row:
+                              - cell: "7"
+                              - cell: BRK-2006
+                              - cell: Vikram Lewis
+                              - cell: JLL Hotels & Hospitality
+                              - cell: LIC-858931
+                              - cell: Caribbean
+                              - cell: Embassy Suites Miami
+                              - cell: Embassy Suites
+                              - cell: Miami
+                              - cell: USA
+                              - cell: Acquisition
+                              - cell: "297498317.44"
+                              - cell: "0.54"
+                              - cell: "1606490.91"
+                              - cell: "670"
+                              - cell: 2024-11-19T00:00:00.000Z
+                              - cell: vlewis@newmark.com
+                              - cell: "9049172560"
+                              - cell: "28"
+                              - cell: Cancelled
+                            - row:
+                              - cell: "8"
+                              - cell: BRK-2116
+                              - cell: Donna Brown
+                              - cell: Colliers Hotels
+                              - cell: LIC-395917
+                              - cell: North America
+                              - cell: Conrad Orlando
+                              - cell: Conrad
+                              - cell: Orlando
+                              - cell: USA
+                              - cell: Joint Venture
+                              - cell: "8372744.84"
+                              - cell: "2.18"
+                              - cell: "182525.84"
+                              - cell: "192"
+                              - cell: 2023-01-11T00:00:00.000Z
+                              - cell: brown31@colliers.com
+                              - cell: "6038406212"
+                              - cell: "25"
+                              - cell: In Progress
+                            - row:
+                              - cell: "9"
+                              - cell: BRK-2135
+                              - cell: Charles Young
+                              - cell: Berkadia Hotels
+                              - cell: LIC-115063
+                              - cell: EMEA
+                              - cell: Motto by Hilton Sydney
+                              - cell: Motto by Hilton
+                              - cell: Sydney
+                              - cell: Australia
+                              - cell: Acquisition
+                              - cell: "408973064.15"
+                              - cell: "2.36"
+                              - cell: "9651764.31"
+                              - cell: "213"
+                              - cell: 2021-09-21T00:00:00.000Z
+                              - cell: charles.young@hvs.com
+                              - cell: (667) 825-3796
+                              - cell: "5"
+                              - cell: On Hold
+                            - row:
+                              - cell: "10"
+                              - cell: BRK-2051
+                              - cell: Mary Baker
+                              - cell: Cushman & Wakefield
+                              - cell: LIC-675210
+                              - cell: APAC
+                              - cell: LXR Hotels & Resorts New York
+                              - cell: LXR Hotels & Resorts
+                              - cell: New York
+                              - cell: USA
+                              - cell: Franchise
+                              - cell: "151842800.36"
+                              - cell: "2.34"
+                              - cell: "3553121.53"
+                              - cell: "271"
+                              - cell: 2021-11-29T00:00:00.000Z
+                              - cell: mbaker@cushwake.com
+                              - cell: "5515744013"
+                              - cell: "32"
+                              - cell: In Progress
+                            - row:
+                              - cell: "11"
+                              - cell: BRK-2170
+                              - cell: Joseph Harris
+                              - cell: Newmark Hospitality
+                              - cell: LIC-527066
+                              - cell: APAC
+                              - cell: Hilton Garden Inn London
+                              - cell: Hilton Garden Inn
+                              - cell: London
+                              - cell: United Kingdom
+                              - cell: Franchise
+                              - cell: "311674578.41"
+                              - cell: "3.02"
+                              - cell: "9412572.27"
+                              - cell: "647"
+                              - cell: 2021-07-14T00:00:00.000Z
+                              - cell: josephharris@jll.com
+                              - cell: "+18955763937"
+                              - cell: "1"
+                              - cell: Cancelled
+                            - row:
+                              - cell: "12"
+                              - cell: BRK-2126
+                              - cell: Paul Perez
+                              - cell: Newmark Hospitality
+                              - cell: LIC-869983
+                              - cell: Caribbean
+                              - cell: LXR Hotels & Resorts Madrid
+                              - cell: LXR Hotels & Resorts
+                              - cell: Madrid
+                              - cell: Spain
+                              - cell: Refinance
+                              - cell: "120862012.16"
+                              - cell: "2.25"
+                              - cell: "2719395.27"
+                              - cell: "327"
+                              - cell: 2024-03-03T00:00:00.000Z
+                              - cell: paulperez@newmark.com
+                              - cell: 893.906.3947
+                              - cell: "21"
+                              - cell: Pending
+                            - row:
+                              - cell: "13"
+                              - cell: BRK-2033
+                              - cell: Emily Reddy
+                              - cell: Savills Hotels
+                              - cell: LIC-641760
+                              - cell: APAC
+                              - cell: DoubleTree by Hilton Paris
+                              - cell: DoubleTree by Hilton
+                              - cell: Paris
+                              - cell: France
+                              - cell: Refinance
+                              - cell: "-15000000"
+                              - cell: "1.64"
+                              - cell: "2861529.89"
+                              - cell: "159"
+                              - cell: 2025-08-04T00:00:00.000Z
+                              - cell: emilyreddy@newmark.com
+                              - cell: "+15615538976"
+                              - cell: "31"
+                              - cell: Pending
+                            - row:
+                              - cell: "14"
+                              - cell: BRK-2060
+                              - cell: James King
+                              - cell: HVS Brokerage
+                              - cell: LIC-414164
+                              - cell: North America
+                              - cell: Hilton Garden Inn New York
+                              - cell: Hilton Garden Inn
+                              - cell: New York
+                              - cell: USA
+                              - cell: Refinance
+                              - cell: "215385496.22"
+                              - cell: "0.52"
+                              - cell: "1120004.58"
+                              - cell: "568"
+                              - cell: 2024-07-07T00:00:00.000Z
+                              - cell: king99@hvs.com
+                              - cell: "4362079981"
+                              - cell: "24"
+                              - cell: Closed
+                            - row:
+                              - cell: "15"
+                              - cell: BRK-2109
+                              - cell: Michelle Flores
+                              - cell: Colliers Hotels
+                              - cell: LIC-502233
+                              - cell: North America
+                              - cell: Canopy by Hilton Chicago
+                              - cell: Canopy by Hilton
+                              - cell: Chicago
+                              - cell: USA
+                              - cell: Joint Venture
+                              - cell: "30420973.21"
+                              - cell: "0.59"
+                              - cell: "179483.74"
+                              - cell: "188"
+                              - cell: 2019-07-26T00:00:00.000Z
+                              - cell: flores12@cushwake.com
+                              - cell: 921-810-8304
+                              - cell: "23"
+                              - cell: Closed
+                            - row:
+                              - cell: "16"
+                              - cell: BRK-2150
+                              - cell: Brian Lewis
+                              - cell: Hodges Ward Elliott
+                              - cell: LIC-573933
+                              - cell: Caribbean
+                              - cell: LXR Hotels & Resorts Atlanta
+                              - cell: LXR Hotels & Resorts
+                              - cell: Atlanta
+                              - cell: USA
+                              - cell: Joint Venture
+                              - cell: "215812421.62"
+                              - cell: "2.1"
+                              - cell: "4532060.85"
+                              - cell: "379"
+                              - cell: 2024-12-22T00:00:00.000Z
+                              - cell: brian.lewis@cbre.com
+                              - cell: "+12892827400"
+                              - cell: "12"
+                              - cell: Closed
+                            - row:
+                              - cell: "17"
+                              - cell: BRK-2049
+                              - cell: Susan Davis
+                              - cell: CBRE Hotels
+                              - cell: LIC-989203
+                              - cell: Latin America
+                              - cell: Motto by Hilton Toronto
+                              - cell: Motto by Hilton
+                              - cell: Toronto
+                              - cell: Canada
+                              - cell: Management Contract
+                              - cell: "279311523.07"
+                              - cell: "2.79"
+                              - cell: "7792791.49"
+                              - cell: "123"
+                              - cell: 2025-01-26T00:00:00.000Z
+                              - cell: sdavis@cushwake.com
+                              - cell: "4817023996"
+                              - cell: "33"
+                              - cell: Closed
+                            - row:
+                              - cell: "18"
+                              - cell: BRK-2047
+                              - cell: Aarav Green
+                              - cell: Cushman & Wakefield
+                              - cell: LIC-661671
+                              - cell: North America
+                              - cell: Tapestry Collection Chicago
+                              - cell: Tapestry Collection
+                              - cell: Chicago
+                              - cell: USA
+                              - cell: Management Contract
+                              - cell: "361671336.08"
+                              - cell: "1.74"
+                              - cell: "6293081.25"
+                              - cell: "608"
+                              - cell: 2022-12-17T00:00:00.000Z
+                              - cell: agreen@cbre.com
+                              - cell: 295.608.6603
+                              - cell: "5"
+                              - cell: Pending
+                            - row:
+                              - cell: "19"
+                              - cell: BRK-2099
+                              - cell: Aarav Singh
+                              - cell: CBRE Hotels
+                              - cell: LIC-652654
+                              - cell: Latin America
+                              - cell: Hilton Hotels & Resorts Atlanta
+                              - cell: Hilton Hotels & Resorts
+                              - cell: Atlanta
+                              - cell: USA
+                              - cell: Franchise
+                              - cell: "137432059.3"
+                              - cell: "0.9"
+                              - cell: "1236888.53"
+                              - cell: "417"
+                              - cell: 2022-01-29T00:00:00.000Z
+                              - cell: aaravsingh@colliers.com
+                              - cell: 826-259-2790
+                              - cell: "34"
+                              - cell: Closed
+                            - row:
+                              - cell: "20"
+                              - cell: BRK-2197
+                              - cell: Kimberly Hernandez
+                              - cell: Eastdil Secured
+                              - cell: LIC-553959
+                              - cell: EMEA
+                              - cell: Hampton Inn Las Vegas
+                              - cell: Hampton Inn
+                              - cell: Las Vegas
+                              - cell: USA
+                              - cell: Franchise
+                              - cell: "396030364.37"
+                              - cell: "0.9"
+                              - cell: "3564273.28"
+                              - cell: "623"
+                              - cell: 2022-07-23T00:00:00.000Z
+                              - cell: kimberly.hernandez@hvs.com
+                              - cell: (330) 711-5603
+                              - cell: "24"
+                              - cell: In Progress
+                            - row:
+                              - cell: "21"
+                              - cell: BRK-2184
+                              - cell: Michelle Robinson
+                              - cell: Hodges Ward Elliott
+                              - cell: LIC-385959
+                              - cell: EMEA
+                              - cell: Home2 Suites Sao Paulo
+                              - cell: Home2 Suites
+                              - cell: Sao Paulo
+                              - cell: Brazil
+                              - cell: Joint Venture
+                              - cell: "194532454.95"
+                              - cell: "3.22"
+                              - cell: "6263945.05"
+                              - cell: "243"
+                              - cell: 2021-04-07T00:00:00.000Z
+                              - cell: mrobinson@hvs.com
+                              - cell: "3808591691"
+                              - cell: "32"
+                              - cell: On Hold
+                            - row:
+                              - cell: "22"
+                              - cell: BRK-2061
+                              - cell: Kavya Sanchez
+                              - cell: Cushman & Wakefield
+                              - cell: LIC-755698
+                              - cell: EMEA
+                              - cell: Homewood Suites Phoenix
+                              - cell: Homewood Suites
+                              - cell: Phoenix
+                              - cell: USA
+                              - cell: Disposition
+                              - cell: "374164670.19"
+                              - cell: "1.16"
+                              - cell: "4340310.17"
+                              - cell: "512"
+                              - cell: 2019-11-21T00:00:00.000Z
+                              - cell: ksanchez@hvs.com
+                              - cell: "4756224080"
+                              - cell: "5"
+                              - cell: Closed
+                            - row:
+                              - cell: "23"
+                              - cell: BRK-2073
+                              - cell: Priya Gonzalez
+                              - cell: Cushman & Wakefield
+                              - cell: LIC-535352
+                              - cell: North America
+                              - cell: Tapestry Collection Seattle
+                              - cell: Tapestry Collection
+                              - cell: Seattle
+                              - cell: USA
+                              - cell: Joint Venture
+                              - cell: "259952229.68"
+                              - cell: "3.34"
+                              - cell: "8682404.47"
+                              - cell: "651"
+                              - cell: 2025-04-06T00:00:00.000Z
+                              - cell: pgonzalez@colliers.com
+                              - cell: "+19198817997"
+                              - cell: "7"
+                              - cell: Closed
+                            - row:
+                              - cell: "24"
+                              - cell: BRK-2056
+                              - cell: Amanda Anderson
+                              - cell: Colliers Hotels
+                              - cell: LIC-566509
+                              - cell: APAC
+                              - cell: Hilton Garden Inn Las Vegas
+                              - cell: hampton inn
+                              - cell: Las Vegas
+                              - cell: USA
+                              - cell: Refinance
+                              - cell: "322011600.42"
+                              - cell: "2.32"
+                              - cell: "7470669.13"
+                              - cell: "357"
+                              - cell: 2023-06-08T00:00:00.000Z
+                              - cell: anderson96@cushwake.com
+                              - cell: 388-223-3048
+                              - cell: "16"
+                              - cell: Cancelled
+                            - row:
+                              - cell: "25"
+                              - cell: BRK-2160
+                              - cell: Mei Anderson
+                              - cell: JLL Hotels & Hospitality
+                              - cell: LIC-785572
+                              - cell: APAC
+                              - cell: Signia by Hilton Sydney
+                              - cell: Signia by Hilton
+                              - cell: Sydney
+                              - cell: Australia
+                              - cell: Acquisition
+                              - cell: "124103244.41"
+                              - cell: "3.37"
+                              - cell: "4182279.34"
+                              - cell: "207"
+                              - cell: 2024-04-19T00:00:00.000Z
+                              - cell
+                              - cell: 229-322-5541
+                              - cell: "32"
+                              - cell: Closed
+                            - row:
+                              - cell: "26"
+                              - cell: BRK-2054
+                              - cell: Linda Wilson
+                              - cell: Newmark Hospitality
+                              - cell: LIC-687569
+                              - cell: Caribbean
+                              - cell: LXR Hotels & Resorts Las Vegas
+                              - cell: LXR Hotels & Resorts
+                              - cell: Las Vegas
+                              - cell: USA
+                              - cell: Franchise
+                              - cell: "206835830.03"
+                              - cell: "1.5"
+                              - cell: "3102537.45"
+                              - cell: "448"
+                              - cell: 2023-01-18T00:00:00.000Z
+                              - cell: lwilson@jll.com
+                              - cell: "+13245594259"
+                              - cell: "35"
+                              - cell: CLOSED
+                            - row:
+                              - cell: "27"
+                              - cell: BRK-2180
+                              - cell: Kimberly Brown
+                              - cell: Newmark Hospitality
+                              - cell: LIC-199335
+                              - cell: Caribbean
+                              - cell: Homewood Suites Dallas
+                              - cell: Homewood Suites
+                              - cell: Dallas
+                              - cell: USA
+                              - cell: Joint Venture
+                              - cell: "363634534.64"
+                              - cell: "2.37"
+                              - cell: "8618138.47"
+                              - cell: "672"
+                              - cell: 2020-01-12T00:00:00.000Z
+                              - cell: kbrown@jll.com
+                              - cell: "7436867997"
+                              - cell: "14"
+                              - cell: Closed
+                            - row:
+                              - cell: "28"
+                              - cell: BRK-2214
+                              - cell: Mohammed Miller
+                              - cell: Marcus & Millichap
+                              - cell: LIC-373477
+                              - cell: APAC
+                              - cell: Hilton Garden Inn Las Vegas
+                              - cell: Hilton Garden Inn
+                              - cell: Las Vegas
+                              - cell: USA
+                              - cell: Franchise
+                              - cell: "111745756.21"
+                              - cell: "2.17"
+                              - cell: "2424882.91"
+                              - cell: "447"
+                              - cell: 2019-03-16T00:00:00.000Z
+                              - cell: mohammedmiller@cbre.com
+                              - cell: "2322656533"
+                              - cell: "28"
+                              - cell: Closed
+                            - row:
+                              - cell: "29"
+                              - cell: BRK-2186
+                              - cell: Steven Young
+                              - cell: CBRE Hotels
+                              - cell: LIC-944986
+                              - cell: EMEA
+                              - cell: LXR Hotels & Resorts Hyderabad
+                              - cell: LXR Hotels & Resorts
+                              - cell: Hyderabad
+                              - cell: India
+                              - cell: Disposition
+                              - cell: "349750370.88"
+                              - cell: "1.44"
+                              - cell: "5036405.34"
+                              - cell: "479"
+                              - cell: 2025-07-21T00:00:00.000Z
+                              - cell: stevenyoung@cbre.com
+                              - cell: (379) 419-5498
+                              - cell: "29"
+                              - cell: In Progress
+                            - row:
+                              - cell: "30"
+                              - cell: BRK-2014
+                              - cell: Betty Gonzalez
+                              - cell: Cushman & Wakefield
+                              - cell: LIC-628370
+                              - cell: Caribbean
+                              - cell: Hilton Garden Inn Sydney
+                              - cell: Hilton Garden Inn
+                              - cell: Sydney
+                              - cell: Australia
+                              - cell: Joint Venture
+                              - cell: "311482193.42"
+                              - cell: "3.26"
+                              - cell: "10154319.51"
+                              - cell: "262"
+                              - cell: 2020-06-27T00:00:00.000Z
+                              - cell
+                              - cell: (979) 560-8870
+                              - cell: "27"
+                              - cell: Cancelled
+      - complementary:
+        - generic:
+          - generic:
+            - img
+            - text: BI Companion
+            - generic: BI
+          - button:
+            - img
+        - generic:
+          - img
+          - generic: Observing
+          - generic: Hilton Auto Test — Raw browser (Bronze layer)
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - text: I can see
+                        - strong: Hilton Auto Test — Raw browser (Bronze layer)
+                        - text: — ask me about it, or tell me what to do (open a dashboard, switch tabs, build a dashboard).
+                    - generic:
+                      - button:
+                        - img
+                      - button:
+                        - img
+                      - button:
+                        - img
+                      - button:
+                        - img
+              - generic:
+                - generic:
+                  - textbox:
+                    - /placeholder: Ask anything about your data…
+                  - generic:
+                    - button [disabled]:
+                      - img
+                - generic:
+                  - paragraph: Powered by CopilotKit
+    - list
+  - dialog "Generating your dashboard" [ref=e1533]:
+    - generic [ref=e1534]:
+      - heading "Generating your dashboard" [level=2] [ref=e1535]:
+        - img [ref=e1536]
+        - text: Generating your dashboard
+      - paragraph [ref=e1539]: A multi-agent system is profiling, cleaning, merging, analysing and visualising your data.
+    - generic [ref=e1540]:
+      - generic [ref=e1542]:
+        - img [ref=e1612]
+        - generic [ref=e1545]: Profiling raw data
+      - generic [ref=e1547]:
+        - img [ref=e1614]
+        - generic [ref=e1557]: Cleaning & type-checking
+      - generic [ref=e1559]:
+        - img [ref=e1618]
+        - generic [ref=e1569]: Merging tables
+      - generic [ref=e1570]:
+        - generic [ref=e1571]:
+          - img [ref=e1620]
+          - generic [ref=e1581]: Analysis (5 lenses in parallel)
+        - list [ref=e1622]:
+          - listitem [ref=e1623]:
+            - generic [ref=e1624]: "descriptive:"
+            - text: The analysis of Hilton's ecosystem reveals that deal value and revenue are highly concentr…
+          - listitem [ref=e1625]:
+            - generic [ref=e1626]: "diagnostic:"
+            - text: The analysis of Hilton's ecosystem reveals that deal value and revenue are highly concentr…
+          - listitem [ref=e1627]:
+            - generic [ref=e1628]: "predictive:"
+            - text: Analysis of Hilton's ecosystem reveals that deal value and revenue are heavily concentrate…
+          - listitem [ref=e1629]:
+            - generic [ref=e1630]: "prescriptive:"
+            - text: The analysis of Hilton's ecosystem reveals that deal value and revenue are heavily concent…
+          - listitem [ref=e1631]:
+            - generic [ref=e1632]: "comparative:"
+            - text: The analysis of Hilton's ecosystem reveals that deal value and revenue are concentrated am…
+      - generic [ref=e1583]:
+        - img [ref=e1635]
+        - generic [ref=e1593]: Designing charts
+      - generic [ref=e1595]:
+        - img [ref=e1637]
+        - generic [ref=e1605]: Building dashboard & report
+      - paragraph [ref=e1639]:
+        - img [ref=e1640]
+        - text: Dashboard ready with 12 charts.
+    - button "View dashboard" [ref=e1642]
+    - button "Close" [active] [ref=e1607]:
+      - img [ref=e1608]
+      - generic [ref=e1611]: Close
