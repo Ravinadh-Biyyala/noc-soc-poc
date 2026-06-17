@@ -27,6 +27,7 @@ from .routes import (
     agents,
     auto_dashboard,
     guided_dashboard,
+    loki,
     metrics,
     modeling,
     transformations,
@@ -67,6 +68,7 @@ app.include_router(metrics.router, prefix="/api")
 app.include_router(agents.router, prefix="/api")
 app.include_router(auto_dashboard.router, prefix="/api")
 app.include_router(guided_dashboard.router, prefix="/api")
+app.include_router(loki.router, prefix="/api")
 
 
 @app.get("/healthz")

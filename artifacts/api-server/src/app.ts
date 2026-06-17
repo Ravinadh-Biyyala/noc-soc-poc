@@ -63,11 +63,13 @@ const agentsServiceUrl = process.env.AGENTS_SERVICE_URL;
 if (agentsServiceUrl) {
   const AGENT_PATH =
     /^\/api\/projects\/\d+\/(agents|transformations|semantic-model|relationships|metrics|warehouse-tables|dashboards|pipeline)(\/|$)/;
+  // Top-level Loki logs vertical (read-only label/value/query proxy to Loki).
+  const LOKI_PATH = /^\/api\/loki(\/|$)/;
   app.use(
     createProxyMiddleware({
       target: agentsServiceUrl,
       changeOrigin: true,
-      pathFilter: (path: string) => AGENT_PATH.test(path),
+      pathFilter: (path: string) => AGENT_PATH.test(path) || LOKI_PATH.test(path),
       on: {
         error: (err, _req, res) => {
           logger.error({ err }, "agent proxy error");

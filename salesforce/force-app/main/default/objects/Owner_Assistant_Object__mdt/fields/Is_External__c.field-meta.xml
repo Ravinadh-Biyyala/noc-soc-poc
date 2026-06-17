@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Is_External__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When true, this object lives in an external Salesforce org. Queries are routed via the Named Credential in External_Named_Credential__c instead of running local SOQL.</description>
+    <externalId>false</externalId>
+    <label>Is External Org</label>
+    <type>Checkbox</type>
+</CustomField>

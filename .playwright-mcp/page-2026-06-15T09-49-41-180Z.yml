@@ -1,0 +1,189 @@
+- generic [active] [ref=e1]:
+  - img [ref=e2]
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - heading "Connected App" [level=1] [ref=e6]
+      - heading "GenBI Cross-Org" [level=2] [ref=e7]
+    - generic [ref=e8]:
+      - link "Printable View (New Window)" [ref=e9] [cursor=pointer]:
+        - /url: javascript:printWin(%27/0H4gK000001JPRx/p?retURL=%2F_ui%2Fcore%2Fapplication%2Fforce%2Fconnectedapp%2FForceConnectedApplicationPage%2Fd%3FapplicationId%3D06PgK000005J9Ph%26isdtp%3Dp1%27)
+        - img "Printable View (New Window)" [ref=e10]
+      - link "Help for this Page" [ref=e11] [cursor=pointer]:
+        - /url: javascript:openPopupFocusEscapePounds(%27https://help.salesforce.com/apex/htdoor?loc=help&target=connected_app_view_details.htm&section=Dev_Tools&language=en_US&release=262.9.4&instance=CAN96%27, %27Help%27, 700, 600, %27width=700,height=600,resizable=yes,toolbar=yes,status=no,scrollbars=yes,menubar=yes,directories=no,location=no,dependant=no%27, false, false);
+  - generic [ref=e12]:
+    - table [ref=e14]:
+      - rowgroup [ref=e15]:
+        - row "Connected App Detail Edit Policies" [ref=e16]:
+          - cell "Connected App Detail" [ref=e17]:
+            - heading "Connected App Detail" [level=2] [ref=e18]
+          - cell "Edit Policies" [ref=e19]:
+            - button "Edit Policies" [ref=e20] [cursor=pointer]
+    - generic [ref=e21]:
+      - table [ref=e23]:
+        - rowgroup [ref=e24]:
+          - row:
+            - cell
+          - row "Logo Image URL Version 1 Description Allows myNewOrg (GenBI app / ownerAssistant) to query this org's data via OAuth 2.0 Client Credentials. Deploy this app to devOrg, then copy the consumer key + secret into myNewOrg's Auth Provider and Named Credential." [ref=e25]:
+            - cell "Logo Image URL" [ref=e26]:
+              - table [ref=e27]:
+                - rowgroup [ref=e28]:
+                  - row "Logo Image URL" [ref=e29]:
+                    - cell "Logo Image URL" [ref=e30]:
+                      - img "Logo Image URL" [ref=e31]
+            - cell "Version 1 Description Allows myNewOrg (GenBI app / ownerAssistant) to query this org's data via OAuth 2.0 Client Credentials. Deploy this app to devOrg, then copy the consumer key + secret into myNewOrg's Auth Provider and Named Credential." [ref=e32]:
+              - table [ref=e33]:
+                - rowgroup [ref=e34]:
+                  - row "Version 1" [ref=e35]:
+                    - cell "Version" [ref=e36]
+                    - cell "1" [ref=e37]
+                  - row "Description Allows myNewOrg (GenBI app / ownerAssistant) to query this org's data via OAuth 2.0 Client Credentials. Deploy this app to devOrg, then copy the consumer key + secret into myNewOrg's Auth Provider and Named Credential." [ref=e38]:
+                    - cell "Description" [ref=e39]
+                    - cell "Allows myNewOrg (GenBI app / ownerAssistant) to query this org's data via OAuth 2.0 Client Credentials. Deploy this app to devOrg, then copy the consumer key + secret into myNewOrg's Auth Provider and Named Credential." [ref=e40]
+            - cell [ref=e41]
+      - heading "System Info" [level=3] [ref=e43]
+      - table [ref=e45]:
+        - rowgroup [ref=e46]:
+          - row "Installed By Khateeja K Installed Date 6/15/2026, 2:47 AM" [ref=e47]:
+            - cell "Installed By" [ref=e48]
+            - cell "Khateeja K" [ref=e49]:
+              - link "Khateeja K" [ref=e50] [cursor=pointer]:
+                - /url: javascript:srcUp(%27%2F005gK000048ULBd%3Fisdtp%3Dp1%27);
+            - cell "Installed Date" [ref=e51]
+            - cell "6/15/2026, 2:47 AM" [ref=e52]
+          - row "Last Modified By Khateeja K Last Modified Date 6/15/2026, 2:47 AM" [ref=e53]:
+            - cell "Last Modified By" [ref=e54]
+            - cell "Khateeja K" [ref=e55]:
+              - link "Khateeja K" [ref=e56] [cursor=pointer]:
+                - /url: javascript:srcUp(%27%2F005gK000048ULBd%3Fisdtp%3Dp1%27);
+            - cell "Last Modified Date" [ref=e57]
+            - cell "6/15/2026, 2:47 AM" [ref=e58]
+      - heading "Basic Information" [level=3] [ref=e60]
+      - table [ref=e62]:
+        - rowgroup [ref=e63]:
+          - row "Info URL Start URL" [ref=e64]:
+            - cell "Info URL" [ref=e65]
+            - cell [ref=e66]
+            - cell "Start URL" [ref=e67]
+            - cell [ref=e68]
+          - row "Mobile Start URL" [ref=e69]:
+            - cell [ref=e70]
+            - cell [ref=e71]
+            - cell "Mobile Start URL" [ref=e72]
+            - cell [ref=e73]
+      - heading "OAuth Policies" [level=3] [ref=e75]
+      - table [ref=e77]:
+        - rowgroup [ref=e78]:
+          - row "Permitted Users All users may self-authorize IP Relaxation Enforce IP restrictions" [ref=e79]:
+            - cell "Permitted Users" [ref=e80]
+            - cell "All users may self-authorize" [ref=e81]
+            - cell "IP Relaxation" [ref=e82]
+            - cell "Enforce IP restrictions" [ref=e83]
+          - 'row "Usage View OAuth Usage Refresh Token Policy: Refresh token is valid until revoked" [ref=e84]':
+            - cell "Usage" [ref=e85]
+            - cell "View OAuth Usage" [ref=e86]:
+              - link "View OAuth Usage" [ref=e87] [cursor=pointer]:
+                - /url: javascript:srcUp(%27%2Fidentity%2Fapp%2FconnectedAppsUsage.apexp%3Fisdtp%3Dp1%27);
+            - cell "Refresh Token Policy:" [ref=e88]
+            - cell "Refresh token is valid until revoked" [ref=e89]
+          - row "Single Logout Single Logout disabled" [ref=e90]:
+            - cell "Single Logout" [ref=e91]
+            - cell "Single Logout disabled" [ref=e92]
+            - cell [ref=e93]
+            - cell [ref=e94]
+          - 'row "Application Permissions: Perform requests at any time" [ref=e95]':
+            - cell "Application Permissions:" [ref=e96]
+            - cell "Perform requests at any time" [ref=e97]
+            - cell [ref=e98]
+            - cell [ref=e99]
+          - row "Manage user data via APIs" [ref=e100]:
+            - cell [ref=e101]
+            - cell "Manage user data via APIs" [ref=e102]
+            - cell [ref=e103]
+            - cell [ref=e104]
+      - heading "Session Policies" [level=3] [ref=e106]
+      - table [ref=e108]:
+        - rowgroup [ref=e109]:
+          - row "Timeout Value" [ref=e110]:
+            - cell "Timeout Value" [ref=e111]
+            - cell [ref=e112]
+            - cell [ref=e113]
+            - cell [ref=e114]
+      - heading "Custom Connected App Handler" [level=3] [ref=e116]
+      - table [ref=e118]:
+        - rowgroup [ref=e119]:
+          - row "Apex Plugin Class" [ref=e120]:
+            - cell "Apex Plugin Class" [ref=e121]
+            - cell [ref=e122]
+            - cell [ref=e123]
+            - cell [ref=e124]
+          - row "Run As" [ref=e125]:
+            - cell "Run As" [ref=e126]
+            - cell [ref=e127]
+            - cell [ref=e128]
+            - cell [ref=e129]
+      - heading "User Provisioning Settings" [level=3] [ref=e131]
+      - table [ref=e133]:
+        - rowgroup [ref=e134]:
+          - row "Enable User Provisioning" [ref=e135]:
+            - cell "Enable User Provisioning" [ref=e136]:
+              - checkbox "Enable User Provisioning" [disabled] [ref=e137]
+              - text: Enable User Provisioning
+      - heading "Client Credentials Flow" [level=3] [ref=e140]
+      - table [ref=e142]:
+        - rowgroup [ref=e143]:
+          - row "Run As" [ref=e144]:
+            - cell "Run As" [ref=e145]
+            - cell [ref=e146]
+            - cell [ref=e147]
+            - cell [ref=e148]
+  - generic [ref=e151]:
+    - table [ref=e153]:
+      - rowgroup [ref=e154]:
+        - row "Trusted IP Range for OAuth Web Server Flow" [ref=e155]:
+          - cell "Trusted IP Range for OAuth Web Server Flow" [ref=e156]:
+            - heading "Trusted IP Range for OAuth Web Server Flow" [level=3] [ref=e157]
+          - cell [ref=e158]
+          - cell [ref=e159]
+    - table [ref=e161]:
+      - rowgroup [ref=e162]:
+        - row "No application-defined IP ranges" [ref=e163]:
+          - columnheader "No application-defined IP ranges" [ref=e164]
+  - generic [ref=e167]:
+    - table [ref=e169]:
+      - rowgroup [ref=e170]:
+        - row "Custom Attributes New" [ref=e171]:
+          - cell "Custom Attributes" [ref=e172]:
+            - heading "Custom Attributes" [level=3] [ref=e173]
+          - cell "New" [ref=e174]:
+            - button "New" [ref=e175] [cursor=pointer]
+          - cell [ref=e176]
+    - table [ref=e178]:
+      - rowgroup [ref=e179]:
+        - row "No Custom Attributes" [ref=e180]:
+          - columnheader "No Custom Attributes" [ref=e181]
+  - generic [ref=e184]:
+    - table [ref=e186]:
+      - rowgroup [ref=e187]:
+        - row "OAuth Custom Scopes Manage OAuth Custom Scopes" [ref=e188]:
+          - cell "OAuth Custom Scopes" [ref=e189]:
+            - heading "OAuth Custom Scopes" [level=3] [ref=e190]
+          - cell "Manage OAuth Custom Scopes" [ref=e191]:
+            - button "Manage OAuth Custom Scopes" [ref=e192] [cursor=pointer]
+          - cell [ref=e193]
+    - table [ref=e195]:
+      - rowgroup [ref=e196]:
+        - row "No OAuth custom scopes associated with this app" [ref=e197]:
+          - columnheader "No OAuth custom scopes associated with this app" [ref=e198]
+  - generic [ref=e199]:
+    - link "Back to TopBack To Top" [ref=e201] [cursor=pointer]:
+      - /url: "#skiplink"
+      - img "Back to Top" [ref=e202]
+      - text: Back To Top
+    - text: Always show me
+    - link "Show Moremore" [ref=e203] [cursor=pointer]:
+      - /url: javascript:srcSelf(%27%2F_ui%2Fcore%2Fapplication%2Fforce%2Fconnectedapp%2FForceConnectedApplicationPage%2Fd%3FapplicationId%3D06PgK000005J9Ph%26isdtp%3Dp1%26rowsperlist%3D10%27);
+      - img "Show More" [ref=e204]
+      - text: more
+    - text: records per related list
+  - iframe [ref=e205]:
+    

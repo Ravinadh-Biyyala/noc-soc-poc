@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AuthProvider xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!--
+        SETUP REQUIRED:
+        1. Deploy GenBI_CrossOrg connected app to devOrg first.
+        2. In devOrg Setup → Apps → App Manager → GenBI Cross-Org → View → copy the Consumer Key.
+        3. Replace the consumerKey value below with the real key, then re-deploy this file to myNewOrg.
+        4. After deploy, go to myNewOrg Setup → Auth. Providers → DevOrg Org-to-Org → Edit
+           and enter the Consumer Secret from devOrg.
+    -->
+    <consumerKey>REPLACE_WITH_DEVORG_CONSUMER_KEY</consumerKey>
+    <defaultScopes>api</defaultScopes>
+    <friendlyName>DevOrg Org-to-Org</friendlyName>
+    <providerType>Salesforce</providerType>
+    <tokenEndpointUrl>https://orgfarm-e5ac796377-dev-ed.develop.my.salesforce.com/services/oauth2/token</tokenEndpointUrl>
+    <userInfoUrl>https://orgfarm-e5ac796377-dev-ed.develop.my.salesforce.com/services/oauth2/userinfo</userInfoUrl>
+</AuthProvider>

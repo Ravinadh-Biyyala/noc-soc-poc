@@ -5,6 +5,8 @@ import {
   Settings as SettingsIcon,
   FolderKanban,
   BarChart2,
+  FileSpreadsheet,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -57,6 +59,20 @@ export const NAV: NavItem[] = [
     label: "Visuals Catalog",
     icon: BarChart2,
     matchPrefix: "/visuals-catalog",
+  },
+  {
+    type: "leaf",
+    href: "/reports",
+    label: "Reports",
+    icon: FileSpreadsheet,
+    matchPrefix: "/reports",
+  },
+  {
+    type: "leaf",
+    href: "/loki-logs",
+    label: "Loki Logs",
+    icon: ScrollText,
+    matchPrefix: "/loki-logs",
   },
   { type: "leaf", href: "/governance", label: "Governance", icon: ShieldCheck },
   { type: "leaf", href: "/settings", label: "Settings", icon: SettingsIcon },

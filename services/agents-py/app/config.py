@@ -44,6 +44,14 @@ class Settings(BaseSettings):
     agents_port: int = 8000
     cors_origin: str = "http://localhost:5173"
 
+    # --- Loki logs server (read-only HTTP API) ---
+    loki_url: str = "http://65.0.120.127:3100"
+    loki_timeout: int = 30
+    # Lookback window for discovering label values in the filter dropdowns. Loki's
+    # label endpoints are time-bounded; a wide default surfaces every value
+    # (e.g. all devices) regardless of the smaller query time-range.
+    loki_label_window: str = "30d"
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

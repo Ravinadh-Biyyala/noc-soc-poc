@@ -1,0 +1,366 @@
+- generic [active]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - link "Skip to Navigation" [ref=e4] [cursor=pointer]:
+        - /url: javascript:void(0);
+      - link "Skip to Main Content" [ref=e5] [cursor=pointer]:
+        - /url: javascript:void(0);
+      - generic [ref=e6]:
+        - generic [ref=e11]:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - img
+          - generic [ref=e14]:
+            - combobox "Search Setup" [ref=e15]
+            - generic [ref=e16]: Search Setup
+        - navigation "Global Header" [ref=e17]:
+          - list [ref=e18]:
+            - listitem [ref=e19]
+    - generic [ref=e23]:
+      - generic:
+        - generic [ref=e24]:
+          - generic [ref=e27]:
+            - navigation "App" [ref=e28]:
+              - button "App Launcher" [ref=e30] [cursor=pointer]:
+                - generic [ref=e41]: App Launcher
+            - generic "Setup" [ref=e43]
+          - navigation "Workspaces" [ref=e45]:
+            - tablist [ref=e46]:
+              - generic [ref=e48]: Press Spacebar to reorder tabs.
+        - generic [ref=e50]:
+          - generic [ref=e57]:
+            - generic [ref=e58]:
+              - generic [ref=e59]: Quick Find
+              - img [ref=e63]
+              - searchbox "Quick Find" [ref=e67]
+            - tree "Setup Tree" [ref=e68]:
+              - treeitem "Setup Home" [level=1] [ref=e69]:
+                - generic "Setup Home" [ref=e70]:
+                  - link "Setup Home" [ref=e71] [cursor=pointer]:
+                    - /url: /lightning/setup/SetupOneHome/home
+              - treeitem "Salesforce Go" [level=1] [ref=e72]:
+                - generic "Salesforce Go" [ref=e73]:
+                  - link "Salesforce Go" [ref=e74] [cursor=pointer]:
+                    - /url: /lightning/setup/SalesforceGo/home
+              - treeitem "Service Setup Assistant" [level=1] [ref=e75]:
+                - generic "Service Setup Assistant" [ref=e76]:
+                  - link "Service Setup Assistant" [ref=e77] [cursor=pointer]:
+                    - /url: /lightning/setup/ServiceHome/home
+              - treeitem "Service Cloud Reports" [level=1] [ref=e78]:
+                - generic "Service Cloud Reports" [ref=e79]:
+                  - link "Service Cloud Reports" [ref=e80] [cursor=pointer]:
+                    - /url: /lightning/setup/ServiceCloudReportsSetupAssistant/home
+              - treeitem "Commerce Setup Assistant" [level=1] [ref=e81]:
+                - generic "Commerce Setup Assistant" [ref=e82]:
+                  - link "Commerce Setup Assistant" [ref=e83] [cursor=pointer]:
+                    - /url: /lightning/setup/CommerceSetupAssistant/home
+              - treeitem "Hyperforce Assistant" [level=1] [ref=e84]:
+                - generic "Hyperforce Assistant" [ref=e85]:
+                  - link "Hyperforce Assistant" [ref=e86] [cursor=pointer]:
+                    - /url: /lightning/setup/HyperforceAssistant/home
+              - treeitem "Release Updates" [level=1] [ref=e87]:
+                - generic "Release Updates" [ref=e88]:
+                  - link "Release Updates" [ref=e89] [cursor=pointer]:
+                    - /url: /lightning/setup/ReleaseUpdates/home
+              - treeitem "Salesforce Mobile App" [level=1] [ref=e90]:
+                - generic "Salesforce Mobile App" [ref=e91]:
+                  - link "Salesforce Mobile App" [ref=e92] [cursor=pointer]:
+                    - /url: /lightning/setup/SalesforceMobileAppQuickStart/home
+              - treeitem "Lightning Usage" [level=1] [ref=e93]:
+                - generic "Lightning Usage" [ref=e94]:
+                  - link "Lightning Usage" [ref=e95] [cursor=pointer]:
+                    - /url: /lightning/setup/LightningUsageSetup/home
+              - treeitem "AgentExchange Offers" [level=1] [ref=e96]:
+                - generic "AgentExchange Offers" [ref=e97]:
+                  - link "AgentExchange Offers" [ref=e98] [cursor=pointer]:
+                    - /url: /lightning/setup/IsvTmOffersMarketplace/home
+              - treeitem "Sales Cloud Everywhere" [level=1] [ref=e99]:
+                - generic "Sales Cloud Everywhere" [ref=e100]:
+                  - link "Sales Cloud Everywhere" [ref=e101] [cursor=pointer]:
+                    - /url: /lightning/setup/SalesCloudEverywhereSettings/home
+              - treeitem "Administration" [level=1] [ref=e102]:
+                - heading "Administration" [level=4] [ref=e103]
+              - treeitem "Users" [level=1] [ref=e104]:
+                - generic "Users" [ref=e105]:
+                  - button "Expand" [ref=e106] [cursor=pointer]:
+                    - img [ref=e108]
+                    - generic [ref=e111]: Expand
+                  - link "Users" [ref=e112] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Data" [level=1] [ref=e113]:
+                - generic "Data" [ref=e114]:
+                  - button "Expand" [ref=e115] [cursor=pointer]:
+                    - img [ref=e117]
+                    - generic [ref=e120]: Expand
+                  - link "Data" [ref=e121] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Email" [level=1] [ref=e122]:
+                - generic "Email" [ref=e123]:
+                  - button "Expand" [ref=e124] [cursor=pointer]:
+                    - img [ref=e126]
+                    - generic [ref=e129]: Expand
+                  - link "Email" [ref=e130] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Platform Tools" [level=1] [ref=e131]:
+                - heading "Platform Tools" [level=4] [ref=e132]
+              - treeitem "Subscription Management" [level=1] [ref=e133]:
+                - generic "Subscription Management" [ref=e134]:
+                  - button "Expand" [ref=e135] [cursor=pointer]:
+                    - img [ref=e137]
+                    - generic [ref=e140]: Expand
+                  - link "Subscription Management" [ref=e141] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Apps" [expanded] [level=1] [ref=e142]:
+                - generic "Apps" [ref=e143]:
+                  - button "Collapse" [ref=e144] [cursor=pointer]:
+                    - img [ref=e146]
+                    - generic [ref=e149]: Collapse
+                  - link "Apps" [ref=e150] [cursor=pointer]:
+                    - /url: javascript:void(0)
+                - group [ref=e151]:
+                  - treeitem "App Manager" [level=2] [selected] [ref=e152]:
+                    - generic "App Manager" [ref=e153]:
+                      - link "App Manager" [ref=e154] [cursor=pointer]:
+                        - /url: /lightning/setup/NavigationMenus/home
+                  - treeitem "AppExchange Marketplace" [level=2] [ref=e155]:
+                    - generic "AppExchange Marketplace" [ref=e156]:
+                      - link "AppExchange Marketplace" [ref=e157] [cursor=pointer]:
+                        - /url: /lightning/setup/AppExchangeMarketplace/home
+                  - treeitem "Connected Apps" [level=2] [ref=e158]:
+                    - generic "Connected Apps" [ref=e159]:
+                      - button "Expand" [ref=e160] [cursor=pointer]:
+                        - img [ref=e162]
+                        - generic [ref=e165]: Expand
+                      - link "Connected Apps" [ref=e166] [cursor=pointer]:
+                        - /url: javascript:void(0)
+                  - treeitem "External Client Apps" [level=2] [ref=e167]:
+                    - generic "External Client Apps" [ref=e168]:
+                      - button "Expand" [ref=e169] [cursor=pointer]:
+                        - img [ref=e171]
+                        - generic [ref=e174]: Expand
+                      - link "External Client Apps" [ref=e175] [cursor=pointer]:
+                        - /url: javascript:void(0)
+                  - treeitem "Intelligent Apps" [level=2] [ref=e176]:
+                    - generic "Intelligent Apps" [ref=e177]:
+                      - button "Expand" [ref=e178] [cursor=pointer]:
+                        - img [ref=e180]
+                        - generic [ref=e183]: Expand
+                      - link "Intelligent Apps" [ref=e184] [cursor=pointer]:
+                        - /url: javascript:void(0)
+                  - treeitem "Lightning Bolt" [level=2] [ref=e185]:
+                    - generic "Lightning Bolt" [ref=e186]:
+                      - button "Expand" [ref=e187] [cursor=pointer]:
+                        - img [ref=e189]
+                        - generic [ref=e192]: Expand
+                      - link "Lightning Bolt" [ref=e193] [cursor=pointer]:
+                        - /url: javascript:void(0)
+                  - treeitem "Lightning Out 2.0 Apps" [level=2] [ref=e194]:
+                    - generic "Lightning Out 2.0 Apps" [ref=e195]:
+                      - button "Expand" [ref=e196] [cursor=pointer]:
+                        - img [ref=e198]
+                        - generic [ref=e201]: Expand
+                      - link "Lightning Out 2.0 Apps" [ref=e202] [cursor=pointer]:
+                        - /url: javascript:void(0)
+                  - treeitem "Mobile Apps" [level=2] [ref=e203]:
+                    - generic "Mobile Apps" [ref=e204]:
+                      - button "Expand" [ref=e205] [cursor=pointer]:
+                        - img [ref=e207]
+                        - generic [ref=e210]: Expand
+                      - link "Mobile Apps" [ref=e211] [cursor=pointer]:
+                        - /url: javascript:void(0)
+                  - treeitem "Packaging" [level=2] [ref=e212]:
+                    - generic "Packaging" [ref=e213]:
+                      - button "Expand" [ref=e214] [cursor=pointer]:
+                        - img [ref=e216]
+                        - generic [ref=e219]: Expand
+                      - link "Packaging" [ref=e220] [cursor=pointer]:
+                        - /url: javascript:void(0)
+              - treeitem "Feature Settings" [level=1] [ref=e221]:
+                - generic "Feature Settings" [ref=e222]:
+                  - button "Expand" [ref=e223] [cursor=pointer]:
+                    - img [ref=e225]
+                    - generic [ref=e228]: Expand
+                  - link "Feature Settings" [ref=e229] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Slack" [level=1] [ref=e230]:
+                - generic "Slack" [ref=e231]:
+                  - button "Expand" [ref=e232] [cursor=pointer]:
+                    - img [ref=e234]
+                    - generic [ref=e237]: Expand
+                  - link "Slack" [ref=e238] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Data Cloud" [level=1] [ref=e239]:
+                - generic "Data Cloud" [ref=e240]:
+                  - button "Expand" [ref=e241] [cursor=pointer]:
+                    - img [ref=e243]
+                    - generic [ref=e246]: Expand
+                  - link "Data Cloud" [ref=e247] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Heroku" [level=1] [ref=e248]:
+                - generic "Heroku" [ref=e249]:
+                  - button "Expand" [ref=e250] [cursor=pointer]:
+                    - img [ref=e252]
+                    - generic [ref=e255]: Expand
+                  - link "Heroku" [ref=e256] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "MuleSoft" [level=1] [ref=e257]:
+                - generic "MuleSoft" [ref=e258]:
+                  - button "Expand" [ref=e259] [cursor=pointer]:
+                    - img [ref=e261]
+                    - generic [ref=e264]: Expand
+                  - link "MuleSoft" [ref=e265] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Einstein" [level=1] [ref=e266]:
+                - generic "Einstein" [ref=e267]:
+                  - button "Expand" [ref=e268] [cursor=pointer]:
+                    - img [ref=e270]
+                    - generic [ref=e273]: Expand
+                  - link "Einstein" [ref=e274] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Objects and Fields" [level=1] [ref=e275]:
+                - generic "Objects and Fields" [ref=e276]:
+                  - button "Expand" [ref=e277] [cursor=pointer]:
+                    - img [ref=e279]
+                    - generic [ref=e282]: Expand
+                  - link "Objects and Fields" [ref=e283] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Events" [level=1] [ref=e284]:
+                - generic "Events" [ref=e285]:
+                  - button "Expand" [ref=e286] [cursor=pointer]:
+                    - img [ref=e288]
+                    - generic [ref=e291]: Expand
+                  - link "Events" [ref=e292] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Process Automation" [level=1] [ref=e293]:
+                - generic "Process Automation" [ref=e294]:
+                  - button "Expand" [ref=e295] [cursor=pointer]:
+                    - img [ref=e297]
+                    - generic [ref=e300]: Expand
+                  - link "Process Automation" [ref=e301] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "User Interface" [level=1] [ref=e302]:
+                - generic "User Interface" [ref=e303]:
+                  - button "Expand" [ref=e304] [cursor=pointer]:
+                    - img [ref=e306]
+                    - generic [ref=e309]: Expand
+                  - link "User Interface" [ref=e310] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Custom Code" [level=1] [ref=e311]:
+                - generic "Custom Code" [ref=e312]:
+                  - button "Expand" [ref=e313] [cursor=pointer]:
+                    - img [ref=e315]
+                    - generic [ref=e318]: Expand
+                  - link "Custom Code" [ref=e319] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Development" [level=1] [ref=e320]:
+                - generic "Development" [ref=e321]:
+                  - button "Expand" [ref=e322] [cursor=pointer]:
+                    - img [ref=e324]
+                    - generic [ref=e327]: Expand
+                  - link "Development" [ref=e328] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Scale" [level=1] [ref=e329]:
+                - generic "Scale" [ref=e330]:
+                  - button "Expand" [ref=e331] [cursor=pointer]:
+                    - img [ref=e333]
+                    - generic [ref=e336]: Expand
+                  - link "Scale" [ref=e337] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Environments" [level=1] [ref=e338]:
+                - generic "Environments" [ref=e339]:
+                  - button "Expand" [ref=e340] [cursor=pointer]:
+                    - img [ref=e342]
+                    - generic [ref=e345]: Expand
+                  - link "Environments" [ref=e346] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "User Engagement" [level=1] [ref=e347]:
+                - generic "User Engagement" [ref=e348]:
+                  - button "Expand" [ref=e349] [cursor=pointer]:
+                    - img [ref=e351]
+                    - generic [ref=e354]: Expand
+                  - link "User Engagement" [ref=e355] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Enablement" [level=1] [ref=e356]:
+                - generic "Enablement" [ref=e357]:
+                  - button "Expand" [ref=e358] [cursor=pointer]:
+                    - img [ref=e360]
+                    - generic [ref=e363]: Expand
+                  - link "Enablement" [ref=e364] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Integrations" [level=1] [ref=e365]:
+                - generic "Integrations" [ref=e366]:
+                  - button "Expand" [ref=e367] [cursor=pointer]:
+                    - img [ref=e369]
+                    - generic [ref=e372]: Expand
+                  - link "Integrations" [ref=e373] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Notification Builder" [level=1] [ref=e374]:
+                - generic "Notification Builder" [ref=e375]:
+                  - button "Expand" [ref=e376] [cursor=pointer]:
+                    - img [ref=e378]
+                    - generic [ref=e381]: Expand
+                  - link "Notification Builder" [ref=e382] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Offline" [level=1] [ref=e383]:
+                - generic "Offline" [ref=e384]:
+                  - button "Expand" [ref=e385] [cursor=pointer]:
+                    - img [ref=e387]
+                    - generic [ref=e390]: Expand
+                  - link "Offline" [ref=e391] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Go Accelerate" [level=1] [ref=e392]:
+                - generic "Go Accelerate" [ref=e393]:
+                  - button "Expand" [ref=e394] [cursor=pointer]:
+                    - img [ref=e396]
+                    - generic [ref=e399]: Expand
+                  - link "Go Accelerate" [ref=e400] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Settings" [level=1] [ref=e401]:
+                - heading "Settings" [level=4] [ref=e402]
+              - treeitem "Company Settings" [level=1] [ref=e403]:
+                - generic "Company Settings" [ref=e404]:
+                  - button "Expand" [ref=e405] [cursor=pointer]:
+                    - img [ref=e407]
+                    - generic [ref=e410]: Expand
+                  - link "Company Settings" [ref=e411] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Data Classification" [level=1] [ref=e412]:
+                - generic "Data Classification" [ref=e413]:
+                  - button "Expand" [ref=e414] [cursor=pointer]:
+                    - img [ref=e416]
+                    - generic [ref=e419]: Expand
+                  - link "Data Classification" [ref=e420] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Privacy Center" [level=1] [ref=e421]:
+                - generic "Privacy Center" [ref=e422]:
+                  - button "Expand" [ref=e423] [cursor=pointer]:
+                    - img [ref=e425]
+                    - generic [ref=e428]: Expand
+                  - link "Privacy Center" [ref=e429] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Data Mask" [level=1] [ref=e430]:
+                - generic "Data Mask" [ref=e431]:
+                  - button "Expand" [ref=e432] [cursor=pointer]:
+                    - img [ref=e434]
+                    - generic [ref=e437]: Expand
+                  - link "Data Mask" [ref=e438] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Identity" [level=1] [ref=e439]:
+                - generic "Identity" [ref=e440]:
+                  - button "Expand" [ref=e441] [cursor=pointer]:
+                    - img [ref=e443]
+                    - generic [ref=e446]: Expand
+                  - link "Identity" [ref=e447] [cursor=pointer]:
+                    - /url: javascript:void(0)
+              - treeitem "Security" [level=1] [ref=e448]:
+                - generic "Security" [ref=e449]:
+                  - button "Expand" [ref=e450] [cursor=pointer]:
+                    - img [ref=e452]
+                    - generic [ref=e455]: Expand
+                  - link "Security" [ref=e456] [cursor=pointer]:
+                    - /url: javascript:void(0)
+          - main [ref=e457]
+  - generic:
+    - status

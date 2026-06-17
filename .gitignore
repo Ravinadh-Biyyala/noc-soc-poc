@@ -51,3 +51,8 @@ Thumbs.db
 # Local env files
 .env
 .env.local
+
+# Cached Salesforce OAuth tokens (written by the api-server)
+.salesforce-tokens.json
+.sf/
+.sfdx/

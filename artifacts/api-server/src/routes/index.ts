@@ -14,6 +14,7 @@ import copilotDashboardsRouter from "./copilot-dashboards";
 import sectionPinnedChartsRouter from "./section-pinned-charts";
 import projectAgentsRouter from "./project-agents";
 import projectIngestRouter from "./project-ingest";
+import salesforceRouter from "./salesforce";
 
 const router: IRouter = Router();
 
@@ -32,5 +33,6 @@ router.use(copilotDashboardsRouter);
 router.use(sectionPinnedChartsRouter);
 router.use(projectAgentsRouter);
 router.use(projectIngestRouter);
+router.use(salesforceRouter);
 
 export default router;
