@@ -1,4 +1,4 @@
-import { ScrollText, LayoutDashboard, Activity, Workflow, Server, type LucideIcon } from "lucide-react";
+import { ScrollText, LayoutDashboard, Activity, Workflow, Server, Network, type LucideIcon } from "lucide-react";
 
 export interface NavLeaf {
   type: "leaf";
@@ -28,6 +28,13 @@ export const NAV: NavItem[] = [
     label: "Assets",
     icon: Server,
     matchPrefix: "/assets",
+  },
+  {
+    type: "leaf",
+    href: "/topology",
+    label: "Topology",
+    icon: Network,
+    matchPrefix: "/topology",
   },
   {
     type: "leaf",

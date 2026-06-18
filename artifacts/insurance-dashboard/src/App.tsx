@@ -10,6 +10,7 @@ import { CopilotKit } from "@copilotkit/react-core";
 import Layout from "@/components/layout";
 import LokiDashboard from "@/pages/LokiDashboard";
 import LokiAssets from "@/pages/LokiAssets";
+import LokiTopology from "@/pages/LokiTopology";
 import LokiTraces from "@/pages/LokiTraces";
 import LokiLogs from "@/pages/LokiLogs";
 import LokiPins from "@/pages/LokiPins";
@@ -38,6 +39,7 @@ function AppRoutes() {
       <Route path="/" component={RedirectToDashboard} />
       <Route path="/dashboard" component={LokiDashboard} />
       <Route path="/assets" component={LokiAssets} />
+      <Route path="/topology" component={LokiTopology} />
       <Route path="/loki-traces" component={LokiTraces} />
       <Route path="/loki-logs" component={LokiLogs} />
       <Route path="/loki-pins" component={LokiPins} />

@@ -54,6 +54,27 @@ export interface LokiChartProps {
   height?: number;
 }
 
+// Pie value labels rendered INSIDE the slice (on the donut ring) so they never
+// overflow / get clipped by a narrow panel. Tiny slices are skipped to avoid
+// crowding — the tooltip and the breakdown lists still surface their exact values.
+type PieLabelProps = {
+  cx: number; cy: number; midAngle: number; innerRadius: number; outerRadius: number;
+  percent: number; value: number;
+};
+function renderPieLabel(props: unknown) {
+  const { cx, cy, midAngle, innerRadius, outerRadius, percent, value } = props as PieLabelProps;
+  if (!percent || percent < 0.07) return null;
+  const RAD = Math.PI / 180;
+  const r = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + r * Math.cos(-midAngle * RAD);
+  const y = cy + r * Math.sin(-midAngle * RAD);
+  return (
+    <text x={x} y={y} fill="hsl(222 47% 9%)" fontSize={10} fontWeight={700} textAnchor="middle" dominantBaseline="central">
+      {formatCount(value)}
+    </text>
+  );
+}
+
 function colorFor(row: Record<string, unknown>, xKey: string, i: number, palette?: string[]) {
   if (palette && palette[i]) return palette[i];
   const key = String(row?.[xKey] ?? "").toLowerCase();
@@ -75,8 +96,7 @@ export default function LokiChart({ type, xKey, yKey, data, colors, height = 240
         {type === "pie" ? (
           <PieChart>
             <Pie data={data} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={2} dataKey={yKey} nameKey={xKey}
-              label={(e: { name?: string; value?: number }) => `${e.name ?? ""}: ${formatCount(Number(e.value) || 0)}`}
-              labelLine={false} fontSize={10} stroke="hsl(var(--background))">
+              label={renderPieLabel} labelLine={false} stroke="hsl(var(--background))">
               {data.map((row, i) => <Cell key={i} fill={colorFor(row, xKey, i, colors)} />)}
             </Pie>
             <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => [formatCount(v)]} />
