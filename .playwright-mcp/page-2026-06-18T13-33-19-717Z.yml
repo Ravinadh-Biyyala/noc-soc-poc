@@ -1,0 +1,82 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - complementary [ref=e4]:
+        - button "Expand sidebar" [ref=e344]:
+          - img [ref=e345]
+        - navigation [ref=e16]:
+          - link [ref=e348] [cursor=pointer]:
+            - /url: /dashboard
+            - generic "Dashboard" [ref=e349]:
+              - img [ref=e19]
+          - link [ref=e350] [cursor=pointer]:
+            - /url: /assets
+            - generic "Assets" [ref=e351]:
+              - img [ref=e24]
+          - link [ref=e352] [cursor=pointer]:
+            - /url: /loki-traces
+            - generic "Traces" [ref=e353]:
+              - img [ref=e30]
+          - link [ref=e354] [cursor=pointer]:
+            - /url: /loki-logs
+            - generic "Loki Logs" [ref=e355]:
+              - img [ref=e37]
+          - link [ref=e356] [cursor=pointer]:
+            - /url: /loki-pins
+            - generic "Pinned Visuals" [ref=e357]:
+              - img [ref=e43]
+      - main [ref=e50]:
+        - generic [ref=e51]:
+          - heading "Loki Logs" [level=1] [ref=e52]
+          - generic [ref=e53]:
+            - generic [ref=e58]: Live
+            - generic [ref=e61]: BK
+        - generic [ref=e1247]:
+          - generic [ref=e1248]:
+            - generic [ref=e1249]:
+              - heading "Asset Inventory" [level=1] [ref=e1250]:
+                - img [ref=e1251]
+                - text: Asset Inventory
+              - paragraph [ref=e1254]: 0 assets across all branches and data centers
+            - button "Refresh" [ref=e1255]:
+              - img [ref=e1256]
+              - text: Refresh
+          - generic [ref=e1261]:
+            - generic [ref=e1262]:
+              - img [ref=e1263]
+              - textbox "Search by name, location or model…" [ref=e1266]
+            - button "All" [ref=e1268]
+            - generic [ref=e1269]:
+              - button "All" [ref=e1270]
+              - button "Online" [ref=e1271]
+              - button "Offline" [ref=e1272]
+              - button "Degraded" [ref=e1273]
+            - generic [ref=e1274]: 0 results
+          - generic [ref=e1276]:
+            - generic [ref=e1277]: Type
+            - generic [ref=e1278]: Name
+            - generic [ref=e1279]: IP
+            - generic [ref=e1280]: Location
+            - generic [ref=e1281]: Status
+            - generic [ref=e1282]: Severity
+      - complementary [ref=e305]:
+        - generic [ref=e306]:
+          - generic [ref=e307]:
+            - img [ref=e308]
+            - text: BI Companion
+            - generic [ref=e320]: BI
+          - button "Start a new chat" [ref=e321]:
+            - img
+        - generic [ref=e322]:
+          - img [ref=e323]
+          - generic [ref=e326]: Observing
+          - generic [ref=e327]: Asset Inventory
+        - generic [ref=e334]:
+          - generic [ref=e335]:
+            - textbox "Ask about devices, alarms, incidents…" [ref=e336]
+            - button "Send" [disabled] [ref=e339]:
+              - img [ref=e340]
+          - paragraph [ref=e343]: Powered by CopilotKit
+    - region "Notifications (F8)":
+      - list
+  - generic [ref=e1246]: ransomware

@@ -1,0 +1,477 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - link "Gen VI" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e7]:
+            - img [ref=e9]
+            - text: Gen VI
+        - button "Collapse sidebar" [ref=e12]:
+          - img [ref=e13]
+      - navigation [ref=e16]:
+        - link "Dashboard" [ref=e17] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e18]:
+            - img [ref=e19]
+            - generic [ref=e21]: Dashboard
+        - link "Traces" [ref=e22] [cursor=pointer]:
+          - /url: /loki-traces
+          - generic [ref=e23]:
+            - img [ref=e24]
+            - generic [ref=e28]: Traces
+        - link "Loki Logs" [ref=e29] [cursor=pointer]:
+          - /url: /loki-logs
+          - generic [ref=e30]:
+            - img [ref=e31]
+            - generic [ref=e34]: Loki Logs
+        - link "Pinned Visuals" [ref=e35] [cursor=pointer]:
+          - /url: /loki-pins
+          - generic [ref=e36]:
+            - img [ref=e37]
+            - generic [ref=e42]: Pinned Visuals
+      - generic [ref=e43]: Gen VI 2026
+    - main [ref=e44]:
+      - generic [ref=e45]:
+        - heading "Loki Logs" [level=1] [ref=e46]
+        - generic [ref=e47]:
+          - generic [ref=e52]: Live
+          - generic [ref=e55]: BK
+      - generic [ref=e57]:
+        - generic [ref=e58]:
+          - generic [ref=e59]:
+            - img [ref=e60]
+            - heading "Incident Traces" [level=1] [ref=e64]
+            - generic [ref=e65]:
+              - img [ref=e66]
+              - text: live
+          - combobox [ref=e77]:
+            - generic: "Live: 30s"
+            - img [ref=e78]
+        - generic [ref=e80]:
+          - button "All 24" [ref=e136]
+          - button "Network 19" [ref=e137]
+          - button "Security 5" [ref=e138]
+          - button "Other 0" [ref=e84]
+        - generic [ref=e85]:
+          - generic [ref=e88]:
+            - button "Critical NETWORK 49m ago IPSec IKE negotiation failure - peer 21.219.109.144 unreachable VPN-DC1-MUM-04" [ref=e139]:
+              - generic [ref=e140]:
+                - generic [ref=e141]: Critical
+                - generic [ref=e142]: NETWORK
+                - generic [ref=e143]: 49m ago
+              - paragraph [ref=e144]: IPSec IKE negotiation failure - peer 21.219.109.144 unreachable
+              - paragraph [ref=e145]:
+                - img [ref=e146]
+                - text: VPN-DC1-MUM-04
+            - button "Critical NETWORK 49m ago VPN tunnel down - 36 dependent sessions terminated VPN-DC1-MUM-02" [ref=e149]:
+              - generic [ref=e150]:
+                - generic [ref=e151]: Critical
+                - generic [ref=e152]: NETWORK
+                - generic [ref=e153]: 49m ago
+              - paragraph [ref=e154]: VPN tunnel down - 36 dependent sessions terminated
+              - paragraph [ref=e155]:
+                - img [ref=e156]
+                - text: VPN-DC1-MUM-02
+            - button "Critical NETWORK 49m ago Device unreachable - ICMP probe failed SW-DC1-MUM-16" [ref=e159]:
+              - generic [ref=e160]:
+                - generic [ref=e161]: Critical
+                - generic [ref=e162]: NETWORK
+                - generic [ref=e163]: 49m ago
+              - paragraph [ref=e164]: Device unreachable - ICMP probe failed
+              - paragraph [ref=e165]:
+                - img [ref=e166]
+                - text: SW-DC1-MUM-16
+            - button "Critical NETWORK 49m ago Interface TenGigabitEthernet1/1/4 changed state to down SW-DC1-MUM-13" [ref=e169]:
+              - generic [ref=e170]:
+                - generic [ref=e171]: Critical
+                - generic [ref=e172]: NETWORK
+                - generic [ref=e173]: 49m ago
+              - paragraph [ref=e174]: Interface TenGigabitEthernet1/1/4 changed state to down
+              - paragraph [ref=e175]:
+                - img [ref=e176]
+                - text: SW-DC1-MUM-13
+            - button "Critical NETWORK 49m ago Spanning-tree topology change detected on VLAN 50, port Gi2/36 SW-DC2-MUM-02" [ref=e179]:
+              - generic [ref=e180]:
+                - generic [ref=e181]: Critical
+                - generic [ref=e182]: NETWORK
+                - generic [ref=e183]: 49m ago
+              - paragraph [ref=e184]: Spanning-tree topology change detected on VLAN 50, port Gi2/36
+              - paragraph [ref=e185]:
+                - img [ref=e186]
+                - text: SW-DC2-MUM-02
+            - button "Critical NETWORK 49m ago Uplink port GigabitEthernet0/15 changed state to down SW-DC1-MUM-01" [ref=e189]:
+              - generic [ref=e190]:
+                - generic [ref=e191]: Critical
+                - generic [ref=e192]: NETWORK
+                - generic [ref=e193]: 49m ago
+              - paragraph [ref=e194]: Uplink port GigabitEthernet0/15 changed state to down
+              - paragraph [ref=e195]:
+                - img [ref=e196]
+                - text: SW-DC1-MUM-01
+            - button "Critical NETWORK 49m ago Stack power budget exceeded - 4 PSU overloaded SW-DC1-MUM-06" [ref=e199]:
+              - generic [ref=e200]:
+                - generic [ref=e201]: Critical
+                - generic [ref=e202]: NETWORK
+                - generic [ref=e203]: 49m ago
+              - paragraph [ref=e204]: Stack power budget exceeded - 4 PSU overloaded
+              - paragraph [ref=e205]:
+                - img [ref=e206]
+                - text: SW-DC1-MUM-06
+            - button "Critical NETWORK 49m ago IPSec IKE negotiation failure - peer 174.160.193.111 unreachable VPN-DC1-MUM-06" [ref=e209]:
+              - generic [ref=e210]:
+                - generic [ref=e211]: Critical
+                - generic [ref=e212]: NETWORK
+                - generic [ref=e213]: 49m ago
+              - paragraph [ref=e214]: IPSec IKE negotiation failure - peer 174.160.193.111 unreachable
+              - paragraph [ref=e215]:
+                - img [ref=e216]
+                - text: VPN-DC1-MUM-06
+            - button "Critical NETWORK 49m ago Interface TenGigabitEthernet1/1/2 changed state to down SW-BR-LIN-01" [ref=e219]:
+              - generic [ref=e220]:
+                - generic [ref=e221]: Critical
+                - generic [ref=e222]: NETWORK
+                - generic [ref=e223]: 49m ago
+              - paragraph [ref=e224]: Interface TenGigabitEthernet1/1/2 changed state to down
+              - paragraph [ref=e225]:
+                - img [ref=e226]
+                - text: SW-BR-LIN-01
+            - button "Critical NETWORK 18h ago Interface GigabitEthernet0/0/1 changed state to down (flapping) RTR-BR-4331-01" [ref=e229]:
+              - generic [ref=e230]:
+                - generic [ref=e231]: Critical
+                - generic [ref=e232]: NETWORK
+                - generic [ref=e233]: 18h ago
+              - paragraph [ref=e234]: Interface GigabitEthernet0/0/1 changed state to down (flapping)
+              - paragraph [ref=e235]:
+                - img [ref=e236]
+                - text: RTR-BR-4331-01
+            - button "Critical NETWORK 18h ago Tunnel interface Tunnel0 (DMVPN) down - no response from hub RTR-BR-4331-01" [ref=e239]:
+              - generic [ref=e240]:
+                - generic [ref=e241]: Critical
+                - generic [ref=e242]: NETWORK
+                - generic [ref=e243]: 18h ago
+              - paragraph [ref=e244]: Tunnel interface Tunnel0 (DMVPN) down - no response from hub
+              - paragraph [ref=e245]:
+                - img [ref=e246]
+                - text: RTR-BR-4331-01
+            - button "Critical NETWORK 18h ago Tunnel interface Tunnel0 (DMVPN) down - no response from hub RTR-BR-4331-01" [ref=e249]:
+              - generic [ref=e250]:
+                - generic [ref=e251]: Critical
+                - generic [ref=e252]: NETWORK
+                - generic [ref=e253]: 18h ago
+              - paragraph [ref=e254]: Tunnel interface Tunnel0 (DMVPN) down - no response from hub
+              - paragraph [ref=e255]:
+                - img [ref=e256]
+                - text: RTR-BR-4331-01
+            - button "Critical SECURITY 18h ago Failed login attempt for admin from 198.51.100.7 (try 1) FW-DC1-FG6700-01" [ref=e259]:
+              - generic [ref=e260]:
+                - generic [ref=e261]: Critical
+                - generic [ref=e262]: SECURITY
+                - generic [ref=e263]: 18h ago
+              - paragraph [ref=e264]: Failed login attempt for admin from 198.51.100.7 (try 1)
+              - paragraph [ref=e265]:
+                - img [ref=e266]
+                - text: FW-DC1-FG6700-01
+            - button "High SECURITY 18h ago Failed login attempt for admin from 198.51.100.7 (try 1) FW-DC1-FG6700-01" [ref=e269]:
+              - generic [ref=e270]:
+                - generic [ref=e271]: High
+                - generic [ref=e272]: SECURITY
+                - generic [ref=e273]: 18h ago
+              - paragraph [ref=e274]: Failed login attempt for admin from 198.51.100.7 (try 1)
+              - paragraph [ref=e275]:
+                - img [ref=e276]
+                - text: FW-DC1-FG6700-01
+            - button "High SECURITY 18h ago Failed login attempt for admin from 198.51.100.7 (try 1) FW-DC1-FG6700-01" [ref=e279]:
+              - generic [ref=e280]:
+                - generic [ref=e281]: High
+                - generic [ref=e282]: SECURITY
+                - generic [ref=e283]: 18h ago
+              - paragraph [ref=e284]: Failed login attempt for admin from 198.51.100.7 (try 1)
+              - paragraph [ref=e285]:
+                - img [ref=e286]
+                - text: FW-DC1-FG6700-01
+            - button "High SECURITY 18h ago Failed login attempt for admin from 198.51.100.7 (try 1) FW-DC1-FG6700-01" [ref=e289]:
+              - generic [ref=e290]:
+                - generic [ref=e291]: High
+                - generic [ref=e292]: SECURITY
+                - generic [ref=e293]: 18h ago
+              - paragraph [ref=e294]: Failed login attempt for admin from 198.51.100.7 (try 1)
+              - paragraph [ref=e295]:
+                - img [ref=e296]
+                - text: FW-DC1-FG6700-01
+            - button "High SECURITY 18h ago Failed login attempt for admin from 198.51.100.7 (try 1) FW-DC1-FG6700-01" [ref=e299]:
+              - generic [ref=e300]:
+                - generic [ref=e301]: High
+                - generic [ref=e302]: SECURITY
+                - generic [ref=e303]: 18h ago
+              - paragraph [ref=e304]: Failed login attempt for admin from 198.51.100.7 (try 1)
+              - paragraph [ref=e305]:
+                - img [ref=e306]
+                - text: FW-DC1-FG6700-01
+            - button "Critical NETWORK 18h ago Spanning-tree topology change on VLAN 50, port Gi1/0/41 SW-DC1-3850-01" [ref=e309]:
+              - generic [ref=e310]:
+                - generic [ref=e311]: Critical
+                - generic [ref=e312]: NETWORK
+                - generic [ref=e313]: 18h ago
+              - paragraph [ref=e314]: Spanning-tree topology change on VLAN 50, port Gi1/0/41
+              - paragraph [ref=e315]:
+                - img [ref=e316]
+                - text: SW-DC1-3850-01
+            - button "Critical NETWORK 18h ago Spanning-tree topology change on VLAN 50, port Gi1/0/41 SW-DC1-3850-01" [ref=e319]:
+              - generic [ref=e320]:
+                - generic [ref=e321]: Critical
+                - generic [ref=e322]: NETWORK
+                - generic [ref=e323]: 18h ago
+              - paragraph [ref=e324]: Spanning-tree topology change on VLAN 50, port Gi1/0/41
+              - paragraph [ref=e325]:
+                - img [ref=e326]
+                - text: SW-DC1-3850-01
+            - button "Critical NETWORK 18h ago Tunnel interface Tunnel0 (DMVPN) down - no response from hub RTR-BR-4331-01" [ref=e329]:
+              - generic [ref=e330]:
+                - generic [ref=e331]: Critical
+                - generic [ref=e332]: NETWORK
+                - generic [ref=e333]: 18h ago
+              - paragraph [ref=e334]: Tunnel interface Tunnel0 (DMVPN) down - no response from hub
+              - paragraph [ref=e335]:
+                - img [ref=e336]
+                - text: RTR-BR-4331-01
+            - button "Critical NETWORK 18h ago Tunnel interface Tunnel0 (DMVPN) down - no response from hub RTR-BR-4331-01" [ref=e339]:
+              - generic [ref=e340]:
+                - generic [ref=e341]: Critical
+                - generic [ref=e342]: NETWORK
+                - generic [ref=e343]: 18h ago
+              - paragraph [ref=e344]: Tunnel interface Tunnel0 (DMVPN) down - no response from hub
+              - paragraph [ref=e345]:
+                - img [ref=e346]
+                - text: RTR-BR-4331-01
+            - button "Critical NETWORK 18h ago STANDALONE EVENT SW-DC1-3850-01" [ref=e349]:
+              - generic [ref=e350]:
+                - generic [ref=e351]: Critical
+                - generic [ref=e352]: NETWORK
+                - generic [ref=e353]: 18h ago
+              - paragraph [ref=e354]: STANDALONE EVENT
+              - paragraph [ref=e355]:
+                - img [ref=e356]
+                - text: SW-DC1-3850-01
+            - button "Critical NETWORK 18h ago Branch Connectivity Degradation RTR-BR-4331-01" [ref=e359]:
+              - generic [ref=e360]:
+                - generic [ref=e361]: Critical
+                - generic [ref=e362]: NETWORK
+                - generic [ref=e363]: 18h ago
+              - paragraph [ref=e364]: Branch Connectivity Degradation
+              - paragraph [ref=e365]:
+                - img [ref=e366]
+                - text: RTR-BR-4331-01
+            - button "Critical NETWORK 18h ago Branch Connectivity Degradation RTR-BR-4331-01" [ref=e369]:
+              - generic [ref=e370]:
+                - generic [ref=e371]: Critical
+                - generic [ref=e372]: NETWORK
+                - generic [ref=e373]: 18h ago
+              - paragraph [ref=e374]: Branch Connectivity Degradation
+              - paragraph [ref=e375]:
+                - img [ref=e376]
+                - text: RTR-BR-4331-01
+          - generic [ref=e379]:
+            - generic [ref=e380]:
+              - img [ref=e381]
+              - generic [ref=e388]: Trace
+              - generic [ref=e389]: INC-88d49c6dee
+              - generic [ref=e390]: VPN-DC1-MUM-04
+              - generic [ref=e391]: detected 6/18/2026, 11:58:56 AM
+              - button "Explorer" [ref=e392]:
+                - img
+                - text: Explorer
+            - generic [ref=e393]:
+              - generic [ref=e394]:
+                - generic [ref=e395]: 43 spans · 3.5m
+                - generic [ref=e396]:
+                  - generic [ref=e397]: T+0
+                  - generic [ref=e398]: 3.5m
+              - generic [ref=e399]:
+                - button "VPN tunnel packet loss at 77% 0ms" [ref=e400]:
+                  - generic "VPN tunnel packet loss at 77%" [ref=e403]
+                  - generic [ref=e406]: 0ms
+                - 'button "VPN tunnel latency spike: 51ms (threshold 50ms) 1.0s" [ref=e407]':
+                  - 'generic "VPN tunnel latency spike: 51ms (threshold 50ms)" [ref=e410]'
+                  - generic [ref=e413]: 1.0s
+                - button "VPN tunnel down - 24 dependent sessions terminated 1.4s" [ref=e414]:
+                  - generic "VPN tunnel down - 24 dependent sessions terminated" [ref=e417]
+                  - generic [ref=e420]: 1.4s
+                - button "VPN tunnel down - 22 dependent sessions terminated 2.2s" [ref=e421]:
+                  - generic "VPN tunnel down - 22 dependent sessions terminated" [ref=e424]
+                  - generic [ref=e427]: 2.2s
+                - 'button "VPN tunnel latency spike: 73ms (threshold 50ms) 17s" [ref=e428]':
+                  - 'generic "VPN tunnel latency spike: 73ms (threshold 50ms)" [ref=e431]'
+                  - generic [ref=e434]: 17s
+                - 'button "VPN tunnel latency spike: 88ms (threshold 50ms) 33s" [ref=e435]':
+                  - 'generic "VPN tunnel latency spike: 88ms (threshold 50ms)" [ref=e438]'
+                  - generic [ref=e441]: 33s
+                - button "IPSec IKE negotiation failure - peer 14.25.35.14 unreachable 38s" [ref=e442]:
+                  - generic "IPSec IKE negotiation failure - peer 14.25.35.14 unreachable" [ref=e445]
+                  - generic [ref=e448]: 38s
+                - button "IPSec IKE negotiation failure - peer 176.103.193.196 unreachable 39s" [ref=e449]:
+                  - generic "IPSec IKE negotiation failure - peer 176.103.193.196 unreachable" [ref=e452]
+                  - generic [ref=e455]: 39s
+                - button "VPN tunnel packet loss at 93% 41s" [ref=e456]:
+                  - generic "VPN tunnel packet loss at 93%" [ref=e459]
+                  - generic [ref=e462]: 41s
+                - button "IPSec IKE negotiation failure - peer 130.138.26.160 unreachable 42s" [ref=e463]:
+                  - generic "IPSec IKE negotiation failure - peer 130.138.26.160 unreachable" [ref=e466]
+                  - generic [ref=e469]: 42s
+                - button "VPN tunnel re-established to peer 143.21.25.39 43s" [ref=e470]:
+                  - generic "VPN tunnel re-established to peer 143.21.25.39" [ref=e473]
+                  - generic [ref=e476]: 43s
+                - button "IKEv2 SA rekeying completed successfully 45s" [ref=e477]:
+                  - generic "IKEv2 SA rekeying completed successfully" [ref=e480]
+                  - generic [ref=e483]: 45s
+                - button "IPSec IKE negotiation failure - peer 21.219.109.144 unreachable 45s" [ref=e484]:
+                  - generic "IPSec IKE negotiation failure - peer 21.219.109.144 unreachable" [ref=e487]
+                  - generic [ref=e490]: 45s
+                - button "VPN tunnel re-established to peer 139.84.173.41 59s" [ref=e491]:
+                  - generic "VPN tunnel re-established to peer 139.84.173.41" [ref=e494]
+                  - generic [ref=e497]: 59s
+                - button "VPN tunnel re-established to peer 246.170.73.95 1.0m" [ref=e498]:
+                  - generic "VPN tunnel re-established to peer 246.170.73.95" [ref=e501]
+                  - generic [ref=e504]: 1.0m
+                - 'button "VPN tunnel latency spike: 35ms (threshold 50ms) 1.0m" [ref=e505]':
+                  - 'generic "VPN tunnel latency spike: 35ms (threshold 50ms)" [ref=e508]'
+                  - generic [ref=e511]: 1.0m
+                - button "IKEv2 SA rekeying completed successfully 1.4m" [ref=e512]:
+                  - generic "IKEv2 SA rekeying completed successfully" [ref=e515]
+                  - generic [ref=e518]: 1.4m
+                - 'button "VPN tunnel latency spike: 66ms (threshold 50ms) 1.4m" [ref=e519]':
+                  - 'generic "VPN tunnel latency spike: 66ms (threshold 50ms)" [ref=e522]'
+                  - generic [ref=e525]: 1.4m
+                - button "VPN tunnel re-established to peer 69.153.114.85 1.5m" [ref=e526]:
+                  - generic "VPN tunnel re-established to peer 69.153.114.85" [ref=e529]
+                  - generic [ref=e532]: 1.5m
+                - button "VPN tunnel re-established to peer 203.212.251.98 1.5m" [ref=e533]:
+                  - generic "VPN tunnel re-established to peer 203.212.251.98" [ref=e536]
+                  - generic [ref=e539]: 1.5m
+                - button "VPN tunnel packet loss at 94% 1.6m" [ref=e540]:
+                  - generic "VPN tunnel packet loss at 94%" [ref=e543]
+                  - generic [ref=e546]: 1.6m
+                - button "VPN tunnel re-established to peer 154.116.252.241 1.6m" [ref=e547]:
+                  - generic "VPN tunnel re-established to peer 154.116.252.241" [ref=e550]
+                  - generic [ref=e553]: 1.6m
+                - button "VPN tunnel re-established to peer 1.60.178.35 1.7m" [ref=e554]:
+                  - generic "VPN tunnel re-established to peer 1.60.178.35" [ref=e557]
+                  - generic [ref=e560]: 1.7m
+                - button "VPN tunnel re-established to peer 21.112.112.151 1.8m" [ref=e561]:
+                  - generic "VPN tunnel re-established to peer 21.112.112.151" [ref=e564]
+                  - generic [ref=e567]: 1.8m
+                - button "IPSec IKE negotiation failure - peer 254.61.70.5 unreachable 1.8m" [ref=e568]:
+                  - generic "IPSec IKE negotiation failure - peer 254.61.70.5 unreachable" [ref=e571]
+                  - generic [ref=e574]: 1.8m
+                - button "VPN tunnel packet loss at 92% 1.8m" [ref=e575]:
+                  - generic "VPN tunnel packet loss at 92%" [ref=e578]
+                  - generic [ref=e581]: 1.8m
+                - button "VPN tunnel re-established to peer 91.226.216.85 1.8m" [ref=e582]:
+                  - generic "VPN tunnel re-established to peer 91.226.216.85" [ref=e585]
+                  - generic [ref=e588]: 1.8m
+                - 'button "VPN tunnel latency spike: 93ms (threshold 50ms) 2.0m" [ref=e589]':
+                  - 'generic "VPN tunnel latency spike: 93ms (threshold 50ms)" [ref=e592]'
+                  - generic [ref=e595]: 2.0m
+                - button "VPN tunnel packet loss at 85% 2.0m" [ref=e596]:
+                  - generic "VPN tunnel packet loss at 85%" [ref=e599]
+                  - generic [ref=e602]: 2.0m
+                - button "IKEv2 SA rekeying completed successfully 2.1m" [ref=e603]:
+                  - generic "IKEv2 SA rekeying completed successfully" [ref=e606]
+                  - generic [ref=e609]: 2.1m
+                - button "IPSec IKE negotiation failure - peer 202.20.16.230 unreachable 2.1m" [ref=e610]:
+                  - generic "IPSec IKE negotiation failure - peer 202.20.16.230 unreachable" [ref=e613]
+                  - generic [ref=e616]: 2.1m
+                - button "VPN tunnel re-established to peer 84.60.88.20 2.2m" [ref=e617]:
+                  - generic "VPN tunnel re-established to peer 84.60.88.20" [ref=e620]
+                  - generic [ref=e623]: 2.2m
+                - button "VPN tunnel down - 54 dependent sessions terminated 2.2m" [ref=e624]:
+                  - generic "VPN tunnel down - 54 dependent sessions terminated" [ref=e627]
+                  - generic [ref=e630]: 2.2m
+                - button "IKEv2 SA rekeying completed successfully 2.3m" [ref=e631]:
+                  - generic "IKEv2 SA rekeying completed successfully" [ref=e634]
+                  - generic [ref=e637]: 2.3m
+                - 'button "VPN tunnel latency spike: 51ms (threshold 50ms) 2.5m" [ref=e638]':
+                  - 'generic "VPN tunnel latency spike: 51ms (threshold 50ms)" [ref=e641]'
+                  - generic [ref=e644]: 2.5m
+                - button "VPN tunnel down - 22 dependent sessions terminated 2.6m" [ref=e645]:
+                  - generic "VPN tunnel down - 22 dependent sessions terminated" [ref=e648]
+                  - generic [ref=e651]: 2.6m
+                - 'button "VPN tunnel latency spike: 73ms (threshold 50ms) 2.8m" [ref=e652]':
+                  - 'generic "VPN tunnel latency spike: 73ms (threshold 50ms)" [ref=e655]'
+                  - generic [ref=e658]: 2.8m
+                - 'button "VPN tunnel latency spike: 88ms (threshold 50ms) 3.1m" [ref=e659]':
+                  - 'generic "VPN tunnel latency spike: 88ms (threshold 50ms)" [ref=e662]'
+                  - generic [ref=e665]: 3.1m
+                - button "VPN tunnel packet loss at 93% 3.2m" [ref=e666]:
+                  - generic "VPN tunnel packet loss at 93%" [ref=e669]
+                  - generic [ref=e672]: 3.2m
+                - button "IPSec IKE negotiation failure - peer 21.219.109.144 unreachable 3.3m" [ref=e673]:
+                  - generic "IPSec IKE negotiation failure - peer 21.219.109.144 unreachable" [ref=e676]
+                  - generic [ref=e679]: 3.3m
+                - button "Incident detected 3.3m" [ref=e680]:
+                  - generic "IPSec IKE negotiation failure - peer 21.219.109.144 unreachable" [ref=e683]: Incident detected
+                  - generic [ref=e686]: 3.3m
+                - button "Root cause analysis 3.3m" [ref=e687]:
+                  - generic "See event signal / recent logs" [ref=e690]: Root cause analysis
+                  - generic [ref=e693]: 3.3m
+                - button "Recommendation 3.3m" [ref=e694]:
+                  - generic "Acknowledge & triage | Validate on asset | Escalate if persists" [ref=e697]: Recommendation
+                  - generic [ref=e700]: 3.3m
+              - generic [ref=e701]:
+                - generic [ref=e702]: critical
+                - generic [ref=e704]: warning
+                - generic [ref=e706]: AI diagnosis
+            - generic [ref=e709]:
+              - generic [ref=e710]:
+                - img [ref=e711]
+                - generic [ref=e713]:
+                  - generic [ref=e714]:
+                    - generic [ref=e715]: Critical
+                    - generic [ref=e716]: NETWORK
+                    - generic [ref=e717]: INC-88d49c6dee
+                  - paragraph [ref=e718]: IPSec IKE negotiation failure - peer 21.219.109.144 unreachable
+              - generic [ref=e720]: VPN-DC1-MUM-04
+              - generic [ref=e721]:
+                - generic [ref=e722]:
+                  - img [ref=e723]
+                  - text: Root cause analysis · 60% confidence
+                - paragraph [ref=e727]: See event signal / recent logs
+                - paragraph [ref=e728]: Inferred from event + Loki context.
+              - generic [ref=e729]:
+                - generic [ref=e730]:
+                  - img [ref=e731]
+                  - text: Recommended actions
+                - list [ref=e734]:
+                  - listitem [ref=e735]: Acknowledge & triage
+                  - listitem [ref=e736]: Validate on asset
+                  - listitem [ref=e737]: Escalate if persists
+                - generic [ref=e739]:
+                  - img [ref=e740]
+                  - text: Network Team
+              - generic [ref=e745]:
+                - generic [ref=e746]:
+                  - img [ref=e747]
+                  - text: Correlated evidence
+                - generic [ref=e752]:
+                  - generic [ref=e753]: "message: IPSec IKE negotiation failure - peer 21.219.109.144 unreachable"
+                  - generic [ref=e754]: "recent_logs (Loki):"
+    - complementary [ref=e97]:
+      - generic [ref=e98]:
+        - generic [ref=e99]:
+          - img [ref=e100]
+          - text: BI Companion
+          - generic [ref=e112]: BI
+        - button "Start a new chat" [ref=e113]:
+          - img
+      - generic [ref=e114]:
+        - img [ref=e115]
+        - generic [ref=e118]: Observing
+        - generic [ref=e119]: Incident Traces
+      - generic [ref=e126]:
+        - generic [ref=e127]:
+          - textbox "Ask about devices, alarms, incidents…" [ref=e128]
+          - button "Send" [disabled] [ref=e131]:
+            - img [ref=e132]
+        - paragraph [ref=e135]: Powered by CopilotKit
+  - region "Notifications (F8)":
+    - list

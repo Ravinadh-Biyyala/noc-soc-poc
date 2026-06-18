@@ -1,0 +1,744 @@
+- generic:
+  - generic:
+    - generic:
+      - complementary:
+        - generic:
+          - button:
+            - img
+        - navigation:
+          - link:
+            - /url: /dashboard
+            - generic:
+              - img
+          - link:
+            - /url: /loki-logs
+            - generic:
+              - img
+          - link:
+            - /url: /loki-pins
+            - generic:
+              - img
+      - main:
+        - generic:
+          - heading [level=1]: Loki Logs
+          - generic:
+            - generic:
+              - generic: Live
+            - generic:
+              - generic: BK
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - img
+                - heading [level=1]: NOC / SOC Operations
+                - generic:
+                  - img
+                  - text: static
+              - generic:
+                - button:
+                  - img
+                  - text: Explorer
+                - combobox:
+                  - generic: "Live: Off"
+                  - img
+                - combobox:
+                  - generic: Last 24 hours
+                  - img
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Devices
+                  - generic: "113"
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Total alarms
+                  - generic: 219.8K
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Critical alarms
+                  - generic: 25.1K
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Active incidents
+                  - generic: "14"
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Early warnings
+                  - generic: "7"
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Security events
+                  - generic: 78.5K
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Peak CPU
+                  - generic: 33%
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: SSH failed
+                  - generic: "71"
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Device availability
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - img:
+                          - generic:
+                            - generic:
+                              - img
+                            - generic:
+                              - img
+                            - generic:
+                              - img
+                            - generic:
+                              - img
+                            - generic:
+                              - img
+                            - generic:
+                              - img
+                            - generic:
+                              - img
+                            - generic:
+                              - img
+                            - generic:
+                              - img
+                  - generic:
+                    - button:
+                      - generic: network
+                      - generic: "49"
+                    - button:
+                      - generic: security
+                      - generic: "42"
+                    - button:
+                      - generic: server
+                      - generic: "6"
+                    - button:
+                      - generic: application
+                      - generic: "5"
+                    - button:
+                      - generic: wireless
+                      - generic: "5"
+                    - button:
+                      - generic: platform
+                      - generic: "2"
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Top critical alarms
+                  - button:
+                    - text: View all
+                    - img
+                - generic:
+                  - generic:
+                    - generic:
+                      - table:
+                        - rowgroup:
+                          - row:
+                            - columnheader: Alarm
+                            - columnheader: Device
+                            - columnheader: Severity
+                            - columnheader: When
+                        - rowgroup:
+                          - row:
+                            - cell:
+                              - generic: IPSec IKE negotiation failure - peer 21.219.109.144 unreachable
+                              - generic: network · IPSec VPN Tunnel
+                            - cell:
+                              - button: VPN-DC1-MUM-04
+                            - cell:
+                              - generic: critical
+                            - cell: 9h ago
+                          - row:
+                            - cell:
+                              - generic: VPN tunnel down - 36 dependent sessions terminated
+                              - generic: network · IPSec VPN Tunnel
+                            - cell:
+                              - button: VPN-DC1-MUM-02
+                            - cell:
+                              - generic: critical
+                            - cell: 9h ago
+                          - row:
+                            - cell:
+                              - generic: Device unreachable - ICMP probe failed
+                              - generic: storage · Dell S4128T-ON
+                            - cell:
+                              - button: SW-DC1-MUM-16
+                            - cell:
+                              - generic: critical
+                            - cell: 9h ago
+                          - row:
+                            - cell:
+                              - generic: Interface TenGigabitEthernet1/1/4 changed state to down
+                              - generic: network · Cisco Catalyst C9300
+                            - cell:
+                              - button: SW-DC1-MUM-13
+                            - cell:
+                              - generic: critical
+                            - cell: 9h ago
+                          - row:
+                            - cell:
+                              - generic: Spanning-tree topology change detected on VLAN 50, port Gi2/36
+                              - generic: network · Cisco Catalyst 3750
+                            - cell:
+                              - button: SW-DC2-MUM-02
+                            - cell:
+                              - generic: critical
+                            - cell: 9h ago
+                          - row:
+                            - cell:
+                              - generic: Uplink port GigabitEthernet0/15 changed state to down
+                              - generic: network · Cisco Catalyst 2960
+                            - cell:
+                              - button: SW-DC1-MUM-01
+                            - cell:
+                              - generic: critical
+                            - cell: 9h ago
+                          - row:
+                            - cell:
+                              - generic: Stack power budget exceeded - 4 PSU overloaded
+                              - generic: network · Cisco Catalyst 3750
+                            - cell:
+                              - button: SW-DC1-MUM-06
+                            - cell:
+                              - generic: critical
+                            - cell: 9h ago
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Incident summary
+                  - button:
+                    - text: View all
+                    - img
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - img:
+                          - generic:
+                            - generic:
+                              - img
+                            - generic:
+                              - img
+                            - generic:
+                              - img
+                            - generic:
+                              - img
+                  - generic:
+                    - button:
+                      - generic: critical
+                      - generic: "10"
+                    - button:
+                      - generic: warning
+                      - generic: "5"
+                    - button:
+                      - generic: high
+                      - generic: "4"
+                    - button:
+                      - generic: info
+                      - generic: "1"
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Alarm volume over time
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - img:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: Jun 17, 09:30 AM
+                              - generic:
+                                - generic: Jun 17, 11:54 AM
+                              - generic:
+                                - generic: Jun 17, 02:06 PM
+                              - generic:
+                                - generic: Jun 17, 04:18 PM
+                              - generic:
+                                - generic: Jun 17, 11:30 PM
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: "0"
+                              - generic:
+                                - generic: 15.0K
+                              - generic:
+                                - generic: 30.0K
+                              - generic:
+                                - generic: 45.0K
+                              - generic:
+                                - generic: 60.0K
+                        - generic:
+                          - list:
+                            - listitem:
+                              - img
+                              - text: critical
+                            - listitem:
+                              - img
+                              - text: info
+                            - listitem:
+                              - img
+                              - text: warning
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Recent incidents
+                  - button:
+                    - text: View all
+                    - img
+                - generic:
+                  - generic:
+                    - button:
+                      - generic:
+                        - generic: Critical
+                        - generic: 14h ago
+                      - paragraph: Interface GigabitEthernet0/0/1 changed state to down (flapping)
+                    - button:
+                      - generic:
+                        - generic: Warning
+                        - generic: 14h ago
+                      - paragraph: Interface GigabitEthernet0/0/1 changed state to down (flapping)
+                    - button:
+                      - generic:
+                        - generic: Critical
+                        - generic: 14h ago
+                      - paragraph: Tunnel interface Tunnel0 (DMVPN) down - no response from hub
+                    - button:
+                      - generic:
+                        - generic: Critical
+                        - generic: 14h ago
+                      - paragraph: Tunnel interface Tunnel0 (DMVPN) down - no response from hub
+                    - button:
+                      - generic:
+                        - generic: Critical
+                        - generic: 14h ago
+                      - paragraph: Failed login attempt for admin from 198.51.100.7 (try 1)
+                    - button:
+                      - generic:
+                        - generic: High
+                        - generic: 14h ago
+                      - paragraph: Failed login attempt for admin from 198.51.100.7 (try 1)
+                    - button:
+                      - generic:
+                        - generic: High
+                        - generic: 14h ago
+                      - paragraph: Failed login attempt for admin from 198.51.100.7 (try 1)
+                    - button:
+                      - generic:
+                        - generic: High
+                        - generic: 14h ago
+                      - paragraph: Failed login attempt for admin from 198.51.100.7 (try 1)
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Top CPU utilization
+                - generic:
+                  - generic:
+                    - button:
+                      - generic:
+                        - generic: CLOUD-CLOUD-01
+                      - generic: 32.56%
+                    - button:
+                      - generic:
+                        - generic: RTR-ATM-SITE-01
+                      - generic: 28.25%
+                    - button:
+                      - generic:
+                        - generic: RTR-BR-SPR-01
+                      - generic: 28.18%
+                    - button:
+                      - generic:
+                        - generic: SRV-DC1-MUM-06
+                      - generic: 27.66%
+                    - button:
+                      - generic:
+                        - generic: SRV-DC1-MUM-01
+                      - generic: 27.65%
+                    - button:
+                      - generic:
+                        - generic: SRV-DC1-MUM-05
+                      - generic: 27.53%
+                    - button:
+                      - generic:
+                        - generic: SRV-DC1-MUM-07
+                      - generic: 27.53%
+                    - button:
+                      - generic:
+                        - generic: SRV-DC2-MUM-02
+                      - generic: 27.52%
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: WAN / link utilization
+                - generic:
+                  - generic:
+                    - button:
+                      - generic:
+                        - generic: SW-DC2-MUM-04
+                      - generic: 47.77%
+                    - button:
+                      - generic:
+                        - generic: SW-DC1-MUM-16
+                      - generic: 47.71%
+                    - button:
+                      - generic:
+                        - generic: CLOUD-CLOUD-01
+                      - generic: 44.4%
+                    - button:
+                      - generic:
+                        - generic: WLC-DC1-MUM-01
+                      - generic: 39.32%
+                    - button:
+                      - generic:
+                        - generic: RTR-BR-COR-01
+                      - generic: 34.45%
+                    - button:
+                      - generic:
+                        - generic: RTR-BR-SKB-01
+                      - generic: 34.42%
+                    - button:
+                      - generic:
+                        - generic: RTR-BR-LIN-01
+                      - generic: 34.39%
+                    - button:
+                      - generic:
+                        - generic: RTR-BR-RHT-01
+                      - generic: 34.39%
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Worst latency
+                - generic:
+                  - generic:
+                    - button:
+                      - generic:
+                        - generic: RTR-BR-ANK-01
+                      - generic: "133.8"
+                    - button:
+                      - generic:
+                        - generic: RTR-BR-LIN-01
+                      - generic: "133.53"
+                    - button:
+                      - generic:
+                        - generic: RTR-BR-GEO-01
+                      - generic: "133.31"
+                    - button:
+                      - generic:
+                        - generic: RTR-BR-NDA-01
+                      - generic: "132.9"
+                    - button:
+                      - generic:
+                        - generic: RTR-BR-SKB-01
+                      - generic: "132.74"
+                    - button:
+                      - generic:
+                        - generic: RTR-BR-RHT-01
+                      - generic: "132.72"
+                    - button:
+                      - generic:
+                        - generic: RTR-DC2-MUM-01
+                      - generic: "131.1"
+                    - button:
+                      - generic:
+                        - generic: RTR-BR-COR-01
+                      - generic: "130.09"
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Device fabric
+                - generic:
+                  - generic:
+                    - img:
+                      - generic:
+                        - generic: HOST
+                        - generic: NOC fabric
+                      - generic:
+                        - generic: network (49)
+                        - generic: "49"
+                      - generic:
+                        - generic: security (42)
+                        - generic: "42"
+                      - generic:
+                        - generic: server (6)
+                        - generic: "6"
+                      - generic:
+                        - generic: application (5)
+                        - generic: "5"
+                      - generic:
+                        - generic: wireless (5)
+                        - generic: "5"
+                      - generic:
+                        - generic: platform (2)
+                        - generic: "2"
+                      - generic:
+                        - generic: storage (2)
+                        - generic: "2"
+                      - generic:
+                        - generic: cloud (1)
+                        - generic: "1"
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Geographic threat map
+                - generic:
+                  - generic:
+                    - img
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Alarms by category
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - img:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: network
+                              - generic:
+                                - generic: security
+                              - generic:
+                                - generic: server
+                              - generic:
+                                - generic: application
+                              - generic:
+                                - generic: wireless
+                              - generic:
+                                - generic: platform
+                              - generic:
+                                - generic: storage
+                              - generic:
+                                - generic: cloud
+                              - generic:
+                                - generic: physical
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: "0"
+                              - generic:
+                                - generic: 30.0K
+                              - generic:
+                                - generic: 60.0K
+                              - generic:
+                                - generic: 90.0K
+                              - generic:
+                                - generic: 120.0K
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Security posture
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: SSH failed logins
+                      - generic: "71"
+                    - generic:
+                      - generic: Top attackers
+                      - generic:
+                        - generic: 59.22.201.143
+                        - generic: "63"
+                      - generic:
+                        - generic: 220.189.218.126
+                        - generic: "2"
+                      - generic:
+                        - generic: 91.92.40.5
+                        - generic: "2"
+                      - generic:
+                        - generic: 91.92.40.6
+                        - generic: "2"
+                      - generic:
+                        - generic: 175.101.12.44
+                        - generic: "1"
+      - complementary:
+        - generic:
+          - generic:
+            - img
+            - text: BI Companion
+            - generic: BI
+          - button:
+            - img
+        - generic:
+          - img
+          - generic: Observing
+          - generic: NOC Dashboard
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - text: I can see
+                        - strong: NOC Dashboard
+                        - text: — ask me to search your Loki logs, generate a LogQL query, summarise patterns, or chart and pin the results.
+                    - generic:
+                      - button:
+                        - img
+                      - button:
+                        - img
+                      - button:
+                        - img
+                      - button:
+                        - img
+              - generic:
+                - generic:
+                  - textbox:
+                    - /placeholder: Ask about your Loki logs…
+                  - generic:
+                    - button [disabled]:
+                      - img
+                - generic:
+                  - paragraph: Powered by CopilotKit
+    - list
+  - generic: "7"
+  - dialog "Device health" [ref=e1165]:
+    - button "Close" [active] [ref=e1166]:
+      - img [ref=e1167]
+      - generic [ref=e1170]: Close
+    - heading "Device health" [level=2] [ref=e1173]
+    - generic [ref=e1175]:
+      - generic [ref=e1176]:
+        - img [ref=e1177]
+        - generic [ref=e1180]:
+          - generic [ref=e1181]: SRV-DC1-MUM-07
+          - generic [ref=e1182]: server · Exchange Server
+        - generic [ref=e1183]:
+          - img [ref=e1184]
+          - text: 1,582 alarms
+      - generic [ref=e1191]:
+        - generic [ref=e1192]:
+          - generic [ref=e1193]: CPU %
+          - generic [ref=e1194]: 17.86%
+        - generic [ref=e1195]:
+          - generic [ref=e1196]: Link util %
+          - generic [ref=e1197]: 18.02%
+        - generic [ref=e1198]:
+          - generic [ref=e1199]: Latency (ms)
+          - generic [ref=e1200]: 1.72ms
+      - generic [ref=e1201]:
+        - generic [ref=e1202]: CPU utilization trend
+        - generic [ref=e1205]:
+          - img [ref=e1206]:
+            - generic [ref=e1210]:
+              - generic [ref=e1212]: Jun 17, 11:18 PM
+              - generic [ref=e1214]: Jun 17, 11:42 PM
+              - generic [ref=e1216]: Jun 18, 12:06 AM
+            - generic [ref=e1218]:
+              - generic [ref=e1220]: "0"
+              - generic [ref=e1222]: "7"
+              - generic [ref=e1224]: "14"
+              - generic [ref=e1226]: "21"
+              - generic [ref=e1228]: "28"
+          - list [ref=e1236]:
+            - listitem [ref=e1237]:
+              - img [ref=e1238]
+              - text: CPU %
+      - generic [ref=e1240]:
+        - generic [ref=e1241]: Recent alarms
+        - table [ref=e1244]:
+          - rowgroup [ref=e1245]:
+            - row "Alarm Device When" [ref=e1246]:
+              - columnheader "Alarm" [ref=e1247]
+              - columnheader "Device" [ref=e1248]
+              - columnheader "When" [ref=e1249]
+          - rowgroup [ref=e1250]:
+            - row "Memory utilization crossed threshold at 88% SRV-DC1-MUM-07 9h ago" [ref=e1251]:
+              - cell "Memory utilization crossed threshold at 88%" [ref=e1252]:
+                - generic "Memory utilization crossed threshold at 88%" [ref=e1253]
+              - cell "SRV-DC1-MUM-07" [ref=e1254]:
+                - button "SRV-DC1-MUM-07" [ref=e1255]
+              - cell "9h ago" [ref=e1256]
+            - row "Anti-virus definitions updated SRV-DC1-MUM-07 9h ago" [ref=e1257]:
+              - cell "Anti-virus definitions updated" [ref=e1258]:
+                - generic "Anti-virus definitions updated" [ref=e1259]
+              - cell "SRV-DC1-MUM-07" [ref=e1260]:
+                - button "SRV-DC1-MUM-07" [ref=e1261]
+              - cell "9h ago" [ref=e1262]
+            - row "OS patch applied successfully SRV-DC1-MUM-07 9h ago" [ref=e1263]:
+              - cell "OS patch applied successfully" [ref=e1264]:
+                - generic "OS patch applied successfully" [ref=e1265]
+              - cell "SRV-DC1-MUM-07" [ref=e1266]:
+                - button "SRV-DC1-MUM-07" [ref=e1267]
+              - cell "9h ago" [ref=e1268]
+            - row "Anti-virus definitions updated SRV-DC1-MUM-07 9h ago" [ref=e1269]:
+              - cell "Anti-virus definitions updated" [ref=e1270]:
+                - generic "Anti-virus definitions updated" [ref=e1271]
+              - cell "SRV-DC1-MUM-07" [ref=e1272]:
+                - button "SRV-DC1-MUM-07" [ref=e1273]
+              - cell "9h ago" [ref=e1274]
+            - row "Service DHCP started successfully SRV-DC1-MUM-07 9h ago" [ref=e1275]:
+              - cell "Service DHCP started successfully" [ref=e1276]:
+                - generic "Service DHCP started successfully" [ref=e1277]
+              - cell "SRV-DC1-MUM-07" [ref=e1278]:
+                - button "SRV-DC1-MUM-07" [ref=e1279]
+              - cell "9h ago" [ref=e1280]
+            - row "Memory utilization crossed threshold at 88% SRV-DC1-MUM-07 9h ago" [ref=e1281]:
+              - cell "Memory utilization crossed threshold at 88%" [ref=e1282]:
+                - generic "Memory utilization crossed threshold at 88%" [ref=e1283]
+              - cell "SRV-DC1-MUM-07" [ref=e1284]:
+                - button "SRV-DC1-MUM-07" [ref=e1285]
+              - cell "9h ago" [ref=e1286]
+            - 'row "Disk I/O latency elevated: 653ms average on volume /logs SRV-DC1-MUM-07 9h ago" [ref=e1287]':
+              - 'cell "Disk I/O latency elevated: 653ms average on volume /logs" [ref=e1288]':
+                - 'generic "Disk I/O latency elevated: 653ms average on volume /logs" [ref=e1289]'
+              - cell "SRV-DC1-MUM-07" [ref=e1290]:
+                - button "SRV-DC1-MUM-07" [ref=e1291]
+              - cell "9h ago" [ref=e1292]
+            - row "Memory utilization crossed threshold at 88% SRV-DC1-MUM-07 9h ago" [ref=e1293]:
+              - cell "Memory utilization crossed threshold at 88%" [ref=e1294]:
+                - generic "Memory utilization crossed threshold at 88%" [ref=e1295]
+              - cell "SRV-DC1-MUM-07" [ref=e1296]:
+                - button "SRV-DC1-MUM-07" [ref=e1297]
+              - cell "9h ago" [ref=e1298]
+            - row "Config backup completed SRV-DC1-MUM-07 9h ago" [ref=e1299]:
+              - cell "Config backup completed" [ref=e1300]:
+                - generic "Config backup completed" [ref=e1301]
+              - cell "SRV-DC1-MUM-07" [ref=e1302]:
+                - button "SRV-DC1-MUM-07" [ref=e1303]
+              - cell "9h ago" [ref=e1304]
+            - row "Config backup completed SRV-DC1-MUM-07 9h ago" [ref=e1305]:
+              - cell "Config backup completed" [ref=e1306]:
+                - generic "Config backup completed" [ref=e1307]
+              - cell "SRV-DC1-MUM-07" [ref=e1308]:
+                - button "SRV-DC1-MUM-07" [ref=e1309]
+              - cell "9h ago" [ref=e1310]

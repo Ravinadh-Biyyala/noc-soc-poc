@@ -1,30 +1,25 @@
-// Right-rail "BI Companion" — now powered by CopilotKit (AG-UI protocol).
-// Keeps the existing chrome (header, "Observing" pill, agent-suggestion tray)
-// but the message list + input are CopilotKit's <CopilotChat>, which talks to
-// the /api/copilotkit runtime. Interactive frontend actions are registered by
-// <CopilotActions/>. The legacy askCopilot() bridge (dashboard "Explain"
-// buttons) is wired to CopilotKit's sendMessage.
+// Right-rail "BI Companion" — powered by CopilotKit (AG-UI protocol). The
+// message list + input are CopilotKit's <CopilotChat>, talking to the
+// /api/copilotkit runtime (a Loki-focused persona). The Loki tools the agent
+// can call (queryLoki, pinLokiVisual) are registered by the Loki Logs page
+// itself via useCopilotAction, so this panel just renders the chat chrome.
 
-import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CopilotChat } from "@copilotkit/react-ui";
 import { useCopilotChat } from "@copilotkit/react-core";
-import { TextMessage, Role } from "@copilotkit/runtime-client-gql";
 import { BrainCircuit, Plus, Eye, AlertTriangle, Info, AlertOctagon, Check, XCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { useChatObserver } from "@/lib/chat-observer";
-import { useCopilot } from "@/lib/copilot-context";
-import { useTenantConfig } from "@/lib/tenant-config";
-import { useActiveProject } from "@/lib/active-project";
-import { CopilotActions } from "@/lib/copilot-actions";
+import { useNocCopilotActions } from "@/lib/noc-actions";
 
-function useCopilotInstructions(workspaceId?: number) {
+const COPILOT_NAME = "BI Companion";
+
+function useCopilotInstructions() {
   return useQuery<string>({
-    queryKey: ["copilot-instructions", workspaceId ?? 0],
+    queryKey: ["copilot-instructions"],
     queryFn: async () => {
-      const qs = workspaceId ? `?workspaceId=${workspaceId}` : "";
-      const r = await fetch(`/api/copilotkit/instructions${qs}`, { credentials: "include" });
+      const r = await fetch(`/api/copilotkit/instructions`, { credentials: "include" });
       if (!r.ok) return "";
       const body = await r.json();
       return typeof body.instructions === "string" ? body.instructions : "";
@@ -35,28 +30,17 @@ function useCopilotInstructions(workspaceId?: number) {
 
 export default function CopilotPanel() {
   const { observation, agentSuggestions, dismissAgentSuggestion } = useChatObserver();
-  const { registerHandler } = useCopilot();
-  const { config } = useTenantConfig();
-  const { pack } = useActiveProject();
-  const { appendMessage, reset } = useCopilotChat();
+  const { reset } = useCopilotChat();
 
-  const copilotName = pack?.copilotName || config?.branding?.copilotName || "BI Companion";
-  const { data: instructions } = useCopilotInstructions(observation.workspaceId);
+  // Register the NOC function-backed tools globally so the agent can call them on
+  // every page (not just the Explorer).
+  useNocCopilotActions();
 
-  // Bridge: other surfaces (dashboard chart/KPI clicks, Home hero) call
-  // askCopilot(question) — append it as a user turn so it shows in the chat AND
-  // triggers the agent. appendMessage uses the GraphQL message type that
-  // <CopilotChat> actually renders (the headless sendMessage does not).
-  useEffect(() => {
-    registerHandler((question: string) => {
-      void appendMessage(new TextMessage({ content: question, role: Role.User })).catch(() => {});
-    });
-  }, [registerHandler, appendMessage]);
+  const copilotName = COPILOT_NAME;
+  const { data: instructions } = useCopilotInstructions();
 
   return (
     <>
-      <CopilotActions />
-
       <div className="h-14 flex items-center justify-between px-4 border-b border-border">
         <div className="flex items-center gap-2 font-semibold text-foreground text-sm">
           <BrainCircuit className="w-4 h-4 text-primary" />
@@ -83,16 +67,16 @@ export default function CopilotPanel() {
 
       {/* Proactive agent suggestions (data-quality nudges). */}
       {agentSuggestions.length > 0 && (
-        <div className="px-2 py-2 border-b border-border bg-amber-50/40 space-y-1.5" data-testid="agent-suggestions-tray">
+        <div className="px-2 py-2 border-b border-border bg-amber-500/5 space-y-1.5" data-testid="agent-suggestions-tray">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1">
             Agent suggestions ({agentSuggestions.length})
           </p>
           {agentSuggestions.map((s) => {
             const SevIcon = s.severity === "critical" ? AlertOctagon : s.severity === "warn" ? AlertTriangle : Info;
             const tone =
-              s.severity === "critical" ? "border-red-200 bg-red-50"
-              : s.severity === "warn" ? "border-amber-200 bg-amber-50"
-              : "border-blue-200 bg-blue-50";
+              s.severity === "critical" ? "border-rose-500/40 bg-rose-500/10"
+              : s.severity === "warn" ? "border-amber-500/40 bg-amber-500/10"
+              : "border-cyan-500/40 bg-cyan-500/10";
             const iconTone =
               s.severity === "critical" ? "text-red-600" : s.severity === "warn" ? "text-amber-600" : "text-blue-600";
             return (
@@ -141,10 +125,7 @@ export default function CopilotPanel() {
           instructions={instructions ?? ""}
           suggestions="manual"
           labels={{
-            initial: observation.summary
-              ? `I can see **${observation.label}** — ask me about it, or tell me what to do (open a dashboard, switch tabs, build a dashboard).`
-              : "Ask about your data, or tell me where to go and what to build.",
-            placeholder: "Ask anything about your data…",
+            placeholder: "Ask about devices, alarms, incidents…",
           }}
         />
       </div>

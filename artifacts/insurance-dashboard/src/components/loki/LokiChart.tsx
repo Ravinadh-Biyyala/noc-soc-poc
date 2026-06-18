@@ -9,20 +9,24 @@ import {
   AreaChart, Area,
   LineChart, Line,
   PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip,
+  XAxis, YAxis, CartesianGrid, Tooltip, LabelList,
 } from "recharts";
 
-const CHART_COLORS = ["#1565C0", "#0288D1", "#0097A7", "#00838F", "#00695C", "#6366f1", "#8b5cf6"];
+// Neon NOC palette (reads well on the dark navy surfaces).
+const CHART_COLORS = ["#22d3ee", "#34d399", "#f59e0b", "#f43f5e", "#a78bfa", "#38bdf8", "#facc15"];
 
 // Severity-aware palette so critical/warning/info read intuitively when the
 // x-axis is a severity. Falls back to the default palette per index.
 const SEVERITY_COLORS: Record<string, string> = {
-  critical: "#dc2626",
-  error: "#dc2626",
+  critical: "#f43f5e",
+  error: "#f43f5e",
+  high: "#f97316",
   warning: "#f59e0b",
   warn: "#f59e0b",
-  info: "#2563eb",
-  debug: "#6b7280",
+  medium: "#facc15",
+  info: "#22d3ee",
+  low: "#38bdf8",
+  debug: "#94a3b8",
 };
 
 function formatCount(val: number) {
@@ -33,11 +37,12 @@ function formatCount(val: number) {
 }
 
 const TOOLTIP_STYLE = {
-  backgroundColor: "#fff",
-  borderColor: "#e5e7eb",
+  backgroundColor: "hsl(222 44% 12%)",
+  borderColor: "hsl(218 32% 24%)",
   borderRadius: "8px",
   fontSize: "12px",
-  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+  color: "hsl(210 40% 96%)",
+  boxShadow: "0 4px 16px rgba(0,0,0,0.45)",
 } as const;
 
 export interface LokiChartProps {
@@ -69,7 +74,9 @@ export default function LokiChart({ type, xKey, yKey, data, colors, height = 240
       <ResponsiveContainer width="100%" height="100%">
         {type === "pie" ? (
           <PieChart>
-            <Pie data={data} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={2} dataKey={yKey} nameKey={xKey}>
+            <Pie data={data} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={2} dataKey={yKey} nameKey={xKey}
+              label={(e: { name?: string; value?: number }) => `${e.name ?? ""}: ${formatCount(Number(e.value) || 0)}`}
+              labelLine={false} fontSize={10} stroke="hsl(var(--background))">
               {data.map((row, i) => <Cell key={i} fill={colorFor(row, xKey, i, colors)} />)}
             </Pie>
             <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => [formatCount(v)]} />
@@ -104,6 +111,7 @@ export default function LokiChart({ type, xKey, yKey, data, colors, height = 240
             <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => [formatCount(v)]} />
             <Bar dataKey={yKey} radius={[4, 4, 0, 0]}>
               {data.map((row, i) => <Cell key={i} fill={colorFor(row, xKey, i, colors)} />)}
+              <LabelList dataKey={yKey} position="top" formatter={(v: number) => formatCount(Number(v) || 0)} fontSize={10} fill="hsl(var(--foreground))" />
             </Bar>
           </BarChart>
         )}

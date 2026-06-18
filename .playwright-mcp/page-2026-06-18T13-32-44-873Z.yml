@@ -1,0 +1,638 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - complementary [ref=e4]:
+        - button "Expand sidebar" [active] [ref=e344]:
+          - img [ref=e345]
+        - navigation [ref=e16]:
+          - link [ref=e348] [cursor=pointer]:
+            - /url: /dashboard
+            - generic "Dashboard" [ref=e349]:
+              - img [ref=e19]
+          - link [ref=e350] [cursor=pointer]:
+            - /url: /assets
+            - generic "Assets" [ref=e351]:
+              - img [ref=e24]
+          - link [ref=e352] [cursor=pointer]:
+            - /url: /loki-traces
+            - generic "Traces" [ref=e353]:
+              - img [ref=e30]
+          - link [ref=e354] [cursor=pointer]:
+            - /url: /loki-logs
+            - generic "Loki Logs" [ref=e355]:
+              - img [ref=e37]
+          - link [ref=e356] [cursor=pointer]:
+            - /url: /loki-pins
+            - generic "Pinned Visuals" [ref=e357]:
+              - img [ref=e43]
+      - main [ref=e50]:
+        - generic [ref=e51]:
+          - heading "Loki Logs" [level=1] [ref=e52]
+          - generic [ref=e53]:
+            - generic [ref=e58]: Live
+            - generic [ref=e61]: BK
+        - generic [ref=e63]:
+          - generic [ref=e64]:
+            - generic [ref=e65]:
+              - img [ref=e66]
+              - heading "NOC / SOC Operations" [level=1] [ref=e77]
+              - generic [ref=e78]:
+                - img [ref=e79]
+                - text: static
+              - generic [ref=e358]: Updated just now
+            - generic [ref=e90]:
+              - button "Explorer" [ref=e91]:
+                - img
+                - text: Explorer
+              - combobox [ref=e92]:
+                - generic: "Live: Off"
+                - img [ref=e93]
+              - combobox [ref=e95]:
+                - generic: Last 24 hours
+                - img [ref=e96]
+          - generic [ref=e98]:
+            - generic "View all assets" [ref=e99] [cursor=pointer]:
+              - generic [ref=e100]:
+                - generic [ref=e101]:
+                  - img [ref=e102]
+                  - text: Device Availability
+                - generic [ref=e359]:
+                  - generic [ref=e360]: 125/125
+                  - generic [ref=e361]: 100%
+            - generic [ref=e114] [cursor=pointer]:
+              - generic [ref=e115]:
+                - img [ref=e116]
+                - text: Total alarms
+              - generic [ref=e362]: 266.6K
+            - generic [ref=e123] [cursor=pointer]:
+              - generic [ref=e124]:
+                - img [ref=e125]
+                - text: Critical alarms
+              - generic [ref=e363]: 30.0K
+            - generic [ref=e129] [cursor=pointer]:
+              - generic [ref=e130]:
+                - img [ref=e131]
+                - text: Active incidents
+              - generic [ref=e364]: "1"
+            - generic [ref=e135] [cursor=pointer]:
+              - generic [ref=e136]:
+                - img [ref=e137]
+                - text: Security events
+              - generic [ref=e365]: 87.3K
+            - generic [ref=e141]:
+              - generic [ref=e142]:
+                - img [ref=e143]
+                - text: Threats blocked
+              - generic [ref=e366]: 1.0K
+            - generic [ref=e147]:
+              - generic [ref=e148]:
+                - img [ref=e149]
+                - text: Peak CPU
+              - generic [ref=e367]: 0%
+            - generic [ref=e154]:
+              - generic [ref=e155]:
+                - img [ref=e156]
+                - text: Branches down
+              - generic [ref=e368]: "7"
+          - generic [ref=e161]:
+            - generic [ref=e162]:
+              - generic [ref=e164]:
+                - img [ref=e165]
+                - text: Device availability
+              - generic [ref=e175]:
+                - img [ref=e372]:
+                  - generic [ref=e373]:
+                    - generic [ref=e374]:
+                      - img [ref=e376]
+                      - img [ref=e378]
+                      - img [ref=e380]
+                      - img [ref=e382]
+                      - img [ref=e384]
+                      - img [ref=e386]
+                      - img [ref=e388]
+                      - img [ref=e390]
+                      - img [ref=e392]
+                    - generic [ref=e393]:
+                      - generic [ref=e395]: "network: 62"
+                      - generic [ref=e397]: "security: 46"
+                      - generic [ref=e399]: "wireless: 10"
+                      - generic [ref=e401]: "server: 6"
+                      - generic [ref=e403]: "application: 5"
+                      - generic [ref=e405]: "platform: 2"
+                      - generic [ref=e407]: "storage: 2"
+                      - generic [ref=e409]: "cloud: 1"
+                      - generic [ref=e411]: "physical: 1"
+                - generic [ref=e412]:
+                  - button "network 62" [ref=e413]:
+                    - generic [ref=e414]: network
+                    - generic [ref=e415]: "62"
+                  - button "security 46" [ref=e416]:
+                    - generic [ref=e417]: security
+                    - generic [ref=e418]: "46"
+                  - button "wireless 10" [ref=e419]:
+                    - generic [ref=e420]: wireless
+                    - generic [ref=e421]: "10"
+                  - button "server 6" [ref=e422]:
+                    - generic [ref=e423]: server
+                    - generic [ref=e424]: "6"
+                  - button "application 5" [ref=e425]:
+                    - generic [ref=e426]: application
+                    - generic [ref=e427]: "5"
+                  - button "platform 2" [ref=e428]:
+                    - generic [ref=e429]: platform
+                    - generic [ref=e430]: "2"
+                  - button "storage 2" [ref=e431]:
+                    - generic [ref=e432]: storage
+                    - generic [ref=e433]: "2"
+                  - button "cloud 1" [ref=e434]:
+                    - generic [ref=e435]: cloud
+                    - generic [ref=e436]: "1"
+                  - button "physical 1" [ref=e437]:
+                    - generic [ref=e438]: physical
+                    - generic [ref=e439]: "1"
+            - generic [ref=e177]:
+              - generic [ref=e178]:
+                - generic [ref=e179]:
+                  - img [ref=e180]
+                  - text: Top critical alarms
+                - button "View all" [ref=e182]:
+                  - text: View all
+                  - img [ref=e183]
+              - table [ref=e441]:
+                - rowgroup [ref=e442]:
+                  - row "Alarm Device Severity When" [ref=e443]:
+                    - columnheader "Alarm" [ref=e444]
+                    - columnheader "Device" [ref=e445]
+                    - columnheader "Severity" [ref=e446]
+                    - columnheader "When" [ref=e447]
+                - rowgroup [ref=e448]:
+                  - row "Node down - Core-SW-01 HQ - ICMP unreachable network DC-Router-03 critical 2h ago" [ref=e449]:
+                    - cell "Node down - Core-SW-01 HQ - ICMP unreachable network" [ref=e450]:
+                      - generic "Node down - Core-SW-01 HQ - ICMP unreachable" [ref=e451]
+                      - generic [ref=e452]: network
+                    - cell "DC-Router-03" [ref=e453]:
+                      - button "DC-Router-03" [ref=e454]
+                    - cell "critical" [ref=e455]:
+                      - generic [ref=e456]: critical
+                    - cell "2h ago" [ref=e457]
+                  - row "Interface flap - FW-Edge-02 Gi0/1 - link down/up 12 times network VPN-GW-01 critical 2h ago" [ref=e458]:
+                    - cell "Interface flap - FW-Edge-02 Gi0/1 - link down/up 12 times network" [ref=e459]:
+                      - generic "Interface flap - FW-Edge-02 Gi0/1 - link down/up 12 times" [ref=e460]
+                      - generic [ref=e461]: network
+                    - cell "VPN-GW-01" [ref=e462]:
+                      - button "VPN-GW-01" [ref=e463]
+                    - cell "critical" [ref=e464]:
+                      - generic [ref=e465]: critical
+                    - cell "2h ago" [ref=e466]
+                  - row "Node down - Core-SW-01 HQ - ICMP unreachable network WAN-LDN-01 critical 2h ago" [ref=e467]:
+                    - cell "Node down - Core-SW-01 HQ - ICMP unreachable network" [ref=e468]:
+                      - generic "Node down - Core-SW-01 HQ - ICMP unreachable" [ref=e469]
+                      - generic [ref=e470]: network
+                    - cell "WAN-LDN-01" [ref=e471]:
+                      - button "WAN-LDN-01" [ref=e472]
+                    - cell "critical" [ref=e473]:
+                      - generic [ref=e474]: critical
+                    - cell "2h ago" [ref=e475]
+                  - row "Interface flap - FW-Edge-02 Gi0/1 - link down/up 12 times network WAN-LDN-01 critical 2h ago" [ref=e476]:
+                    - cell "Interface flap - FW-Edge-02 Gi0/1 - link down/up 12 times network" [ref=e477]:
+                      - generic "Interface flap - FW-Edge-02 Gi0/1 - link down/up 12 times" [ref=e478]
+                      - generic [ref=e479]: network
+                    - cell "WAN-LDN-01" [ref=e480]:
+                      - button "WAN-LDN-01" [ref=e481]
+                    - cell "critical" [ref=e482]:
+                      - generic [ref=e483]: critical
+                    - cell "2h ago" [ref=e484]
+                  - row "Node down - Core-SW-01 HQ - ICMP unreachable network Core-SW-01 critical 2h ago" [ref=e485]:
+                    - cell "Node down - Core-SW-01 HQ - ICMP unreachable network" [ref=e486]:
+                      - generic "Node down - Core-SW-01 HQ - ICMP unreachable" [ref=e487]
+                      - generic [ref=e488]: network
+                    - cell "Core-SW-01" [ref=e489]:
+                      - button "Core-SW-01" [ref=e490]
+                    - cell "critical" [ref=e491]:
+                      - generic [ref=e492]: critical
+                    - cell "2h ago" [ref=e493]
+                  - row "Node down - Core-SW-01 HQ - ICMP unreachable network DC-Router-03 critical 2h ago" [ref=e494]:
+                    - cell "Node down - Core-SW-01 HQ - ICMP unreachable network" [ref=e495]:
+                      - generic "Node down - Core-SW-01 HQ - ICMP unreachable" [ref=e496]
+                      - generic [ref=e497]: network
+                    - cell "DC-Router-03" [ref=e498]:
+                      - button "DC-Router-03" [ref=e499]
+                    - cell "critical" [ref=e500]:
+                      - generic [ref=e501]: critical
+                    - cell "2h ago" [ref=e502]
+                  - row "Node down - Core-SW-01 HQ - ICMP unreachable network VPN-GW-01 critical 2h ago" [ref=e503]:
+                    - cell "Node down - Core-SW-01 HQ - ICMP unreachable network" [ref=e504]:
+                      - generic "Node down - Core-SW-01 HQ - ICMP unreachable" [ref=e505]
+                      - generic [ref=e506]: network
+                    - cell "VPN-GW-01" [ref=e507]:
+                      - button "VPN-GW-01" [ref=e508]
+                    - cell "critical" [ref=e509]:
+                      - generic [ref=e510]: critical
+                    - cell "2h ago" [ref=e511]
+            - generic [ref=e187]:
+              - generic [ref=e188]:
+                - generic [ref=e189]:
+                  - img [ref=e190]
+                  - text: Incident summary
+                - button "View all" [ref=e192]:
+                  - text: View all
+                  - img [ref=e193]
+              - generic [ref=e195]:
+                - img [ref=e515]:
+                  - generic [ref=e516]:
+                    - generic [ref=e517]:
+                      - img [ref=e519]
+                      - img [ref=e521]
+                      - img [ref=e523]
+                    - generic [ref=e524]:
+                      - generic [ref=e526]: "info: 13"
+                      - generic [ref=e528]: "warning: 6"
+                      - generic [ref=e530]: "critical: 1"
+                - generic [ref=e531]:
+                  - button "info 13" [ref=e532]:
+                    - generic [ref=e533]: info
+                    - generic [ref=e534]: "13"
+                  - button "warning 6" [ref=e535]:
+                    - generic [ref=e536]: warning
+                    - generic [ref=e537]: "6"
+                  - button "critical 1" [ref=e538]:
+                    - generic [ref=e539]: critical
+                    - generic [ref=e540]: "1"
+          - generic [ref=e197]:
+            - generic [ref=e198]:
+              - generic [ref=e200]:
+                - img [ref=e201]
+                - text: Alarm volume over time
+              - generic [ref=e543]:
+                - img [ref=e544]:
+                  - generic [ref=e548]:
+                    - generic [ref=e550]: Jun 17, 10:30 PM
+                    - generic [ref=e552]: Jun 17, 11:18 PM
+                    - generic [ref=e554]: Jun 18, 02:30 PM
+                    - generic [ref=e556]: Jun 18, 03:18 PM
+                    - generic [ref=e558]: Jun 18, 05:18 PM
+                  - generic [ref=e560]:
+                    - generic [ref=e562]: "0"
+                    - generic [ref=e564]: 15.0K
+                    - generic [ref=e566]: 30.0K
+                    - generic [ref=e568]: 45.0K
+                    - generic [ref=e570]: 60.0K
+                - list [ref=e596]:
+                  - listitem [ref=e597]:
+                    - img [ref=e598]
+                    - text: critical
+                  - listitem [ref=e600]:
+                    - img [ref=e601]
+                    - text: high
+                  - listitem [ref=e603]:
+                    - img [ref=e604]
+                    - text: info
+                  - listitem [ref=e606]:
+                    - img [ref=e607]
+                    - text: low
+                  - listitem [ref=e609]:
+                    - img [ref=e610]
+                    - text: medium
+                  - listitem [ref=e612]:
+                    - img [ref=e613]
+                    - text: warning
+            - generic [ref=e205]:
+              - generic [ref=e206]:
+                - generic [ref=e207]:
+                  - img [ref=e208]
+                  - text: Recent incidents
+                - button "View all" [ref=e213]:
+                  - text: View all
+                  - img [ref=e214]
+              - generic [ref=e615]:
+                - button "info 1m ago VPN Login Event" [ref=e616]:
+                  - generic [ref=e617]:
+                    - generic [ref=e618]: info
+                    - generic [ref=e619]: 1m ago
+                  - paragraph [ref=e620]: VPN Login Event
+                - button "info 1m ago WAN Interface Link Status Update" [ref=e621]:
+                  - generic [ref=e622]:
+                    - generic [ref=e623]: info
+                    - generic [ref=e624]: 1m ago
+                  - paragraph [ref=e625]: WAN Interface Link Status Update
+                - button "info 1m ago VPN Tunnel Re-established" [ref=e626]:
+                  - generic [ref=e627]:
+                    - generic [ref=e628]: info
+                    - generic [ref=e629]: 1m ago
+                  - paragraph [ref=e630]: VPN Tunnel Re-established
+                - button "info 2m ago Config Backup Completed for Firewall" [ref=e631]:
+                  - generic [ref=e632]:
+                    - generic [ref=e633]: info
+                    - generic [ref=e634]: 2m ago
+                  - paragraph [ref=e635]: Config Backup Completed for Firewall
+                - button "warning 2m ago MAC Address Table Utilization Warning" [ref=e636]:
+                  - generic [ref=e637]:
+                    - generic [ref=e638]: warning
+                    - generic [ref=e639]: 2m ago
+                  - paragraph [ref=e640]: MAC Address Table Utilization Warning
+                - button "warning 2m ago Node Down Alert for RTR-SLU-SOF-01" [ref=e641]:
+                  - generic [ref=e642]:
+                    - generic [ref=e643]: warning
+                    - generic [ref=e644]: 2m ago
+                  - paragraph [ref=e645]: Node Down Alert for RTR-SLU-SOF-01
+                - button "warning 2m ago Channel Utilization Warning on AP-SLU-GIS-01" [ref=e646]:
+                  - generic [ref=e647]:
+                    - generic [ref=e648]: warning
+                    - generic [ref=e649]: 2m ago
+                  - paragraph [ref=e650]: Channel Utilization Warning on AP-SLU-GIS-01
+                - button "warning 2m ago Interface Input Errors on RTR-SLU-GIS-01" [ref=e651]:
+                  - generic [ref=e652]:
+                    - generic [ref=e653]: warning
+                    - generic [ref=e654]: 2m ago
+                  - paragraph [ref=e655]: Interface Input Errors on RTR-SLU-GIS-01
+          - generic [ref=e218]:
+            - generic [ref=e219]:
+              - generic [ref=e221]:
+                - img [ref=e222]
+                - text: Top CPU utilization
+              - paragraph [ref=e656]: No metric data in this range.
+            - generic [ref=e227]:
+              - generic [ref=e229]:
+                - img [ref=e230]
+                - text: WAN / link utilization
+              - generic [ref=e657]:
+                - button "SW-DC2-MUM-04 47.77%" [ref=e658]:
+                  - generic [ref=e661]: SW-DC2-MUM-04
+                  - generic [ref=e662]: 47.77%
+                - button "SW-DC1-MUM-16 47.71%" [ref=e663]:
+                  - generic [ref=e666]: SW-DC1-MUM-16
+                  - generic [ref=e667]: 47.71%
+                - button "CLOUD-CLOUD-01 44.4%" [ref=e668]:
+                  - generic [ref=e671]: CLOUD-CLOUD-01
+                  - generic [ref=e672]: 44.4%
+                - button "WLC-DC1-MUM-01 39.32%" [ref=e673]:
+                  - generic [ref=e676]: WLC-DC1-MUM-01
+                  - generic [ref=e677]: 39.32%
+                - button "RTR-BR-COR-01 34.45%" [ref=e678]:
+                  - generic [ref=e681]: RTR-BR-COR-01
+                  - generic [ref=e682]: 34.45%
+                - button "RTR-BR-SKB-01 34.42%" [ref=e683]:
+                  - generic [ref=e686]: RTR-BR-SKB-01
+                  - generic [ref=e687]: 34.42%
+                - button "RTR-BR-LIN-01 34.39%" [ref=e688]:
+                  - generic [ref=e691]: RTR-BR-LIN-01
+                  - generic [ref=e692]: 34.39%
+                - button "RTR-BR-RHT-01 34.39%" [ref=e693]:
+                  - generic [ref=e696]: RTR-BR-RHT-01
+                  - generic [ref=e697]: 34.39%
+            - generic [ref=e237]:
+              - generic [ref=e239]:
+                - img [ref=e240]
+                - text: Worst latency
+              - generic [ref=e698]:
+                - button "RTR-BR-ANK-01 133.8" [ref=e699]:
+                  - generic [ref=e702]: RTR-BR-ANK-01
+                  - generic [ref=e703]: "133.8"
+                - button "RTR-BR-LIN-01 133.53" [ref=e704]:
+                  - generic [ref=e707]: RTR-BR-LIN-01
+                  - generic [ref=e708]: "133.53"
+                - button "RTR-BR-GEO-01 133.31" [ref=e709]:
+                  - generic [ref=e712]: RTR-BR-GEO-01
+                  - generic [ref=e713]: "133.31"
+                - button "RTR-SLU-CAS-01 133.28" [ref=e714]:
+                  - generic [ref=e717]: RTR-SLU-CAS-01
+                  - generic [ref=e718]: "133.28"
+                - button "RTR-BR-NDA-01 132.9" [ref=e719]:
+                  - generic [ref=e722]: RTR-BR-NDA-01
+                  - generic [ref=e723]: "132.9"
+                - button "RTR-BR-SKB-01 132.74" [ref=e724]:
+                  - generic [ref=e727]: RTR-BR-SKB-01
+                  - generic [ref=e728]: "132.74"
+                - button "RTR-BR-RHT-01 132.72" [ref=e729]:
+                  - generic [ref=e732]: RTR-BR-RHT-01
+                  - generic [ref=e733]: "132.72"
+                - button "RTR-SLU-VFT-01 132.6" [ref=e734]:
+                  - generic [ref=e737]: RTR-SLU-VFT-01
+                  - generic [ref=e738]: "132.6"
+          - generic [ref=e245]:
+            - generic [ref=e246]:
+              - generic [ref=e248]:
+                - img [ref=e249]
+                - text: Attack types blocked
+              - img [ref=e742]:
+                - generic [ref=e746]:
+                  - generic [ref=e748]: bruteforce
+                  - generic [ref=e750]: malware
+                  - generic [ref=e752]: firewall_block
+                  - generic [ref=e754]: port_scan
+                - generic [ref=e756]:
+                  - generic [ref=e758]: "0"
+                  - generic [ref=e760]: "40"
+                  - generic [ref=e762]: "80"
+                  - generic [ref=e764]: "120"
+                  - generic [ref=e766]: "160"
+                - generic [ref=e784]:
+                  - generic [ref=e785]: "152"
+                  - generic [ref=e786]: "150"
+                  - generic [ref=e787]: "142"
+                  - generic [ref=e788]: "141"
+                  - generic [ref=e789]: "140"
+                  - generic [ref=e790]: "140"
+                  - generic [ref=e791]: "135"
+            - generic [ref=e253]:
+              - generic [ref=e255]:
+                - img [ref=e256]
+                - text: Threats by origin country
+              - img [ref=e795]:
+                - generic [ref=e799]:
+                  - generic [ref=e801]: RU
+                  - generic [ref=e803]: CN
+                  - generic [ref=e805]: IN
+                  - generic [ref=e807]: BR
+                  - generic [ref=e809]: US
+                  - generic [ref=e811]: SG
+                  - generic [ref=e813]: DE
+                - generic [ref=e815]:
+                  - generic [ref=e817]: "0"
+                  - generic [ref=e819]: "45"
+                  - generic [ref=e821]: "90"
+                  - generic [ref=e823]: "135"
+                  - generic [ref=e825]: "180"
+                - generic [ref=e843]:
+                  - generic [ref=e844]: "168"
+                  - generic [ref=e845]: "153"
+                  - generic [ref=e846]: "147"
+                  - generic [ref=e847]: "136"
+                  - generic [ref=e848]: "135"
+                  - generic [ref=e849]: "132"
+                  - generic [ref=e850]: "129"
+            - generic [ref=e261]:
+              - generic [ref=e263]:
+                - img [ref=e264]
+                - text: Security posture
+              - generic [ref=e851]:
+                - generic [ref=e852]:
+                  - generic [ref=e853]:
+                    - generic [ref=e854]: Security alarms
+                    - generic [ref=e855]: 87.3K
+                  - generic [ref=e856]:
+                    - generic [ref=e857]: Threats blocked
+                    - generic [ref=e858]: 1.0K
+                - generic [ref=e859]:
+                  - generic [ref=e860]: Security alarms by severity
+                  - generic [ref=e861]:
+                    - generic [ref=e862]: info
+                    - generic [ref=e863]: 51.8K
+                  - generic [ref=e864]:
+                    - generic [ref=e865]: warning
+                    - generic [ref=e866]: 24.0K
+                  - generic [ref=e867]:
+                    - generic [ref=e868]: critical
+                    - generic [ref=e869]: 11.4K
+          - generic [ref=e268]:
+            - generic [ref=e269]:
+              - generic [ref=e271]:
+                - img [ref=e272]
+                - text: Branch network map
+              - img [ref=e871]
+            - generic [ref=e277]:
+              - generic [ref=e279]:
+                - img [ref=e280]
+                - text: Branch health
+              - generic [ref=e1073]:
+                - generic [ref=e1074]:
+                  - generic [ref=e1075]:
+                    - generic [ref=e1076]: DOWN
+                    - generic [ref=e1077]: Soufriere
+                    - generic [ref=e1078]: GEO
+                  - generic [ref=e1079]:
+                    - generic [ref=e1080]: critical 1.0K
+                    - generic [ref=e1081]: warning 3.2K
+                - generic [ref=e1082]:
+                  - generic [ref=e1083]:
+                    - generic [ref=e1084]: DOWN
+                    - generic [ref=e1085]: Rodney Bay / Gros Islet
+                    - generic [ref=e1086]: RHT
+                  - generic [ref=e1087]:
+                    - generic [ref=e1088]: critical 958
+                    - generic [ref=e1089]: warning 2.7K
+                - generic [ref=e1090]:
+                  - generic [ref=e1091]:
+                    - generic [ref=e1092]: DOWN
+                    - generic [ref=e1093]: Castries (Head Office)
+                    - generic [ref=e1094]: COR
+                  - generic [ref=e1095]:
+                    - generic [ref=e1096]: critical 902
+                    - generic [ref=e1097]: warning 2.7K
+                - generic [ref=e1098]:
+                  - generic [ref=e1099]:
+                    - generic [ref=e1100]: DOWN
+                    - generic [ref=e1101]: Micoud
+                    - generic [ref=e1102]: NDA
+                  - generic [ref=e1103]:
+                    - generic [ref=e1104]: critical 824
+                    - generic [ref=e1105]: warning 2.4K
+                - generic [ref=e1106]:
+                  - generic [ref=e1107]:
+                    - generic [ref=e1108]: DOWN
+                    - generic [ref=e1109]: Dennery
+                    - generic [ref=e1110]: LIN
+                  - generic [ref=e1111]:
+                    - generic [ref=e1112]: critical 778
+                    - generic [ref=e1113]: warning 2.4K
+                - generic [ref=e1114]:
+                  - generic [ref=e1115]:
+                    - generic [ref=e1116]: DOWN
+                    - generic [ref=e1117]: Vieux Fort
+                    - generic [ref=e1118]: ANK
+                  - generic [ref=e1119]:
+                    - generic [ref=e1120]: critical 760
+                    - generic [ref=e1121]: warning 2.5K
+                - generic [ref=e1122]:
+                  - generic [ref=e1123]:
+                    - generic [ref=e1124]: DOWN
+                    - generic [ref=e1125]: Choc / Gablewoods
+                    - generic [ref=e1126]: SPR
+                  - generic [ref=e1127]:
+                    - generic [ref=e1128]: critical 662
+                    - generic [ref=e1129]: warning 1.8K
+          - generic [ref=e286]:
+            - generic [ref=e287]:
+              - generic [ref=e289]:
+                - img [ref=e290]
+                - text: Device fabric
+              - img [ref=e1131]:
+                - generic [ref=e1140]:
+                  - generic [ref=e1142]: HOST
+                  - generic [ref=e1143]: NOC fabric
+                - generic [ref=e1144] [cursor=pointer]:
+                  - generic [ref=e1146]: network (62)
+                  - generic [ref=e1147]: "62"
+                - generic [ref=e1148] [cursor=pointer]:
+                  - generic [ref=e1151]: security (46)
+                  - generic [ref=e1152]: "46"
+                - generic [ref=e1153] [cursor=pointer]:
+                  - generic [ref=e1155]: wireless (10)
+                  - generic [ref=e1156]: "10"
+                - generic [ref=e1157] [cursor=pointer]:
+                  - generic [ref=e1159]: server (6)
+                  - generic [ref=e1160]: "6"
+                - generic [ref=e1161] [cursor=pointer]:
+                  - generic [ref=e1163]: application (5)
+                  - generic [ref=e1164]: "5"
+                - generic [ref=e1165] [cursor=pointer]:
+                  - generic [ref=e1167]: platform (2)
+                  - generic [ref=e1168]: "2"
+                - generic [ref=e1169] [cursor=pointer]:
+                  - generic [ref=e1171]: storage (2)
+                  - generic [ref=e1172]: "2"
+                - generic [ref=e1173] [cursor=pointer]:
+                  - generic [ref=e1175]: cloud (1)
+                  - generic [ref=e1176]: "1"
+            - generic [ref=e297]:
+              - generic [ref=e299]:
+                - img [ref=e300]
+                - text: Alarms by category
+              - img [ref=e1180]:
+                - generic [ref=e1184]:
+                  - generic [ref=e1186]: network
+                  - generic [ref=e1188]: security
+                  - generic [ref=e1190]: wireless
+                  - generic [ref=e1192]: server
+                  - generic [ref=e1194]: application
+                  - generic [ref=e1196]: platform
+                  - generic [ref=e1198]: storage
+                  - generic [ref=e1200]: cloud
+                  - generic [ref=e1202]: physical
+                - generic [ref=e1204]:
+                  - generic [ref=e1206]: "0"
+                  - generic [ref=e1208]: 40.0K
+                  - generic [ref=e1210]: 80.0K
+                  - generic [ref=e1212]: 120.0K
+                  - generic [ref=e1214]: 160.0K
+                - generic [ref=e1236]:
+                  - generic [ref=e1237]: 140.0K
+                  - generic [ref=e1238]: 87.3K
+                  - generic [ref=e1239]: 16.0K
+                  - generic [ref=e1240]: 9.8K
+                  - generic [ref=e1241]: 6.9K
+                  - generic [ref=e1242]: 2.7K
+                  - generic [ref=e1243]: 2.2K
+                  - generic [ref=e1244]: "990"
+                  - generic [ref=e1245]: "756"
+      - complementary [ref=e305]:
+        - generic [ref=e306]:
+          - generic [ref=e307]:
+            - img [ref=e308]
+            - text: BI Companion
+            - generic [ref=e320]: BI
+          - button "Start a new chat" [ref=e321]:
+            - img
+        - generic [ref=e322]:
+          - img [ref=e323]
+          - generic [ref=e326]: Observing
+          - generic [ref=e327]: NOC Dashboard
+        - generic [ref=e334]:
+          - generic [ref=e335]:
+            - textbox "Ask about devices, alarms, incidents…" [ref=e336]
+            - button "Send" [disabled] [ref=e339]:
+              - img [ref=e340]
+          - paragraph [ref=e343]: Powered by CopilotKit
+    - region "Notifications (F8)":
+      - list
+  - generic [ref=e1246]: ransomware

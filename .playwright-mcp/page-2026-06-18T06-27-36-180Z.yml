@@ -1,0 +1,485 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - complementary [ref=e4]:
+        - generic [ref=e5]:
+          - link "Gen VI" [ref=e294] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e295]:
+              - img [ref=e297]
+              - text: Gen VI
+          - button "Collapse sidebar" [active] [ref=e300]:
+            - img [ref=e301]
+        - navigation [ref=e10]:
+          - link "Dashboard" [ref=e304] [cursor=pointer]:
+            - /url: /dashboard
+            - generic [ref=e305]:
+              - img [ref=e13]
+              - generic: Dashboard
+          - link "Loki Logs" [ref=e306] [cursor=pointer]:
+            - /url: /loki-logs
+            - generic [ref=e307]:
+              - img [ref=e17]
+              - generic: Loki Logs
+          - link "Pinned Visuals" [ref=e308] [cursor=pointer]:
+            - /url: /loki-pins
+            - generic [ref=e309]:
+              - img [ref=e22]
+              - generic: Pinned Visuals
+        - generic [ref=e310]: Gen VI 2026
+      - main [ref=e27]:
+        - generic [ref=e28]:
+          - heading "Loki Logs" [level=1] [ref=e29]
+          - generic [ref=e30]:
+            - generic [ref=e35]: Live
+            - generic [ref=e38]: BK
+        - generic [ref=e40]:
+          - generic [ref=e41]:
+            - generic [ref=e42]:
+              - img [ref=e43]
+              - heading "NOC / SOC Operations" [level=1] [ref=e54]
+              - generic [ref=e55]:
+                - img [ref=e56]
+                - text: static
+            - generic [ref=e67]:
+              - button "Explorer" [ref=e68]:
+                - img
+                - text: Explorer
+              - combobox [ref=e69]:
+                - generic: "Live: Off"
+                - img [ref=e70]
+              - combobox [ref=e72]:
+                - generic: Last 24 hours
+                - img [ref=e73]
+          - generic [ref=e75]:
+            - generic [ref=e77]:
+              - generic [ref=e78]:
+                - img [ref=e79]
+                - text: Devices
+              - generic [ref=e311]: "113"
+            - generic [ref=e91] [cursor=pointer]:
+              - generic [ref=e92]:
+                - img [ref=e93]
+                - text: Total alarms
+              - generic [ref=e312]: 219.7K
+            - generic [ref=e100] [cursor=pointer]:
+              - generic [ref=e101]:
+                - img [ref=e102]
+                - text: Critical alarms
+              - generic [ref=e313]: 25.1K
+            - generic [ref=e106] [cursor=pointer]:
+              - generic [ref=e107]:
+                - img [ref=e108]
+                - text: Active incidents
+              - generic [ref=e314]: "14"
+            - generic [ref=e112]:
+              - generic [ref=e113]:
+                - img [ref=e114]
+                - text: Early warnings
+              - generic [ref=e315]: "7"
+            - generic [ref=e118] [cursor=pointer]:
+              - generic [ref=e119]:
+                - img [ref=e120]
+                - text: Security events
+              - generic [ref=e316]: 78.5K
+            - generic [ref=e124]:
+              - generic [ref=e125]:
+                - img [ref=e126]
+                - text: Peak CPU
+              - generic [ref=e317]: 33%
+            - generic [ref=e131]:
+              - generic [ref=e132]:
+                - img [ref=e133]
+                - text: SSH failed
+              - generic [ref=e318]: "75"
+          - generic [ref=e137]:
+            - generic [ref=e138]:
+              - generic [ref=e140]:
+                - img [ref=e141]
+                - text: Device availability
+              - generic [ref=e151]:
+                - img [ref=e322]:
+                  - generic [ref=e324]:
+                    - img [ref=e326]
+                    - img [ref=e328]
+                    - img [ref=e330]
+                    - img [ref=e332]
+                    - img [ref=e334]
+                    - img [ref=e336]
+                    - img [ref=e338]
+                    - img [ref=e340]
+                    - img [ref=e342]
+                - generic [ref=e343]:
+                  - button "network 49" [ref=e344]:
+                    - generic [ref=e345]: network
+                    - generic [ref=e346]: "49"
+                  - button "security 42" [ref=e347]:
+                    - generic [ref=e348]: security
+                    - generic [ref=e349]: "42"
+                  - button "server 6" [ref=e350]:
+                    - generic [ref=e351]: server
+                    - generic [ref=e352]: "6"
+                  - button "application 5" [ref=e353]:
+                    - generic [ref=e354]: application
+                    - generic [ref=e355]: "5"
+                  - button "wireless 5" [ref=e356]:
+                    - generic [ref=e357]: wireless
+                    - generic [ref=e358]: "5"
+                  - button "platform 2" [ref=e359]:
+                    - generic [ref=e360]: platform
+                    - generic [ref=e361]: "2"
+            - generic [ref=e153]:
+              - generic [ref=e154]:
+                - generic [ref=e155]:
+                  - img [ref=e156]
+                  - text: Top critical alarms
+                - button "View all" [ref=e158]:
+                  - text: View all
+                  - img [ref=e159]
+              - table [ref=e364]:
+                - rowgroup [ref=e365]:
+                  - row "Alarm Device Severity When" [ref=e366]:
+                    - columnheader "Alarm" [ref=e367]
+                    - columnheader "Device" [ref=e368]
+                    - columnheader "Severity" [ref=e369]
+                    - columnheader "When" [ref=e370]
+                - rowgroup [ref=e371]:
+                  - row "IPSec IKE negotiation failure - peer 21.219.109.144 unreachable network · IPSec VPN Tunnel VPN-DC1-MUM-04 critical 13h ago" [ref=e372]:
+                    - cell "IPSec IKE negotiation failure - peer 21.219.109.144 unreachable network · IPSec VPN Tunnel" [ref=e373]:
+                      - generic "IPSec IKE negotiation failure - peer 21.219.109.144 unreachable" [ref=e374]
+                      - generic [ref=e375]: network · IPSec VPN Tunnel
+                    - cell "VPN-DC1-MUM-04" [ref=e376]:
+                      - button "VPN-DC1-MUM-04" [ref=e377]
+                    - cell "critical" [ref=e378]:
+                      - generic [ref=e379]: critical
+                    - cell "13h ago" [ref=e380]
+                  - row "VPN tunnel down - 36 dependent sessions terminated network · IPSec VPN Tunnel VPN-DC1-MUM-02 critical 13h ago" [ref=e381]:
+                    - cell "VPN tunnel down - 36 dependent sessions terminated network · IPSec VPN Tunnel" [ref=e382]:
+                      - generic "VPN tunnel down - 36 dependent sessions terminated" [ref=e383]
+                      - generic [ref=e384]: network · IPSec VPN Tunnel
+                    - cell "VPN-DC1-MUM-02" [ref=e385]:
+                      - button "VPN-DC1-MUM-02" [ref=e386]
+                    - cell "critical" [ref=e387]:
+                      - generic [ref=e388]: critical
+                    - cell "13h ago" [ref=e389]
+                  - row "Device unreachable - ICMP probe failed storage · Dell S4128T-ON SW-DC1-MUM-16 critical 13h ago" [ref=e390]:
+                    - cell "Device unreachable - ICMP probe failed storage · Dell S4128T-ON" [ref=e391]:
+                      - generic "Device unreachable - ICMP probe failed" [ref=e392]
+                      - generic [ref=e393]: storage · Dell S4128T-ON
+                    - cell "SW-DC1-MUM-16" [ref=e394]:
+                      - button "SW-DC1-MUM-16" [ref=e395]
+                    - cell "critical" [ref=e396]:
+                      - generic [ref=e397]: critical
+                    - cell "13h ago" [ref=e398]
+                  - row "Interface TenGigabitEthernet1/1/4 changed state to down network · Cisco Catalyst C9300 SW-DC1-MUM-13 critical 13h ago" [ref=e399]:
+                    - cell "Interface TenGigabitEthernet1/1/4 changed state to down network · Cisco Catalyst C9300" [ref=e400]:
+                      - generic "Interface TenGigabitEthernet1/1/4 changed state to down" [ref=e401]
+                      - generic [ref=e402]: network · Cisco Catalyst C9300
+                    - cell "SW-DC1-MUM-13" [ref=e403]:
+                      - button "SW-DC1-MUM-13" [ref=e404]
+                    - cell "critical" [ref=e405]:
+                      - generic [ref=e406]: critical
+                    - cell "13h ago" [ref=e407]
+                  - row "Spanning-tree topology change detected on VLAN 50, port Gi2/36 network · Cisco Catalyst 3750 SW-DC2-MUM-02 critical 13h ago" [ref=e408]:
+                    - cell "Spanning-tree topology change detected on VLAN 50, port Gi2/36 network · Cisco Catalyst 3750" [ref=e409]:
+                      - generic "Spanning-tree topology change detected on VLAN 50, port Gi2/36" [ref=e410]
+                      - generic [ref=e411]: network · Cisco Catalyst 3750
+                    - cell "SW-DC2-MUM-02" [ref=e412]:
+                      - button "SW-DC2-MUM-02" [ref=e413]
+                    - cell "critical" [ref=e414]:
+                      - generic [ref=e415]: critical
+                    - cell "13h ago" [ref=e416]
+                  - row "Uplink port GigabitEthernet0/15 changed state to down network · Cisco Catalyst 2960 SW-DC1-MUM-01 critical 13h ago" [ref=e417]:
+                    - cell "Uplink port GigabitEthernet0/15 changed state to down network · Cisco Catalyst 2960" [ref=e418]:
+                      - generic "Uplink port GigabitEthernet0/15 changed state to down" [ref=e419]
+                      - generic [ref=e420]: network · Cisco Catalyst 2960
+                    - cell "SW-DC1-MUM-01" [ref=e421]:
+                      - button "SW-DC1-MUM-01" [ref=e422]
+                    - cell "critical" [ref=e423]:
+                      - generic [ref=e424]: critical
+                    - cell "13h ago" [ref=e425]
+                  - row "Stack power budget exceeded - 4 PSU overloaded network · Cisco Catalyst 3750 SW-DC1-MUM-06 critical 13h ago" [ref=e426]:
+                    - cell "Stack power budget exceeded - 4 PSU overloaded network · Cisco Catalyst 3750" [ref=e427]:
+                      - generic "Stack power budget exceeded - 4 PSU overloaded" [ref=e428]
+                      - generic [ref=e429]: network · Cisco Catalyst 3750
+                    - cell "SW-DC1-MUM-06" [ref=e430]:
+                      - button "SW-DC1-MUM-06" [ref=e431]
+                    - cell "critical" [ref=e432]:
+                      - generic [ref=e433]: critical
+                    - cell "13h ago" [ref=e434]
+            - generic [ref=e163]:
+              - generic [ref=e164]:
+                - generic [ref=e165]:
+                  - img [ref=e166]
+                  - text: Incident summary
+                - button "View all" [ref=e168]:
+                  - text: View all
+                  - img [ref=e169]
+              - generic [ref=e171]:
+                - img [ref=e438]:
+                  - generic [ref=e440]:
+                    - img [ref=e442]
+                    - img [ref=e444]
+                    - img [ref=e446]
+                    - img [ref=e448]
+                - generic [ref=e449]:
+                  - button "critical 10" [ref=e450]:
+                    - generic [ref=e451]: critical
+                    - generic [ref=e452]: "10"
+                  - button "warning 5" [ref=e453]:
+                    - generic [ref=e454]: warning
+                    - generic [ref=e455]: "5"
+                  - button "high 4" [ref=e456]:
+                    - generic [ref=e457]: high
+                    - generic [ref=e458]: "4"
+                  - button "info 1" [ref=e459]:
+                    - generic [ref=e460]: info
+                    - generic [ref=e461]: "1"
+          - generic [ref=e173]:
+            - generic [ref=e174]:
+              - generic [ref=e176]:
+                - img [ref=e177]
+                - text: Alarm volume over time
+              - generic [ref=e464]:
+                - img [ref=e465]:
+                  - generic [ref=e469]:
+                    - generic [ref=e471]: Jun 17, 12:18 PM
+                    - generic [ref=e473]: Jun 17, 01:54 PM
+                    - generic [ref=e475]: Jun 17, 03:30 PM
+                    - generic [ref=e477]: Jun 17, 05:06 PM
+                    - generic [ref=e479]: Jun 17, 11:30 PM
+                  - generic [ref=e481]:
+                    - generic [ref=e483]: "0"
+                    - generic [ref=e485]: 15.0K
+                    - generic [ref=e487]: 30.0K
+                    - generic [ref=e489]: 45.0K
+                    - generic [ref=e491]: 60.0K
+                - list [ref=e511]:
+                  - listitem [ref=e512]:
+                    - img [ref=e513]
+                    - text: critical
+                  - listitem [ref=e515]:
+                    - img [ref=e516]
+                    - text: info
+                  - listitem [ref=e518]:
+                    - img [ref=e519]
+                    - text: warning
+            - generic [ref=e181]:
+              - generic [ref=e182]:
+                - generic [ref=e183]:
+                  - img [ref=e184]
+                  - text: Recent incidents
+                - button "View all" [ref=e189]:
+                  - text: View all
+                  - img [ref=e190]
+              - generic [ref=e521]:
+                - button "Critical 17h ago Interface GigabitEthernet0/0/1 changed state to down (flapping)" [ref=e522]:
+                  - generic [ref=e523]:
+                    - generic [ref=e524]: Critical
+                    - generic [ref=e525]: 17h ago
+                  - paragraph [ref=e526]: Interface GigabitEthernet0/0/1 changed state to down (flapping)
+                - button "Warning 17h ago Interface GigabitEthernet0/0/1 changed state to down (flapping)" [ref=e527]:
+                  - generic [ref=e528]:
+                    - generic [ref=e529]: Warning
+                    - generic [ref=e530]: 17h ago
+                  - paragraph [ref=e531]: Interface GigabitEthernet0/0/1 changed state to down (flapping)
+                - button "Critical 17h ago Tunnel interface Tunnel0 (DMVPN) down - no response from hub" [ref=e532]:
+                  - generic [ref=e533]:
+                    - generic [ref=e534]: Critical
+                    - generic [ref=e535]: 17h ago
+                  - paragraph [ref=e536]: Tunnel interface Tunnel0 (DMVPN) down - no response from hub
+                - button "Critical 17h ago Tunnel interface Tunnel0 (DMVPN) down - no response from hub" [ref=e537]:
+                  - generic [ref=e538]:
+                    - generic [ref=e539]: Critical
+                    - generic [ref=e540]: 17h ago
+                  - paragraph [ref=e541]: Tunnel interface Tunnel0 (DMVPN) down - no response from hub
+                - button "Critical 17h ago Failed login attempt for admin from 198.51.100.7 (try 1)" [ref=e542]:
+                  - generic [ref=e543]:
+                    - generic [ref=e544]: Critical
+                    - generic [ref=e545]: 17h ago
+                  - paragraph [ref=e546]: Failed login attempt for admin from 198.51.100.7 (try 1)
+                - button "High 17h ago Failed login attempt for admin from 198.51.100.7 (try 1)" [ref=e547]:
+                  - generic [ref=e548]:
+                    - generic [ref=e549]: High
+                    - generic [ref=e550]: 17h ago
+                  - paragraph [ref=e551]: Failed login attempt for admin from 198.51.100.7 (try 1)
+                - button "High 17h ago Failed login attempt for admin from 198.51.100.7 (try 1)" [ref=e552]:
+                  - generic [ref=e553]:
+                    - generic [ref=e554]: High
+                    - generic [ref=e555]: 17h ago
+                  - paragraph [ref=e556]: Failed login attempt for admin from 198.51.100.7 (try 1)
+                - button "High 17h ago Failed login attempt for admin from 198.51.100.7 (try 1)" [ref=e557]:
+                  - generic [ref=e558]:
+                    - generic [ref=e559]: High
+                    - generic [ref=e560]: 17h ago
+                  - paragraph [ref=e561]: Failed login attempt for admin from 198.51.100.7 (try 1)
+          - generic [ref=e194]:
+            - generic [ref=e195]:
+              - generic [ref=e197]:
+                - img [ref=e198]
+                - text: Top CPU utilization
+              - generic [ref=e562]:
+                - button "CLOUD-CLOUD-01 32.56%" [ref=e563]:
+                  - generic [ref=e566]: CLOUD-CLOUD-01
+                  - generic [ref=e567]: 32.56%
+                - button "RTR-ATM-SITE-01 28.25%" [ref=e568]:
+                  - generic [ref=e571]: RTR-ATM-SITE-01
+                  - generic [ref=e572]: 28.25%
+                - button "RTR-BR-SPR-01 28.18%" [ref=e573]:
+                  - generic [ref=e576]: RTR-BR-SPR-01
+                  - generic [ref=e577]: 28.18%
+                - button "SRV-DC1-MUM-06 27.66%" [ref=e578]:
+                  - generic [ref=e581]: SRV-DC1-MUM-06
+                  - generic [ref=e582]: 27.66%
+                - button "SRV-DC1-MUM-01 27.65%" [ref=e583]:
+                  - generic [ref=e586]: SRV-DC1-MUM-01
+                  - generic [ref=e587]: 27.65%
+                - button "SRV-DC1-MUM-05 27.53%" [ref=e588]:
+                  - generic [ref=e591]: SRV-DC1-MUM-05
+                  - generic [ref=e592]: 27.53%
+                - button "SRV-DC1-MUM-07 27.53%" [ref=e593]:
+                  - generic [ref=e596]: SRV-DC1-MUM-07
+                  - generic [ref=e597]: 27.53%
+                - button "SRV-DC2-MUM-02 27.52%" [ref=e598]:
+                  - generic [ref=e601]: SRV-DC2-MUM-02
+                  - generic [ref=e602]: 27.52%
+            - generic [ref=e203]:
+              - generic [ref=e205]:
+                - img [ref=e206]
+                - text: WAN / link utilization
+              - generic [ref=e603]:
+                - button "SW-DC2-MUM-04 47.77%" [ref=e604]:
+                  - generic [ref=e607]: SW-DC2-MUM-04
+                  - generic [ref=e608]: 47.77%
+                - button "SW-DC1-MUM-16 47.71%" [ref=e609]:
+                  - generic [ref=e612]: SW-DC1-MUM-16
+                  - generic [ref=e613]: 47.71%
+                - button "CLOUD-CLOUD-01 44.4%" [ref=e614]:
+                  - generic [ref=e617]: CLOUD-CLOUD-01
+                  - generic [ref=e618]: 44.4%
+                - button "WLC-DC1-MUM-01 39.32%" [ref=e619]:
+                  - generic [ref=e622]: WLC-DC1-MUM-01
+                  - generic [ref=e623]: 39.32%
+                - button "RTR-BR-COR-01 34.45%" [ref=e624]:
+                  - generic [ref=e627]: RTR-BR-COR-01
+                  - generic [ref=e628]: 34.45%
+                - button "RTR-BR-SKB-01 34.42%" [ref=e629]:
+                  - generic [ref=e632]: RTR-BR-SKB-01
+                  - generic [ref=e633]: 34.42%
+                - button "RTR-BR-LIN-01 34.39%" [ref=e634]:
+                  - generic [ref=e637]: RTR-BR-LIN-01
+                  - generic [ref=e638]: 34.39%
+                - button "RTR-BR-RHT-01 34.39%" [ref=e639]:
+                  - generic [ref=e642]: RTR-BR-RHT-01
+                  - generic [ref=e643]: 34.39%
+            - generic [ref=e213]:
+              - generic [ref=e215]:
+                - img [ref=e216]
+                - text: Worst latency
+              - paragraph [ref=e644]: No metric data in this range.
+          - generic [ref=e221]:
+            - generic [ref=e222]:
+              - generic [ref=e224]:
+                - img [ref=e225]
+                - text: Device fabric
+              - img [ref=e646]:
+                - generic [ref=e655]:
+                  - generic [ref=e657]: HOST
+                  - generic [ref=e658]: NOC fabric
+                - generic [ref=e659] [cursor=pointer]:
+                  - generic [ref=e661]: network (49)
+                  - generic [ref=e662]: "49"
+                - generic [ref=e663] [cursor=pointer]:
+                  - generic [ref=e666]: security (42)
+                  - generic [ref=e667]: "42"
+                - generic [ref=e668] [cursor=pointer]:
+                  - generic [ref=e670]: server (6)
+                  - generic [ref=e671]: "6"
+                - generic [ref=e672] [cursor=pointer]:
+                  - generic [ref=e674]: application (5)
+                  - generic [ref=e675]: "5"
+                - generic [ref=e676] [cursor=pointer]:
+                  - generic [ref=e678]: wireless (5)
+                  - generic [ref=e679]: "5"
+                - generic [ref=e680] [cursor=pointer]:
+                  - generic [ref=e682]: platform (2)
+                  - generic [ref=e683]: "2"
+                - generic [ref=e684] [cursor=pointer]:
+                  - generic [ref=e686]: storage (2)
+                  - generic [ref=e687]: "2"
+                - generic [ref=e688] [cursor=pointer]:
+                  - generic [ref=e690]: cloud (1)
+                  - generic [ref=e691]: "1"
+            - generic [ref=e232]:
+              - generic [ref=e234]:
+                - img [ref=e235]
+                - text: Geographic threat map
+              - img [ref=e693]
+          - generic [ref=e239]:
+            - generic [ref=e240]:
+              - generic [ref=e242]:
+                - img [ref=e243]
+                - text: Alarms by category
+              - img [ref=e892]:
+                - generic [ref=e896]:
+                  - generic [ref=e898]: network
+                  - generic [ref=e900]: security
+                  - generic [ref=e902]: server
+                  - generic [ref=e904]: application
+                  - generic [ref=e906]: wireless
+                  - generic [ref=e908]: platform
+                  - generic [ref=e910]: storage
+                  - generic [ref=e912]: cloud
+                  - generic [ref=e914]: physical
+                - generic [ref=e916]:
+                  - generic [ref=e918]: "0"
+                  - generic [ref=e920]: 30.0K
+                  - generic [ref=e922]: 60.0K
+                  - generic [ref=e924]: 90.0K
+                  - generic [ref=e926]: 120.0K
+            - generic [ref=e248]:
+              - generic [ref=e250]:
+                - img [ref=e251]
+                - text: Security posture
+              - generic [ref=e948]:
+                - generic [ref=e949]:
+                  - generic [ref=e950]: SSH failed logins
+                  - generic [ref=e951]: "75"
+                - generic [ref=e952]:
+                  - generic [ref=e953]: Top attackers
+                  - generic [ref=e954]:
+                    - generic [ref=e955]: 59.22.201.143
+                    - generic [ref=e956]: "63"
+                  - generic [ref=e957]:
+                    - generic [ref=e958]: 175.101.12.44
+                    - generic [ref=e959]: "3"
+                  - generic [ref=e960]:
+                    - generic [ref=e961]: 91.92.40.5
+                    - generic [ref=e962]: "2"
+                  - generic [ref=e963]:
+                    - generic [ref=e964]: 91.92.40.6
+                    - generic [ref=e965]: "2"
+                  - generic [ref=e966]:
+                    - generic [ref=e967]: 91.92.40.8
+                    - generic [ref=e968]: "2"
+      - complementary [ref=e255]:
+        - generic [ref=e256]:
+          - generic [ref=e257]:
+            - img [ref=e258]
+            - text: BI Companion
+            - generic [ref=e270]: BI
+          - button "Start a new chat" [ref=e271]:
+            - img
+        - generic [ref=e272]:
+          - img [ref=e273]
+          - generic [ref=e276]: Observing
+          - generic [ref=e277]: NOC Dashboard
+        - generic [ref=e284]:
+          - generic [ref=e285]:
+            - textbox "Ask about devices, alarms, incidents…" [ref=e286]
+            - button "Send" [disabled] [ref=e289]:
+              - img [ref=e290]
+          - paragraph [ref=e293]: Powered by CopilotKit
+    - region "Notifications (F8)":
+      - list
+  - generic [ref=e969]: 90.0K

@@ -25,8 +25,8 @@ log = logging.getLogger("agents.loki.client")
 
 # Accepts e.g. "15m", "1h", "6h", "24h", "7d", "30s". Used to resolve a relative
 # lookback window into an absolute [start, end] range.
-_DURATION_RE = re.compile(r"^\s*(\d+)\s*(s|m|h|d|w)\s*$", re.IGNORECASE)
-_UNIT_SECONDS = {"s": 1, "m": 60, "h": 3600, "d": 86400, "w": 604800}
+_DURATION_RE = re.compile(r"^\s*(\d+)\s*(s|m|h|d|w|y)\s*$", re.IGNORECASE)
+_UNIT_SECONDS = {"s": 1, "m": 60, "h": 3600, "d": 86400, "w": 604800, "y": 31536000}
 
 
 def duration_to_seconds(value: str, default: int = 3600) -> int:
@@ -119,6 +119,14 @@ class LokiClient:
             params["step"] = step
         return await self._get("/loki/api/v1/query_range", params)
 
+    async def query_instant(self, logql: str, *, time_ns: int | None = None) -> dict:
+        """Run an instant query (single evaluation) — used for `topk`/`count`
+        snapshots like current top-N devices or device-per-category inventory."""
+        params: dict[str, Any] = {"query": logql}
+        if time_ns is not None:
+            params["time"] = str(time_ns)
+        return await self._get("/loki/api/v1/query", params)
+
     # ── Normalization ────────────────────────────────────────────────────────
     @staticmethod
     def normalize(body: dict) -> dict:
@@ -163,9 +171,14 @@ class LokiClient:
                     or metric.get("service_name")
                     or metric.get("level")
                     or metric.get("__name__")
-                    or LokiClient._label_signature(metric)
-                    or "value"
                 )
+                if not name:
+                    # `sum by (x)` yields a single-label metric — use its value as
+                    # the series name (e.g. {ip:"1.2.3.4"} -> "1.2.3.4").
+                    if len(metric) == 1:
+                        name = next(iter(metric.values()))
+                    else:
+                        name = LokiClient._label_signature(metric) or "value"
                 if result_type == "matrix":
                     values = [
                         {"ts": _ns_to_ms(int(float(t)) * 1_000_000_000), "value": float(v)}

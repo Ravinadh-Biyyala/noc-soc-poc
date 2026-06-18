@@ -1,0 +1,172 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - link "Gen VI" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e7]:
+            - img [ref=e9]
+            - text: Gen VI
+        - button "Collapse sidebar" [ref=e12]:
+          - img [ref=e13]
+      - navigation [ref=e16]:
+        - link "Dashboard" [ref=e17] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e18]:
+            - img [ref=e19]
+            - generic [ref=e21]: Dashboard
+        - link "Assets" [ref=e22] [cursor=pointer]:
+          - /url: /assets
+          - generic [ref=e23]:
+            - img [ref=e24]
+            - generic [ref=e27]: Assets
+        - link "Traces" [ref=e28] [cursor=pointer]:
+          - /url: /loki-traces
+          - generic [ref=e29]:
+            - img [ref=e30]
+            - generic [ref=e34]: Traces
+        - link "Loki Logs" [ref=e35] [cursor=pointer]:
+          - /url: /loki-logs
+          - generic [ref=e36]:
+            - img [ref=e37]
+            - generic [ref=e40]: Loki Logs
+        - link "Pinned Visuals" [ref=e41] [cursor=pointer]:
+          - /url: /loki-pins
+          - generic [ref=e42]:
+            - img [ref=e43]
+            - generic [ref=e48]: Pinned Visuals
+      - generic [ref=e49]: Gen VI 2026
+    - main [ref=e50]:
+      - generic [ref=e51]:
+        - heading "Loki Logs" [level=1] [ref=e52]
+        - generic [ref=e53]:
+          - generic [ref=e58]: Live
+          - generic [ref=e61]: BK
+      - generic [ref=e63]:
+        - generic [ref=e64]:
+          - generic [ref=e65]:
+            - img [ref=e66]
+            - heading "NOC / SOC Operations" [level=1] [ref=e77]
+            - generic [ref=e78]:
+              - img [ref=e79]
+              - text: static
+            - img [ref=e85]
+          - generic [ref=e90]:
+            - button "Explorer" [ref=e91]:
+              - img
+              - text: Explorer
+            - combobox [ref=e92]:
+              - generic: "Live: Off"
+              - img [ref=e93]
+            - combobox [ref=e95]:
+              - generic: Last 24 hours
+              - img [ref=e96]
+        - generic [ref=e98]:
+          - generic "View all assets" [ref=e99] [cursor=pointer]:
+            - generic [ref=e101]:
+              - img [ref=e102]
+              - text: Device Availability
+          - generic [ref=e115] [cursor=pointer]:
+            - img [ref=e116]
+            - text: Total alarms
+          - generic [ref=e124] [cursor=pointer]:
+            - img [ref=e125]
+            - text: Critical alarms
+          - generic [ref=e130] [cursor=pointer]:
+            - img [ref=e131]
+            - text: Active incidents
+          - generic [ref=e136] [cursor=pointer]:
+            - img [ref=e137]
+            - text: Security events
+          - generic [ref=e142]:
+            - img [ref=e143]
+            - text: Threats blocked
+          - generic [ref=e148]:
+            - img [ref=e149]
+            - text: Peak CPU
+          - generic [ref=e155]:
+            - img [ref=e156]
+            - text: Branches down
+        - generic [ref=e161]:
+          - generic [ref=e164]:
+            - img [ref=e165]
+            - text: Device availability
+          - generic [ref=e178]:
+            - generic [ref=e179]:
+              - img [ref=e180]
+              - text: Top critical alarms
+            - button "View all" [ref=e182]:
+              - text: View all
+              - img [ref=e183]
+          - generic [ref=e188]:
+            - generic [ref=e189]:
+              - img [ref=e190]
+              - text: Incident summary
+            - button "View all" [ref=e192]:
+              - text: View all
+              - img [ref=e193]
+        - generic [ref=e197]:
+          - generic [ref=e200]:
+            - img [ref=e201]
+            - text: Alarm volume over time
+          - generic [ref=e206]:
+            - generic [ref=e207]:
+              - img [ref=e208]
+              - text: Recent incidents
+            - button "View all" [ref=e213]:
+              - text: View all
+              - img [ref=e214]
+        - generic [ref=e218]:
+          - generic [ref=e221]:
+            - img [ref=e222]
+            - text: Top CPU utilization
+          - generic [ref=e229]:
+            - img [ref=e230]
+            - text: WAN / link utilization
+          - generic [ref=e239]:
+            - img [ref=e240]
+            - text: Worst latency
+        - generic [ref=e245]:
+          - generic [ref=e248]:
+            - img [ref=e249]
+            - text: Attack types blocked
+          - generic [ref=e255]:
+            - img [ref=e256]
+            - text: Threats by origin country
+          - generic [ref=e263]:
+            - img [ref=e264]
+            - text: Security posture
+        - generic [ref=e268]:
+          - generic [ref=e271]:
+            - img [ref=e272]
+            - text: Branch network map
+          - generic [ref=e279]:
+            - img [ref=e280]
+            - text: Branch health
+        - generic [ref=e286]:
+          - generic [ref=e289]:
+            - img [ref=e290]
+            - text: Device fabric
+          - generic [ref=e299]:
+            - img [ref=e300]
+            - text: Alarms by category
+    - complementary [ref=e305]:
+      - generic [ref=e306]:
+        - generic [ref=e307]:
+          - img [ref=e308]
+          - text: BI Companion
+          - generic [ref=e320]: BI
+        - button "Start a new chat" [ref=e321]:
+          - img
+      - generic [ref=e322]:
+        - img [ref=e323]
+        - generic [ref=e326]: Observing
+        - generic [ref=e327]: NOC Dashboard
+      - generic [ref=e334]:
+        - generic [ref=e335]:
+          - textbox "Ask about devices, alarms, incidents…" [ref=e336]
+          - button "Send" [disabled] [ref=e339]:
+            - img [ref=e340]
+        - paragraph [ref=e343]: Powered by CopilotKit
+  - region "Notifications (F8)":
+    - list

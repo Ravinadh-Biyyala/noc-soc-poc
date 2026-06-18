@@ -1,71 +1,40 @@
-import {
-  Home,
-  LayoutDashboard,
-  ShieldCheck,
-  Settings as SettingsIcon,
-  FolderKanban,
-  BarChart2,
-  FileSpreadsheet,
-  ScrollText,
-  type LucideIcon,
-} from "lucide-react";
+import { ScrollText, LayoutDashboard, Activity, Workflow, Server, type LucideIcon } from "lucide-react";
 
 export interface NavLeaf {
   type: "leaf";
   href: string;
   label: string;
   icon: LucideIcon;
-  /** Optional path-prefix used to mark the leaf active for sub-routes (e.g. /projects/123). */
+  /** Optional path-prefix used to mark the leaf active for sub-routes. */
   matchPrefix?: string;
 }
 
 export type NavItem = NavLeaf;
 
 /**
- * The Gen-BI shell navigation. Six top-level destinations, all real.
- *
- * Deliberately flat: every prep step (file inspection, joins, cleansing,
- * outlier handling, metric definition, exports) is driven from the
- * right-rail Copilot — the agent proactively surfaces issues, asks for
- * confirmation, and applies deterministic rules. Burying those as nav
- * items would contradict the chat-first model and create dead ends.
- *
- * - Home         — front door + recent activity
- * - Projects     — projects (list + detail with the multi-phase pipeline)
- * - Data         — single landing for ingestion (drop / connect / browse)
- * - Dashboards   — generated dashboards
- * - Governance   — lineage / approvals (placeholder destination, not a SOON pill)
- * - Settings     — org / theme / limits / packs / AI behaviour
+ * The shell navigation. This build is a single-purpose app: Loki Logs.
  */
 export const NAV: NavItem[] = [
-  { type: "leaf", href: "/", label: "Home", icon: Home },
   {
     type: "leaf",
-    href: "/projects",
-    label: "Projects",
-    icon: FolderKanban,
-    matchPrefix: "/projects",
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: Activity,
+    matchPrefix: "/dashboard",
   },
   {
     type: "leaf",
-    href: "/dashboards",
-    label: "Dashboards",
-    icon: LayoutDashboard,
-    matchPrefix: "/dashboards",
+    href: "/assets",
+    label: "Assets",
+    icon: Server,
+    matchPrefix: "/assets",
   },
   {
     type: "leaf",
-    href: "/visuals-catalog",
-    label: "Visuals Catalog",
-    icon: BarChart2,
-    matchPrefix: "/visuals-catalog",
-  },
-  {
-    type: "leaf",
-    href: "/reports",
-    label: "Reports",
-    icon: FileSpreadsheet,
-    matchPrefix: "/reports",
+    href: "/loki-traces",
+    label: "Traces",
+    icon: Workflow,
+    matchPrefix: "/loki-traces",
   },
   {
     type: "leaf",
@@ -74,6 +43,11 @@ export const NAV: NavItem[] = [
     icon: ScrollText,
     matchPrefix: "/loki-logs",
   },
-  { type: "leaf", href: "/governance", label: "Governance", icon: ShieldCheck },
-  { type: "leaf", href: "/settings", label: "Settings", icon: SettingsIcon },
+  {
+    type: "leaf",
+    href: "/loki-pins",
+    label: "Pinned Visuals",
+    icon: LayoutDashboard,
+    matchPrefix: "/loki-pins",
+  },
 ];

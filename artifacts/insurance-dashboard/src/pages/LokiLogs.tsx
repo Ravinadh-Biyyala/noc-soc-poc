@@ -1,29 +1,22 @@
 // Loki Logs — a Grafana-style log explorer over the Loki server (proxied through
-// the Python service at /api/loki/*) plus an AI layer wired into the existing
-// right-rail CopilotKit chat (AG-UI). The agent generates LogQL dynamically via
-// the `queryLoki` action and renders/pins visuals via `pinLokiVisual`.
-//
-// Two subtabs:
-//  - Explorer: dropdown label filters + line filter + time range → log table
-//  - Pinned Visuals: charts the agent pinned from chat (useLokiPins)
+// the Python service at /api/loki/*) plus an AI layer wired into the right-rail
+// CopilotKit chat (AG-UI). The agent generates LogQL dynamically via the
+// `queryLoki` action and renders/pins visuals via `pinLokiVisual`. Pinned
+// visuals live on their own page (/loki-pins); this page is the Explorer.
 
 import { useState, useMemo, useCallback } from "react";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
-import { useCopilotAction, useCopilotReadable } from "@copilotkit/react-core";
+import { useCopilotReadable } from "@copilotkit/react-core";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollText, Search, Play, AlertCircle, X, Sparkles, Pin, Plus, Minus } from "lucide-react";
+import { Search, Play, AlertCircle, X, Plus, Minus } from "lucide-react";
 import { useRegisterObservation } from "@/lib/chat-observer";
-import { useLokiPins } from "@/lib/loki-pins";
-import LokiChart from "@/components/loki/LokiChart";
-import { useToast } from "@/hooks/use-toast";
+import { postLokiQuery } from "@/lib/loki-api";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -53,15 +46,21 @@ const TIME_RANGES = [
   { value: "6h", label: "Last 6 hours" },
   { value: "24h", label: "Last 24 hours" },
   { value: "7d", label: "Last 7 days" },
+  { value: "30d", label: "Last 30 days" },
+  { value: "90d", label: "Last 90 days" },
+  { value: "1y", label: "Last 1 year" },
 ];
 
 const SEVERITY_STYLES: Record<string, string> = {
-  critical: "bg-red-50 border-red-400 text-red-900",
-  error: "bg-red-50 border-red-400 text-red-900",
-  warning: "bg-amber-50 border-amber-400 text-amber-900",
-  warn: "bg-amber-50 border-amber-400 text-amber-900",
-  info: "bg-blue-50 border-blue-400 text-blue-900",
-  debug: "bg-gray-50 border-gray-400 text-gray-800",
+  critical: "bg-rose-500/10 border-rose-500 text-rose-200",
+  error: "bg-rose-500/10 border-rose-500 text-rose-200",
+  high: "bg-orange-500/10 border-orange-500 text-orange-200",
+  warning: "bg-amber-500/10 border-amber-500 text-amber-200",
+  warn: "bg-amber-500/10 border-amber-500 text-amber-200",
+  medium: "bg-yellow-500/10 border-yellow-500 text-yellow-200",
+  info: "bg-cyan-500/10 border-cyan-500 text-cyan-200",
+  low: "bg-sky-500/10 border-sky-500 text-sky-200",
+  debug: "bg-slate-500/10 border-slate-500 text-slate-300",
 };
 
 interface LokiRow {
@@ -88,9 +87,9 @@ interface LokiQueryResult {
 // has no offset paging): each page fetches the next-oldest PAGE_SIZE lines.
 const PAGE_SIZE = 200;
 
-const UNIT_MS: Record<string, number> = { s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000, w: 604_800_000 };
+const UNIT_MS: Record<string, number> = { s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000, w: 604_800_000, y: 31_536_000_000 };
 function durationToMs(d: string): number {
-  const m = /^(\d+)([smhdw])$/.exec(d.trim());
+  const m = /^(\d+)([smhdwy])$/.exec(d.trim());
   return m ? Number(m[1]) * UNIT_MS[m[2]] : 3_600_000;
 }
 function msToNs(ms: number): string {
@@ -165,47 +164,7 @@ function useLabelMap() {
   });
 }
 
-async function postLokiQuery(payload: Record<string, unknown>): Promise<LokiQueryResult> {
-  const r = await fetch(`${API_BASE}/api/loki/query`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify(payload),
-  });
-  if (!r.ok) {
-    const detail = await r.json().catch(() => ({}));
-    throw new Error(detail.detail || detail.error || `Query failed (${r.status})`);
-  }
-  return r.json();
-}
-
-// Coerce numeric strings so Recharts plots them on numeric axes (matches the
-// pattern used by the existing pinChartToDashboard copilot action).
-function coerceRows(rows: unknown): Array<Record<string, unknown>> {
-  let parsed: unknown[] = [];
-  if (typeof rows === "string") { try { parsed = JSON.parse(rows); } catch { parsed = []; } }
-  else if (Array.isArray(rows)) parsed = rows;
-  return (Array.isArray(parsed) ? parsed : []).map((row) => {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries((row ?? {}) as Record<string, unknown>)) {
-      out[k] = typeof v === "string" && v.trim() !== "" && isFinite(Number(v)) ? Number(v) : v;
-    }
-    return out;
-  });
-}
-
-function parsePalette(colors: unknown): string[] | undefined {
-  let arr: unknown[] = [];
-  if (typeof colors === "string" && colors.trim()) { try { arr = JSON.parse(colors); } catch { return undefined; } }
-  else if (Array.isArray(colors)) arr = colors;
-  const valid = arr.filter((c) => typeof c === "string" && /^(#|rgb|hsl)/i.test((c as string).trim())) as string[];
-  return valid.length ? valid : undefined;
-}
-
 export default function LokiLogs() {
-  const { toast } = useToast();
-  const { pins, addPin, removePin } = useLokiPins();
-
   // Grafana-style: the user adds label filters and picks which label each one is.
   const [filters, setFilters] = useState<LabelFilter[]>([newFilter()]);
   const [lineFilter, setLineFilter] = useState("");
@@ -228,14 +187,14 @@ export default function LokiLogs() {
     queryKey: ["loki-logs-explore", committed?.logql, committed?.startNs, committed?.endNs],
     enabled: !!committed,
     initialPageParam: undefined as string | undefined,
-    queryFn: ({ pageParam }) =>
-      postLokiQuery({
+    queryFn: async ({ pageParam }) =>
+      (await postLokiQuery({
         logql: committed!.logql,
         kind: "logs",
         start: committed!.startNs,
         end: pageParam ?? committed!.endNs,
         limit: PAGE_SIZE,
-      }),
+      })) as unknown as LokiQueryResult,
     getNextPageParam: (lastPage) => {
       const pageRows = lastPage.rows ?? [];
       if (pageRows.length < PAGE_SIZE) return undefined; // exhausted
@@ -311,77 +270,9 @@ export default function LokiLogs() {
     value: { filters, lineFilter, since, previewLogQL },
   });
 
-  useCopilotAction({
-    name: "queryLoki",
-    description:
-      "Run a LogQL query against the Loki logs server and get results. Use kind='logs' to fetch matching log lines (returns recent rows + count), or kind='metric' for aggregations over time (e.g. 'sum by (severity) (count_over_time({service_name=~\".+\"}[1h]))' — returns time series). Generate the LogQL yourself from the available label values. After getting results, summarise them, then optionally call pinLokiVisual to chart them.",
-    parameters: [
-      { name: "logql", type: "string", description: "A valid LogQL query. Log query e.g. '{severity=\"critical\"} |= \"Tunnel\"'. Metric query e.g. 'sum by (severity) (count_over_time({service_name=~\".+\"}[24h]))'.", required: true },
-      { name: "kind", type: "string", description: "'logs' (log lines) or 'metric' (time-series aggregation). Default 'logs'.", required: false },
-      { name: "since", type: "string", description: "Relative lookback window: 15m, 1h, 6h, 24h, or 7d. Default '1h'.", required: false },
-    ],
-    handler: async ({ logql, kind, since: sinceArg }: { logql: string; kind?: string; since?: string }) => {
-      try {
-        const result = await postLokiQuery({ logql, kind: kind || "logs", since: sinceArg || "1h", limit: 200 });
-        if (result.kind === "logs") {
-          // Return a compact slice so the agent can summarise without huge context.
-          const rows = (result.rows ?? []).slice(0, 40).map((r) => ({
-            time: new Date(r.ts).toISOString(), severity: r.severity, service: r.service,
-            message: r.message ?? r.line, status: r.parsed?.status, device_id: r.labels?.device_id,
-          }));
-          return { kind: "logs", rowCount: result.rowCount ?? rows.length, sample: rows, stats: result.stats, logql };
-        }
-        // metric: flatten series into chartable points for the agent.
-        const series = (result.series ?? []).map((s) => ({
-          name: s.name,
-          total: s.values.reduce((acc, v) => acc + (v.value || 0), 0),
-          points: s.values.map((v) => ({ time: new Date(v.ts).toISOString(), value: v.value })),
-        }));
-        return { kind: "metric", series, stats: result.stats, logql };
-      } catch (e) {
-        return { error: e instanceof Error ? e.message : "Loki query failed", logql };
-      }
-    },
-  });
-
-  useCopilotAction({
-    name: "pinLokiVisual",
-    description:
-      "Render a chart of Loki query results INLINE in the chat and pin it to the Loki Logs 'Pinned Visuals' subtab. Call AFTER queryLoki, passing the data points you want to plot. Numbers must be raw (no commas/units).",
-    parameters: [
-      { name: "title", type: "string", description: "Chart title, e.g. 'Alerts by severity (24h)'.", required: true },
-      { name: "type", type: "string", description: "Chart type: bar | line | area | pie.", required: true },
-      { name: "xKey", type: "string", description: "Key in each data row for the category/x-axis (e.g. 'severity' or 'time').", required: true },
-      { name: "yKey", type: "string", description: "Key in each data row for the numeric value/y-axis (e.g. 'value' or 'total').", required: true },
-      { name: "data", type: "string", description: "JSON array STRING of row objects, each with xKey and yKey — e.g. '[{\"severity\":\"critical\",\"value\":12}]'. Use the real query rows.", required: true },
-      { name: "summary", type: "string", description: "One-sentence takeaway shown under the chart.", required: false },
-      { name: "logql", type: "string", description: "The LogQL that produced this data (shown under the chart).", required: false },
-      { name: "colors", type: "string", description: "Optional JSON array STRING of hex colors, e.g. '[\"#dc2626\",\"#f59e0b\"]'.", required: false },
-    ],
-    handler: async ({ title, type, xKey, yKey, data, summary, logql, colors }: {
-      title: string; type: string; xKey: string; yKey: string; data: unknown; summary?: string; logql?: string; colors?: unknown;
-    }) => {
-      const rows = coerceRows(data);
-      if (rows.length === 0) return "No data rows were provided — re-run queryLoki and pass the actual rows as a JSON array string in `data`.";
-      addPin({ title, type, xKey, yKey, data: rows, colors: parsePalette(colors), summary, logql });
-      toast({ title: "Pinned visual", description: `"${title}" added to Pinned Visuals.` });
-      return `Rendered "${title}" in the chat and pinned it to the Pinned Visuals subtab (${rows.length} points).`;
-    },
-    render: ({ args }: { args: { title?: string; type?: string; xKey?: string; yKey?: string; data?: unknown; summary?: string; logql?: string; colors?: unknown } }) => {
-      const rows = coerceRows(args?.data);
-      return (
-        <div className="my-2 rounded-lg border border-border bg-card p-3">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-primary" />
-            <span className="text-xs font-semibold">{args?.title || "Loki visual"}</span>
-          </div>
-          <LokiChart type={args?.type || "bar"} xKey={args?.xKey || "name"} yKey={args?.yKey || "value"} data={rows} colors={parsePalette(args?.colors)} height={200} />
-          {args?.summary && <p className="text-[11px] text-muted-foreground mt-1.5">{args.summary}</p>}
-          {args?.logql && <code className="block text-[10px] text-muted-foreground mt-1 font-mono break-all">{args.logql}</code>}
-        </div>
-      );
-    },
-  });
+  // The agent's tools (NOC functions + queryLoki/pinLokiVisual) are registered
+  // globally in CopilotPanel via useNocCopilotActions(), so they work on every
+  // page. This page only contributes Explorer-specific readables above.
 
   // Flatten paged results, de-duping by timestamp+line in case a cursor boundary
   // re-returns a line shared at the same nanosecond.
@@ -397,28 +288,9 @@ export default function LokiLogs() {
   }, [logsQuery.data]);
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center gap-2">
-        <ScrollText className="w-5 h-5 text-primary" />
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Loki Logs</h1>
-          <p className="text-sm text-muted-foreground">
-            Explore logs from the Loki server, or ask the Copilot to query and chart them.
-          </p>
-        </div>
-      </div>
-
-      <Tabs defaultValue="explorer">
-        <TabsList>
-          <TabsTrigger value="explorer" className="gap-1.5"><Search className="w-3.5 h-3.5" /> Explorer</TabsTrigger>
-          <TabsTrigger value="pinned" className="gap-1.5">
-            <Pin className="w-3.5 h-3.5" /> Pinned Visuals
-            {pins.length > 0 && <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">{pins.length}</Badge>}
-          </TabsTrigger>
-        </TabsList>
-
-        {/* ── Explorer ─────────────────────────────────────────────────────── */}
-        <TabsContent value="explorer" className="pt-4 space-y-4">
+    <div className="space-y-4">
+      {/* Explorer ──────────────────────────────────────────────────────────── */}
+      <div className="space-y-4">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Filters</CardTitle>
@@ -530,7 +402,7 @@ export default function LokiLogs() {
                   {rows.map((r, idx) => {
                     const sev = (r.severity || "").toLowerCase();
                     return (
-                      <div key={idx} className={`p-2.5 rounded-md text-xs font-mono border-l-4 ${SEVERITY_STYLES[sev] ?? "bg-gray-50 border-gray-300 text-gray-800"}`}>
+                      <div key={idx} className={`p-2.5 rounded-md text-xs font-mono border-l-4 ${SEVERITY_STYLES[sev] ?? "bg-muted/40 border-border text-foreground"}`}>
                         <div className="flex justify-between items-center gap-2">
                           <span className="font-semibold uppercase">{r.severity ?? "log"}</span>
                           <span className="text-[10px] opacity-70 whitespace-nowrap">{new Date(r.ts).toLocaleString()}</span>
@@ -588,42 +460,7 @@ export default function LokiLogs() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-
-        {/* ── Pinned Visuals ───────────────────────────────────────────────── */}
-        <TabsContent value="pinned" className="pt-4">
-          {pins.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center gap-2 py-14 text-muted-foreground">
-                <Pin className="w-7 h-7 opacity-40" />
-                <p className="text-sm font-medium text-foreground">No pinned visuals yet</p>
-                <p className="text-xs max-w-sm text-center">Ask the Copilot something like “Count alerts by severity over the last 24h and chart it.” The chart it creates will be pinned here.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              {pins.map((pin) => (
-                <Card key={pin.id} className="group relative">
-                  <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-3.5 h-3.5 text-primary" />
-                      <CardTitle className="text-sm font-semibold">{pin.title}</CardTitle>
-                    </div>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-500" onClick={() => removePin(pin.id)}>
-                      <X className="w-3.5 h-3.5" />
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <LokiChart type={pin.type} xKey={pin.xKey} yKey={pin.yKey} data={pin.data} colors={pin.colors} />
-                    {pin.summary && <p className="text-[11px] text-muted-foreground mt-2">{pin.summary}</p>}
-                    {pin.logql && <code className="block text-[10px] text-muted-foreground mt-1 font-mono break-all">{pin.logql}</code>}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+      </div>
     </div>
   );
 }

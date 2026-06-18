@@ -15,6 +15,7 @@ from fastapi import APIRouter, Body, HTTPException
 
 from ..config import get_settings
 from ..loki.client import duration_to_seconds, get_loki_client, now_ns
+from ..loki.noc import function_specs, run_function
 
 log = logging.getLogger("agents.routes.loki")
 router = APIRouter()
@@ -91,6 +92,32 @@ async def loki_label_values(name: str, since: str | None = None):
     try:
         return {"label": name, "values": await client.label_values(name, start_ns=start_ns, end_ns=end_ns)}
     except Exception as err:  # noqa: BLE001
+        raise _loki_error(err)
+
+
+@router.get("/loki/noc/functions")
+async def loki_noc_functions():
+    """List the canonical NOC query-function specs (name, description, params).
+
+    Consumed by the frontend to register CopilotKit tools and by the agent so it
+    calls a named function instead of hallucinating LogQL."""
+    return {"functions": function_specs()}
+
+
+@router.post("/loki/noc/{name}")
+async def loki_noc_run(name: str, body: dict = Body(default={})):
+    """Run a canonical NOC function by name with JSON params → structured result."""
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="JSON body required")
+    client = get_loki_client()
+    try:
+        return await run_function(client, name, body)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Unknown NOC function '{name}'")
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=str(err))
+    except Exception as err:  # noqa: BLE001
+        log.exception("noc function failed: %s", name)
         raise _loki_error(err)
 
 

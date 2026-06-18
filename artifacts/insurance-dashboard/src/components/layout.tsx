@@ -2,24 +2,11 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Sparkles as SparklesNav, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useTenantConfig } from "@/lib/tenant-config";
 import { NAV } from "@/lib/nav-config";
-import { useActiveProject } from "@/lib/active-project";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import CopilotPanel from "./CopilotPanel";
 
-function pageTitle(location: string): string {
-  // Quick lookups so the header reads sensibly on every route.
-  if (location === "/") return "Home";
-  if (location === "/projects") return "Projects";
-  if (location.startsWith("/projects/")) return "Project";
-  if (location === "/upload") return "Upload Data";
-  if (location === "/settings") return "Settings";
-  if (location === "/governance") return "Governance";
-  if (location === "/dashboards") return "Dashboards";
-  if (location.startsWith("/dashboards/")) return "Dashboard";
-  return "Dashboard";
-}
+const BRAND_NAME = "Gen VI";
 
 function SidebarNav({ collapsed }: { collapsed: boolean }) {
   const [location] = useLocation();
@@ -35,15 +22,15 @@ function SidebarNav({ collapsed }: { collapsed: boolean }) {
             <div
               title={collapsed ? item.label : undefined}
               className={cn(
-                "flex items-center gap-2.5 rounded-md text-[13px] transition-all cursor-pointer",
-                collapsed ? "justify-center px-2 py-2" : "px-2.5 py-2",
+                "flex items-center gap-2 rounded-md text-[11px] transition-all cursor-pointer",
+                collapsed ? "justify-center px-2 py-1.5" : "px-2 py-1.5",
                 isActive
                   ? "bg-sidebar-accent text-white font-medium"
                   : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-white",
               )}
               data-testid={`nav-${item.label.toLowerCase()}`}
             >
-              <item.icon className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/50")} />
+              <item.icon className={cn("w-3.5 h-3.5 flex-shrink-0", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/50")} />
               {!collapsed && <span className="truncate">{item.label}</span>}
             </div>
           </Link>
@@ -56,11 +43,8 @@ function SidebarNav({ collapsed }: { collapsed: boolean }) {
 const SIDEBAR_COLLAPSED_KEY = "geva-sidebar-collapsed";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
-  const { config } = useTenantConfig();
-  const { project } = useActiveProject();
-  const brandName = config?.branding?.name || "Gen VI";
-  const headerTitle = project?.name && location.startsWith("/projects/") ? project.name : pageTitle(location);
+  const brandName = BRAND_NAME;
+  const headerTitle = "Loki Logs";
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
@@ -75,7 +59,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <aside
         className={cn(
           "flex-shrink-0 border-r border-sidebar-border bg-sidebar flex flex-col transition-[width] duration-200 ease-out",
-          sidebarCollapsed ? "w-14" : "w-60",
+          sidebarCollapsed ? "w-12" : "w-44",
         )}
       >
         <div
@@ -86,9 +70,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         >
           {!sidebarCollapsed && (
             <Link href="/">
-              <div className="flex items-center gap-2.5 text-white font-bold text-base tracking-tight cursor-pointer">
-                <div className="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center">
-                  <SparklesNav className="w-4 h-4 text-sidebar-primary" />
+              <div className="flex items-center gap-2 text-white font-bold text-sm tracking-tight cursor-pointer">
+                <div className="w-6 h-6 rounded-md bg-white/10 flex items-center justify-center">
+                  <SparklesNav className="w-3.5 h-3.5 text-sidebar-primary" />
                 </div>
                 {brandName}
               </div>
@@ -114,7 +98,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-14 flex items-center justify-between px-6 border-b border-border bg-white z-10 sticky top-0">
+        <header className="h-14 flex items-center justify-between px-6 border-b border-border bg-card z-10 sticky top-0">
           <h1 className="text-base font-semibold text-foreground" data-testid="page-title">
             {headerTitle}
           </h1>
@@ -137,7 +121,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </main>
 
-      <aside className="w-[380px] flex-shrink-0 border-l border-border bg-white flex flex-col">
+      <aside className="w-[380px] flex-shrink-0 border-l border-border bg-card flex flex-col">
         <CopilotPanel />
       </aside>
     </div>

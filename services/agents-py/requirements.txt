@@ -1,15 +1,6 @@
-# FastAPI agent service — LangChain + LangGraph port of the Express agent layer.
+# Loki logs service — FastAPI + httpx over the Loki HTTP API.
 fastapi>=0.115
 uvicorn[standard]>=0.30
-psycopg[binary]>=3.2
-psycopg-pool>=3.2
-
-# LangChain / LangGraph stack (agents are built structurally on these only).
-langchain>=0.3
-langchain-openai>=0.2
-langgraph>=0.2.50
-langgraph-checkpoint-postgres>=2.0
-langsmith>=0.1.140
 
 # Config
 pydantic>=2.7

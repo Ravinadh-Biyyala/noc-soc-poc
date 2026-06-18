@@ -1,82 +1,49 @@
-# Gen-BI Agents (Python)
+# Loki Logs Service (Python)
 
-A FastAPI service that re-implements the Express AI agent layer on **LangChain +
-LangGraph**, with **LangSmith** tracing into the `genbi-agents` project. It owns
-the AI agent vertical; the Express server keeps auth, upload, ingest, datasets,
-workspaces, settings, and the copilot.
+A small **FastAPI** service that fronts a Grafana **Loki** server's read API for
+the "Loki Logs" dashboard tab. Self-contained over `httpx` — no database, no
+LangChain/LangGraph.
 
-It connects to the **same Postgres** as Express (`DATABASE_URL`) and reads/writes
-the same `project_transformations` / `project_semantic_models` / `project_metrics`
-/ `user_dashboards` / `dashboard_charts` tables, so the frontend contract is
-unchanged.
+When `AGENTS_SERVICE_URL` is set, the Express server proxies `/api/loki/*` here.
 
-## Agents
+## Run
 
-Each agent is a compiled LangGraph `StateGraph` (an LLM `agent` node ↔ `ToolNode`
-loop) using the shared `AsyncPostgresSaver` checkpointer.
+```bash
+python -m venv .venv
+.venv/Scripts/python -m pip install -r requirements.txt
+.venv/Scripts/python run.py        # serves on :8000
+```
 
-| Agent | Phase | Tools |
+Configure via the repo-root `.env` (or a service-local `.env`):
+- `LOKI_URL` — the Loki server (default `http://65.0.120.127:3100`)
+- `LOKI_TIMEOUT` — per-request timeout seconds (default 30)
+- `LOKI_LABEL_WINDOW` — lookback for label-value discovery (default `30d`)
+- `AGENTS_PORT` — port (default 8000), `CORS_ORIGIN` — allowed origin
+
+Health: `GET /healthz`.
+
+## Endpoints (mounted under `/api`)
+
+| Method | Path | Purpose |
 |---|---|---|
-| Data Engineer | Bronze→Silver | `get_schema_info`, `profile_data`, `propose_cleaning`, `execute_transformation` |
-| Data Modeler (semantic) | Silver→Semantic | `list_warehouse_tables`, `propose_star_schema`, `generate_semantic_graph` |
-| Data Modeler (dashboard) | consumption | `list_warehouse_tables`, `execute_warehouse_query`, `create_dashboard` |
-| Metric Architect | Gold KPIs | `read_semantic_model`, `list_warehouse_tables`, `suggest_metrics`, `save_measure_metadata` |
-| Analyst Chat | Q&A (SSE stream) | `execute_warehouse_query` (read-only) |
+| GET | `/loki/labels` | Label names (wide window) |
+| GET | `/loki/labels-with-values` | All labels → values, one fetch (powers the filter builder) |
+| GET | `/loki/label/{name}/values` | Values for one label |
+| GET | `/loki/ready` | Loki readiness passthrough |
+| POST | `/loki/query` | Run a LogQL query (`kind` = `logs` or `metric`) |
 
-`agents/pipeline/graph.py` chains the three proposal phases with `interrupt()`
-for human-in-the-loop approval (the orchestrated alternative to the discrete
-`/suggest` + `/accept` endpoints).
+`POST /loki/query` body: `{ logql, kind?, since?, start?, end?, limit?, step? }`.
+Results are normalized: `streams` → `{ kind: "logs", rows, stats }` (JSON log
+lines parsed best-effort); `matrix`/`vector` → `{ kind: "metric", series }` ready
+for Recharts.
 
 ## Layout
 
 ```
 app/
-  main.py            FastAPI app + lifespan (pool, checkpointer, tracing)
-  config.py          settings (root .env + service .env override)
-  tracing.py         LangSmith env wiring
-  llm/client.py      ChatOpenAI factory (AI_INTEGRATIONS_OPENAI_*)
-  checkpoint/saver.py AsyncPostgresSaver
-  db/                psycopg3 pool, schema helpers, repositories, introspection
-  agents/
-    shared/          prompts, validation, react graph builder, run helper, serde
-    data_engineer/ data_modeler/ metric_architect/ analyst_chat/ pipeline/
-  routes/            transformations, modeling, metrics, agents, pipeline
+  main.py          # FastAPI app + lifespan + /healthz
+  config.py        # pydantic-settings (loki_* + server settings)
+  loki/client.py   # async Loki HTTP client + response normalization
+  routes/loki.py   # the /loki/* endpoints
+run.py             # uvicorn entrypoint (Windows selector loop)
 ```
-
-## Run
-
-```bash
-cd services/agents-py
-python -m venv .venv
-.venv/Scripts/python -m pip install -r requirements.txt   # (POSIX: .venv/bin/python)
-.venv/Scripts/python run.py                               # serves on :8000
-```
-
-`run.py` sets the Windows Selector event loop (psycopg async requirement) and
-starts uvicorn. Verify: `curl http://localhost:8000/healthz` →
-`{"status":"ok","project":"genbi-agents"}`.
-
-## Wire Express to it
-
-Set `AGENTS_SERVICE_URL=http://localhost:8000` in the repo-root `.env` and restart
-the Express server. Express then proxies the agent vertical to this service. Unset
-it to fall back to the original TS routers (zero behavioural change).
-
-## Endpoints (under `/api`, same paths as Express)
-
-- `POST /projects/{id}/agents/data-engineer/suggest`, `GET /projects/{id}/transformations`,
-  `POST .../transformations/{tid}/accept|reject`, `DELETE .../transformations/{tid}`
-- `GET /projects/{id}/warehouse-tables`,
-  `POST /projects/{id}/agents/data-modeler/suggest` (+ `suggest-relationships`),
-  semantic-model CRUD, `GET /projects/{id}/relationships`,
-  `POST /projects/{id}/agents/data-modeler/generate-dashboard`, dashboards list/get/delete
-- `POST /projects/{id}/agents/metric-architect/suggest`, metrics CRUD (+ `PATCH`)
-- `GET /projects/{id}/agents/{agent}/preview-prompt`
-- `POST /projects/{id}/agents/analyst-chat/messages` (SSE)
-- `POST /projects/{id}/pipeline/start|resume`, `GET /projects/{id}/pipeline/state`
-
-## Tracing
-
-Traces land in the LangSmith project named by `LANGSMITH_PROJECT` (defaults to
-`genbi-agents` via `services/agents-py/.env`). No per-call code — LangChain emits
-spans automatically once the `LANGSMITH_*` env vars are set.

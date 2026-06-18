@@ -1,0 +1,77 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - link "Gen VI" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e7]:
+            - img [ref=e9]
+            - text: Gen VI
+        - button "Collapse sidebar" [ref=e12]:
+          - img [ref=e13]
+      - navigation [ref=e16]:
+        - link "Dashboard" [ref=e17] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e18]:
+            - img [ref=e19]
+            - generic [ref=e21]: Dashboard
+        - link "Traces" [ref=e22] [cursor=pointer]:
+          - /url: /loki-traces
+          - generic [ref=e23]:
+            - img [ref=e24]
+            - generic [ref=e28]: Traces
+        - link "Loki Logs" [ref=e29] [cursor=pointer]:
+          - /url: /loki-logs
+          - generic [ref=e30]:
+            - img [ref=e31]
+            - generic [ref=e34]: Loki Logs
+        - link "Pinned Visuals" [ref=e35] [cursor=pointer]:
+          - /url: /loki-pins
+          - generic [ref=e36]:
+            - img [ref=e37]
+            - generic [ref=e42]: Pinned Visuals
+      - generic [ref=e43]: Gen VI 2026
+    - main [ref=e44]:
+      - generic [ref=e45]:
+        - heading "Loki Logs" [level=1] [ref=e46]
+        - generic [ref=e47]:
+          - generic [ref=e52]: Live
+          - generic [ref=e55]: BK
+      - generic [ref=e57]:
+        - generic [ref=e58]:
+          - generic [ref=e59]:
+            - img [ref=e60]
+            - heading "Incident Traces" [level=1] [ref=e64]
+            - generic [ref=e65]:
+              - img [ref=e66]
+              - text: live
+            - img [ref=e72]
+          - combobox [ref=e77]:
+            - generic: "Live: 30s"
+            - img [ref=e78]
+        - generic [ref=e80]:
+          - button "All 0" [ref=e81]
+          - button "Network 0" [ref=e82]
+          - button "Security 0" [ref=e83]
+          - button "Other 0" [ref=e84]
+        - paragraph [ref=e96]: Select an incident to view its trace.
+    - complementary [ref=e97]:
+      - generic [ref=e98]:
+        - generic [ref=e99]:
+          - img [ref=e100]
+          - text: BI Companion
+          - generic [ref=e112]: BI
+        - button "Start a new chat" [ref=e113]:
+          - img
+      - generic [ref=e114]:
+        - img [ref=e115]
+        - generic [ref=e118]: Observing
+        - generic [ref=e119]: Incident Traces
+      - generic [ref=e126]:
+        - generic [ref=e127]:
+          - textbox "Ask about devices, alarms, incidents…" [ref=e128]
+          - button "Send" [disabled] [ref=e131]:
+            - img [ref=e132]
+        - paragraph [ref=e135]: Powered by CopilotKit
+  - region "Notifications (F8)":
+    - list
