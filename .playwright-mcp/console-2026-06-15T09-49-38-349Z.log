@@ -1,4 +1,0 @@
-[    2063ms] SyntaxError: Failed to execute 'postMessage' on 'Window': Invalid target origin 'undefined' in a call to 'postMessage'.
-    at h (https://orgfarm-e5ac796377-dev-ed.develop.my.salesforce.com/jslibrary/1773444835262/sfdc/AuraAlohaFrameNavigator.js:152:149)
-    at Object.init (https://orgfarm-e5ac796377-dev-ed.develop.my.salesforce.com/jslibrary/1773444835262/sfdc/AuraAlohaFrameNavigator.js:158:245)
-    at https://orgfarm-e5ac796377-dev-ed.develop.my.salesforce.com/jslibrary/1773444835262/sfdc/AuraAlohaFrameNavigator.js:174:29

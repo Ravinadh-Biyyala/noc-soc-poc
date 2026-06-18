@@ -1,4 +1,0 @@
-[     149ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:17986
-[    1373ms] [ERROR] Each child in a list should have a unique "key" prop.%s%s See https://react.dev/link/warning-keys for more information. 
-
-Check the render method of `GeneratedDashboard`.  @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=8bab00e6:17516

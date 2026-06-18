@@ -52,6 +52,18 @@ Thumbs.db
 .env
 .env.local
 
+# Python virtualenvs & caches
+.venv/
+**/.venv/
+__pycache__/
+*.pyc
+
+# Playwright MCP artifacts
+.playwright-mcp/
+
+# Local launcher with machine-specific paths/secrets
+start-servers.bat
+
 # Cached Salesforce OAuth tokens (written by the api-server)
 .salesforce-tokens.json
 .sf/
