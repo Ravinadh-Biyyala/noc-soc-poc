@@ -11,8 +11,10 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRegisterObservation } from "@/lib/chat-observer";
-import { callNoc, type AssetInventory, type AssetRow } from "@/lib/loki-noc";
+import { useNocUi } from "@/lib/ui-bridge";
+import { fetchAllDevices, type AssetRow } from "@/lib/loki-noc";
 import { severityBadge } from "@/lib/noc-format";
+import ExplainButton from "@/components/loki/ExplainButton";
 
 // type → icon + tint for the leading TYPE cell.
 const TYPE_META: Record<string, { icon: LucideIcon; tint: string }> = {
@@ -58,11 +60,18 @@ export default function LokiAssets() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const { askCompanion } = useNocUi();
 
+  // Full fleet straight from the Loki server (device_id label lookup — no LogQL
+  // query). Loaded once and cached: these tabs don't auto-refresh on revisit.
   const { data, isLoading, error, isFetching, refetch } = useQuery({
-    queryKey: ["noc-assets"],
-    queryFn: () => callNoc<AssetInventory>("asset_inventory", { since: "24h" }),
+    queryKey: ["loki-all-devices"],
+    queryFn: () => fetchAllDevices(),
     placeholderData: keepPreviousData,
+    staleTime: Infinity,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   useRegisterObservation(
@@ -108,12 +117,15 @@ export default function LokiAssets() {
             {data ? ` · ${data.availability_pct}% available` : ""}
           </p>
         </div>
-        <button
-          onClick={() => refetch()}
-          className="flex items-center gap-1.5 rounded-md border border-border bg-background/40 px-3 py-1.5 text-xs text-foreground hover:border-primary/50 hover:text-primary transition-colors"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} /> Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <ExplainButton title="Asset inventory" hint="Use asset_inventory to summarise the fleet — counts by type and status, availability, and any offline/degraded devices." label="Explain inventory" />
+          <button
+            onClick={() => refetch()}
+            className="flex items-center gap-1.5 rounded-md border border-border bg-background/40 px-3 py-1.5 text-xs text-foreground hover:border-primary/50 hover:text-primary transition-colors"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} /> Refresh
+          </button>
+        </div>
       </div>
 
       {/* Search + filters */}
@@ -153,7 +165,10 @@ export default function LokiAssets() {
           <p className="py-12 text-center text-sm text-muted-foreground">No assets match these filters.</p>
         ) : (
           <div className="max-h-[calc(100vh-260px)] overflow-y-auto">
-            {filtered.map((a) => <AssetRowView key={a.name} a={a} />)}
+            {filtered.map((a) => (
+              <AssetRowView key={a.name} a={a}
+                onClick={() => askCompanion(`Check the health of device ${a.name} and summarise its status, open alarms and any related incidents.`)} />
+            ))}
           </div>
         )}
       </div>
@@ -161,11 +176,14 @@ export default function LokiAssets() {
   );
 }
 
-function AssetRowView({ a }: { a: AssetRow }) {
+function AssetRowView({ a, onClick }: { a: AssetRow; onClick?: () => void }) {
   const meta = typeMeta(a.type);
   const Icon = meta.icon;
   return (
-    <div className="grid grid-cols-[64px_1fr_120px_140px_120px_110px] gap-2 items-center px-4 py-2.5 border-b border-border/50 hover:bg-accent/30 transition-colors">
+    <div
+      onClick={onClick}
+      title={onClick ? `Ask the BI Companion about ${a.name}` : undefined}
+      className={`grid grid-cols-[64px_1fr_120px_140px_120px_110px] gap-2 items-center px-4 py-2.5 border-b border-border/50 hover:bg-accent/30 transition-colors ${onClick ? "cursor-pointer" : ""}`}>
       <div className={`w-7 h-7 rounded-md flex items-center justify-center ${meta.tint}`} title={a.type}>
         <Icon className="w-4 h-4" />
       </div>

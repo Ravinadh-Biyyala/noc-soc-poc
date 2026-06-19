@@ -6,7 +6,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { CopilotChat } from "@copilotkit/react-ui";
-import { useCopilotChat } from "@copilotkit/react-core";
+import { useCopilotChat, useCopilotReadable } from "@copilotkit/react-core";
 import { BrainCircuit, Plus, Eye, AlertTriangle, Info, AlertOctagon, Check, XCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
@@ -35,6 +35,20 @@ export default function CopilotPanel() {
   // Register the NOC function-backed tools globally so the agent can call them on
   // every page (not just the Explorer).
   useNocCopilotActions();
+
+  // Make the CURRENT page the agent's ambient context (AG-UI): the live page
+  // observation (label + data summary + the visuals on it) is fed to the model on
+  // every turn, so it can answer "what's on this page / explain this dashboard"
+  // and ground a clicked-visual explanation without the user re-stating context.
+  useCopilotReadable({
+    description:
+      "The page/dashboard the user is currently VIEWING in the app, with a live summary of its data and the visuals on it. Treat this as ground truth for 'what's on this page', 'explain this dashboard/visual', or any question that says 'this'/'here'/'current'. After you navigateTo another page, this updates to that page.",
+    value: {
+      page: observation.label,
+      summary: observation.summary ?? "",
+      exampleQuestions: observation.suggestions ?? [],
+    },
+  });
 
   const copilotName = COPILOT_NAME;
   const { data: instructions } = useCopilotInstructions();

@@ -8,6 +8,9 @@ const Card = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
+    // Marks a card so a click inside it (e.g. ExplainButton) can locate the
+    // panel and read its currently-rendered values straight off the screen.
+    data-explain-card=""
     className={cn(
       "rounded-xl border bg-card text-card-foreground shadow",
       className

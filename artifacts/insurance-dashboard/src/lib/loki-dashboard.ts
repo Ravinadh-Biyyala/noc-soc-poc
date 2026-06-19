@@ -160,6 +160,14 @@ export async function fetchNocDashboard(since: string): Promise<NocDashboardData
   const activeIncidents = sevCount(incidentsBySev, "critical") + sevCount(incidentsBySev, "high");
   const topCpu = topCpuR.devices ?? [];
 
+  // Canonical fleet size = device_inventory total (the full device_id set on the
+  // Loki server, e.g. 139). asset_inventory only covers devices seen in
+  // manageengine alarms/metrics, so it undercounts — use it only for health
+  // (degraded/offline), and derive online against the true total.
+  const totalDevices = inventory.total || assetsR.total || 0;
+  const deviceOnline = Math.max(0, totalDevices - (assetsR.degraded ?? 0) - (assetsR.offline ?? 0));
+  const availabilityPct = totalDevices ? Math.round((deviceOnline / totalDevices) * 100) : 0;
+
   return {
     inventory,
     alarmsBySeverity,
@@ -177,9 +185,9 @@ export async function fetchNocDashboard(since: string): Promise<NocDashboardData
     branches,
     geo,
     kpis: {
-      totalDevices: assetsR.total || (inventory.total ?? 0),
-      deviceOnline: assetsR.online ?? 0,
-      availabilityPct: assetsR.availability_pct ?? 0,
+      totalDevices,
+      deviceOnline,
+      availabilityPct,
       totalAlarms: alarmsBySeverity.total ?? 0,
       criticalAlarms: sevCount(alarmsBySeverity.severities ?? [], "critical"),
       activeIncidents,

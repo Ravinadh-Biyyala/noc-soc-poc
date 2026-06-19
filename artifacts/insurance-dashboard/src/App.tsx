@@ -9,6 +9,8 @@ import { NocUiProvider } from "@/lib/ui-bridge";
 import { CopilotKit } from "@copilotkit/react-core";
 import Layout from "@/components/layout";
 import LokiDashboard from "@/pages/LokiDashboard";
+import LokiSoc from "@/pages/LokiSoc";
+import NocDeep from "@/pages/NocDeep";
 import LokiAssets from "@/pages/LokiAssets";
 import LokiTopology from "@/pages/LokiTopology";
 import LokiTraces from "@/pages/LokiTraces";
@@ -38,6 +40,8 @@ function AppRoutes() {
     <Switch>
       <Route path="/" component={RedirectToDashboard} />
       <Route path="/dashboard" component={LokiDashboard} />
+      <Route path="/soc" component={LokiSoc} />
+      <Route path="/noc" component={NocDeep} />
       <Route path="/assets" component={LokiAssets} />
       <Route path="/topology" component={LokiTopology} />
       <Route path="/loki-traces" component={LokiTraces} />

@@ -23,6 +23,7 @@ Everything is exposed via two routes (see routes/loki.py):
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any, Awaitable, Callable
 
 from .client import LokiClient, duration_to_seconds, now_ns
@@ -769,6 +770,283 @@ async def _search_logs(client: LokiClient, p: dict) -> dict:
     return {"function": "search_logs", "logql": sel, "since": since, "count": len(compact), "rows": compact}
 
 
+# ── SOC (security operations) ────────────────────────────────────────────────
+# The security-telemetry feeds, distinct from the NOC alarm/metric feeds. Each is
+# a JSON-line stream keyed by `source`; severity casing varies per feed (FortiSIEM
+# UPPER, Sentinel Title) so it's always lower-cased on the way out. A separate
+# logfmt sub-stream under source=sentinel carries the blocked-threat feed
+# (attack_type/country/action) — handled by attack_types / threats_by_country.
+SOC_SOURCES = ("fortisiem", "sentinel", "darknet", "windows", "firewall", "edr")
+_SOC_SELECTOR = 'source=~"' + "|".join(SOC_SOURCES) + '"'
+
+# Per-source whitelist of JSON fields safe to aggregate / surface. Keeps
+# soc_top_fields from being a free-form (and injectable) field selector.
+_SOC_FIELDS: dict[str, tuple[str, ...]] = {
+    "fortisiem": ("mitre_technique", "category", "rule_name", "user", "host", "event_id"),
+    "sentinel":  ("tactics", "country", "workspace", "user", "alert_name", "rule_id"),
+    "darknet":   ("threat_actor", "indicator_type", "confidence", "platform"),
+    "windows":   ("event_id", "process", "user", "host", "logon_type", "domain"),
+    "firewall":  ("action", "protocol", "dst_port", "src_ip", "dst_ip", "rule"),
+    "edr":       ("host", "severity"),
+}
+
+# JSON keys flattened onto each row returned by soc_recent_events (when present).
+_SOC_FLATTEN = (
+    "event_id", "mitre_technique", "tactics", "threat_actor", "indicator_type", "ioc_value",
+    "process", "action", "protocol", "src_ip", "dst_ip", "dst_port", "country", "rule_name",
+    "rule_id", "alert_name", "platform", "confidence", "workspace", "logon_type", "bytes",
+)
+
+
+async def _soc_summary(client: LokiClient, p: dict) -> dict:
+    """SOC overview: per-source volume + severity matrix, overall severity tally,
+    and the headline KPIs the Security Operations dashboard leads with."""
+    since = p.get("since") or "24h"
+    rng = _range(since)
+    rows = await _instant_raw(client, f"sum by (source, severity) (count_over_time({{{_SOC_SELECTOR}}}{rng}))")
+    by_src: dict[str, dict[str, int]] = {s: {} for s in SOC_SOURCES}
+    for e in rows:
+        m = e.get("metric") or {}
+        src = m.get("source")
+        if src not in by_src:
+            continue
+        sev = _norm_sev(m.get("severity"))
+        try:
+            cnt = int(float((e.get("value") or [0, "0"])[1]))
+        except (ValueError, TypeError):
+            cnt = 0
+        if sev:
+            by_src[src][sev] = by_src[src].get(sev, 0) + cnt
+
+    sources = [{
+        "source": src,
+        "total": sum(by_src[src].values()),
+        "by_severity": _merge_sev(list(by_src[src].items())),
+    } for src in SOC_SOURCES]
+
+    def src_sev(name: str, *sevs: str) -> int:
+        sev = by_src.get(name, {})
+        return sum(sev.get(s, 0) for s in sevs)
+
+    sev_tot: dict[str, int] = {}
+    for sev in by_src.values():
+        for k, v in sev.items():
+            sev_tot[k] = sev_tot.get(k, 0) + v
+
+    threats = await _attack_types(client, p)
+    return {
+        "function": "soc_summary", "since": since,
+        "sources": sources,
+        "total": sum(s["total"] for s in sources),
+        "by_severity": _merge_sev(list(sev_tot.items())),
+        "kpis": {
+            "siem_critical_high": src_sev("fortisiem", "critical", "high"),
+            "darknet_iocs": src_sev("darknet", "critical", "high", "medium", "low"),
+            "sentinel_alerts": next((s["total"] for s in sources if s["source"] == "sentinel"), 0),
+            "windows_alerts": src_sev("windows", "error", "warning"),
+            "firewall_denies": src_sev("firewall", "deny", "alert"),
+            "edr_events": next((s["total"] for s in sources if s["source"] == "edr"), 0),
+            "threats_blocked": threats["total"],
+        },
+    }
+
+
+async def _soc_event_trend(client: LokiClient, p: dict) -> dict:
+    """Security event volume over time, grouped by source (clamped to 30d)."""
+    since = p.get("since") or "24h"
+    start_ns, end_ns = _window_scan(since)
+    step_s = max(_clamp_secs(since) // 120, 300)
+    step = f"{step_s}s"
+    logql = f"sum by (source) (count_over_time({{{_SOC_SELECTOR}}}[{step}]))"
+    raw = await client.query_range(logql, start_ns=start_ns, end_ns=end_ns, step=step, limit=100)
+    norm = client.normalize(raw)
+    return {"function": "soc_event_trend", "since": since, "step": step, "series": norm.get("series") or []}
+
+
+async def _soc_top_fields(client: LokiClient, p: dict) -> dict:
+    """Top values of a whitelisted JSON field for one SOC source (e.g. fortisiem
+    mitre_technique, sentinel tactics, windows event_id, firewall dst_port)."""
+    source = (p.get("source") or "").strip().lower()
+    field = (p.get("field") or "").strip()
+    if source not in _SOC_FIELDS:
+        raise ValueError(f"source must be one of: {', '.join(_SOC_FIELDS)}")
+    if field not in _SOC_FIELDS[source]:
+        raise ValueError(f"field must be one of {_SOC_FIELDS[source]} for source '{source}'")
+    since = p.get("since") or "24h"
+    limit = int(p.get("limit") or 10)
+    # JSON-parsing aggregation — clamp the window to the 30d server scan limit.
+    logql = f'sum by ({field}) (count_over_time({{source="{source}"}} | json | {field}!="" {_range_scan(since)}))'
+    norm = await _instant(client, logql)
+    items = [{"value": name, "count": int(val)} for name, val in _vector_pairs(norm) if name and name != "value"][:limit]
+    return {"function": "soc_top_fields", "source": source, "field": field, "since": since,
+            "items": items, "total": sum(i["count"] for i in items)}
+
+
+async def _soc_recent_events(client: LokiClient, p: dict) -> dict:
+    """Recent parsed security events across SOC sources (or one source), with the
+    key per-feed JSON fields flattened onto each row."""
+    since = p.get("since") or "24h"
+    limit = min(int(p.get("limit") or 50), 200)
+    source = (p.get("source") or "").strip().lower()
+    sel = f'{{source="{source}"}}' if source in _SOC_FIELDS else f"{{{_SOC_SELECTOR}}}"
+    sm = _sev_matcher(p.get("severity"))
+    if sm:
+        sel = sel[:-1] + ", " + sm + "}"
+    line = (p.get("line_filter") or "").strip()
+    if line:
+        sel = f'{sel} |= "{_esc(line)}"'
+    rows = await _logs(client, sel, since, limit)
+    out: list[dict] = []
+    for r in rows:
+        pj = r.get("parsed") or {}
+        labels = r.get("labels") or {}
+        rec = {
+            "ts": r.get("ts"),
+            "source": labels.get("source"),
+            "severity": _norm_sev(labels.get("severity") or pj.get("severity")),
+            "host": labels.get("host") or pj.get("host") or pj.get("node") or labels.get("node"),
+            "user": pj.get("user"),
+            "message": pj.get("message") or r.get("line"),
+        }
+        for k in _SOC_FLATTEN:
+            v = pj.get(k)
+            if v not in (None, ""):
+                rec[k] = v
+        out.append(rec)
+    return {"function": "soc_recent_events", "since": since, "source": source or None,
+            "count": len(out), "rows": out}
+
+
+def _scalar(norm: dict) -> int:
+    pairs = _vector_pairs(norm)
+    return int(pairs[0][1]) if pairs else 0
+
+
+def _cfg_pct(name: str, default: float) -> float:
+    """An externally-sourced posture metric (compliance, MTTR/MTTD, domain health)
+    — these come from SOC tooling, not the Loki telemetry, so they're configurable
+    via env with a sensible default."""
+    try:
+        return float(os.environ.get(name) or default)
+    except (TypeError, ValueError):
+        return default
+
+
+async def _soc_threat_trend(client: LokiClient, p: dict) -> dict:
+    """Blocked-threat volume over time (the SOC 'threat trends' chart)."""
+    since = p.get("since") or "24h"
+    start_ns, end_ns = _window_scan(since)
+    step_s = max(_clamp_secs(since) // 120, 300)
+    step = f"{step_s}s"
+    raw = await client.query_range(f'sum(count_over_time({{attack_type=~".+"}}[{step}]))',
+                                   start_ns=start_ns, end_ns=end_ns, step=step, limit=10)
+    series = client.normalize(raw).get("series") or []
+    for s in series:
+        s["name"] = "threats"
+    return {"function": "soc_threat_trend", "since": since, "step": step, "series": series}
+
+
+async def _soc_posture(client: LokiClient, p: dict) -> dict:
+    """Executive SOC posture for the dashboard headline. REAL signals from Loki:
+    security_incidents, malicious_queries (darknet indicators), firewall infra
+    availability. CONFIGURED (from SOC tooling, not the telemetry): MTTD/MTTR,
+    patch & antivirus compliance, domain health — overridable via env."""
+    since = p.get("since") or "24h"
+    rng = _range(since)
+    security_incidents = _scalar(await _instant(client, f'sum(count_over_time({{agent="incident", incident_type="security"}}{rng}))'))
+    malicious_queries = _scalar(await _instant(client, f'sum(count_over_time({{source="darknet"}}{rng}))'))
+    # Firewall infrastructure availability from the per-device asset inventory.
+    inv = await _asset_inventory(client, {"since": since})
+    fw = [a for a in inv.get("assets", []) if (a.get("name") or "").upper().startswith("FW")]
+    fw_up = sum(1 for a in fw if a.get("status") == "up")
+    fw_avail = round(100 * fw_up / len(fw), 1) if fw else 0.0
+    return {
+        "function": "soc_posture", "since": since,
+        "security_incidents": security_incidents,
+        "malicious_queries": malicious_queries,
+        "firewall_availability_pct": fw_avail,
+        "firewall_total": len(fw),
+        "firewall_up": fw_up,
+        "mttd_minutes": _cfg_pct("SOC_MTTD_MIN", 7.0),
+        "mttr_minutes": _cfg_pct("SOC_MTTR_MIN", 42.0),
+        "patch_compliance_pct": _cfg_pct("SOC_PATCH_COMPLIANCE", 99.0),
+        "av_compliance_pct": _cfg_pct("SOC_AV_COMPLIANCE", 99.0),
+        "domain_health_pct": _cfg_pct("SOC_DOMAIN_HEALTH", 98.0),
+        # Which fields are configured (not from Loki) — the UI flags these.
+        "configured": ["mttd_minutes", "mttr_minutes", "patch_compliance_pct", "av_compliance_pct", "domain_health_pct"],
+    }
+
+
+# ── NOC (network operations) deep-dive ───────────────────────────────────────
+# The monitoring-alarm feeds (solarwinds = primary alarm stream w/ device_id/model
+# /site_code/category/severity labels + JSON {alert_id,status,message}; manageengine
+# similar). A small solarwinds sub-stream also carries node telemetry (cpu_pct/
+# mem_pct/bandwidth_pct/latency_ms). These power the NOC deep-dive breakdowns.
+
+
+async def _noc_alarm_analytics(client: LokiClient, p: dict) -> dict:
+    """NOC alarm analytics: monitoring-alarm volume broken down by source,
+    category, severity, hardware model, site, and open/resolved status."""
+    since = p.get("since") or "24h"
+    rng = _range(since)
+
+    async def by_label(label: str) -> list[dict]:
+        norm = await _instant(client, f"sum by ({label}) (count_over_time({{{ALARM_SOURCES}}}{rng}))")
+        return [{"key": n, "count": int(v)} for n, v in _vector_pairs(norm) if n and n != "value"]
+
+    by_source = await by_label("source")
+    by_category = await by_label("category")
+    by_model = (await by_label("model"))[:12]
+    by_site = await by_label("site_code")
+    sev_norm = await _instant(client, f"sum by (severity) (count_over_time({{{ALARM_SOURCES}}}{rng}))")
+    by_severity = _merge_sev(_vector_pairs(sev_norm))
+    # status (open/resolved/acknowledged) lives in the JSON line — scoped to
+    # manageengine (fast, representative) and clamped to the 30d scan limit.
+    st_norm = await _instant(client, f'sum by (status) (count_over_time({{source="manageengine"}} | json | status!="" {_range_scan(since)}))')
+    by_status = [{"key": n, "count": int(v)} for n, v in _vector_pairs(st_norm) if n and n != "value"]
+
+    return {
+        "function": "noc_alarm_analytics", "since": since,
+        "total": sum(s["count"] for s in by_source),
+        "by_source": by_source, "by_category": by_category, "by_severity": by_severity,
+        "by_model": by_model, "by_site": by_site, "by_status": by_status,
+    }
+
+
+async def _top_alarming_devices(client: LokiClient, p: dict) -> dict:
+    """Devices generating the most monitoring alarms — manageengine/solarwinds
+    `device_id` plus the solarwinds node-telemetry `node`, merged and ranked."""
+    since = p.get("since") or "24h"
+    limit = int(p.get("limit") or 12)
+    rng = _range(since)
+    tally: dict[str, int] = {}
+    for label in ("device_id", "node"):
+        norm = await _instant(client, f"sum by ({label}) (count_over_time({{{ALARM_SOURCES}}}{rng}))")
+        for n, v in _vector_pairs(norm):
+            if n and n != "value":
+                tally[n] = tally.get(n, 0) + int(v)
+    devices = sorted(({"device": k, "count": v} for k, v in tally.items()), key=lambda d: d["count"], reverse=True)[:limit]
+    return {"function": "top_alarming_devices", "since": since, "devices": devices, "total": sum(d["count"] for d in devices)}
+
+
+_SW_NODE_METRICS = ("cpu_pct", "mem_pct", "bandwidth_pct", "latency_ms")
+
+
+async def _noc_node_performance(client: LokiClient, p: dict) -> dict:
+    """SolarWinds core-node telemetry: average CPU%, memory%, bandwidth% and
+    latency(ms) per monitored node (the node-level perf sub-stream)."""
+    since = p.get("since") or "24h"
+    scan = _range_scan(since)
+    nodes: dict[str, dict] = {}
+    for m in _SW_NODE_METRICS:
+        norm = await _instant(client, f'avg by (node) (avg_over_time({{source="solarwinds"}} | json | unwrap {m} {scan}))')
+        for n, v in _vector_pairs(norm):
+            if n and n != "value":
+                nodes.setdefault(n, {"node": n})[m] = round(v, 2)
+    out = sorted(nodes.values(), key=lambda d: d.get("cpu_pct") or 0, reverse=True)
+    return {"function": "noc_node_performance", "since": since, "nodes": out}
+
+
 # ── registry + specs ───────────────────────────────────────────────────────
 
 RunFn = Callable[[LokiClient, dict], Awaitable[dict]]
@@ -829,6 +1107,24 @@ NOC_FUNCTIONS: dict[str, NocFunction] = {f.name: f for f in [
                 [_SINCE], _asset_inventory),
     NocFunction("search_logs", "Grounded log search built from explicit label filters (no free-form LogQL). label_filters: [{label, op, value}]. Use when a structured function above doesn't fit but you still want safe, label-scoped results.",
                 [_p("label_filters", "object", False, "Array of {label, op(=,!=,=~,!~), value}."), _p("line_filter", "string", False, "Optional substring the line must contain."), _SINCE, _p("limit", "number", False, "Max rows, default 50.")], _search_logs),
+    NocFunction("soc_summary", "Security Operations (SOC) overview: per-source event volume + severity breakdown for the security feeds (fortisiem/sentinel/darknet/windows/firewall/edr), overall severity tally, and headline KPIs (SIEM critical+high, darknet IOCs, sentinel cloud alerts, windows endpoint alerts, firewall denies, threats blocked). Use for the SOC dashboard overview / 'security operations summary'.",
+                [_SINCE], _soc_summary),
+    NocFunction("soc_event_trend", "Security event volume over time grouped by source — the SOC event-volume trend chart.",
+                [_SINCE], _soc_event_trend),
+    NocFunction("soc_top_fields", "Top values of a security field for one SOC source: fortisiem→mitre_technique/category/rule_name, sentinel→tactics/country/workspace, darknet→threat_actor/indicator_type/platform, windows→event_id/process, firewall→action/protocol/dst_port. Use for SOC breakdown bars ('top MITRE techniques', 'which event IDs', 'attacker tactics').",
+                [_p("source", "string", True, "SOC source: fortisiem|sentinel|darknet|windows|firewall|edr."), _p("field", "string", True, "JSON field to break down (must be valid for the source)."), _p("limit", "number", False, "Top N, default 10."), _SINCE], _soc_top_fields),
+    NocFunction("soc_recent_events", "Recent parsed security log events across all SOC sources or one source, with the key per-feed fields flattened (mitre_technique, tactics, threat_actor, ioc_value, event_id, process, action, src/dst ip, dst_port, country). Use for the SOC log-stream tables / 'show recent security events'.",
+                [_p("source", "string", False, "Optional SOC source filter."), _p("severity", "string", False, "Optional severity filter."), _p("line_filter", "string", False, "Optional substring the line must contain."), _p("limit", "number", False, "Max rows, default 50."), _SINCE], _soc_recent_events),
+    NocFunction("noc_alarm_analytics", "NOC alarm analytics for the network-operations deep-dive: monitoring-alarm volume broken down by source (solarwinds/manageengine), category (network/server/wireless/…), severity, hardware model, site_code, and open/resolved status. Use for 'break down the alarms', 'which models/sites alarm most', alarm posture.",
+                [_SINCE], _noc_alarm_analytics),
+    NocFunction("top_alarming_devices", "The noisiest devices — those generating the most monitoring alarms over the window (device_id + node), ranked. Use for 'which devices alarm the most' / loudest devices.",
+                [_SINCE, _p("limit", "number", False, "Top N, default 12.")], _top_alarming_devices),
+    NocFunction("noc_node_performance", "SolarWinds core-node telemetry: average CPU%, memory%, bandwidth% and latency(ms) per monitored core node (Core-SW-01, DC-Router-03, FW-Edge-02, VPN-GW-01, WAN-LDN-01). Use for core network-node health.",
+                [_SINCE], _noc_node_performance),
+    NocFunction("soc_threat_trend", "Blocked-threat volume over time (the SOC threat-trends chart).",
+                [_SINCE], _soc_threat_trend),
+    NocFunction("soc_posture", "Executive SOC posture: security incidents, malicious indicators, firewall infrastructure availability (REAL, from Loki) plus MTTD/MTTR, patch & antivirus compliance and domain health (CONFIGURED from SOC tooling, not the telemetry). Use for the SOC posture/compliance KPIs.",
+                [_SINCE], _soc_posture),
 ]}
 
 

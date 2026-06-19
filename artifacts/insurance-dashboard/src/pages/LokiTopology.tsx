@@ -7,15 +7,17 @@ import { useMemo, useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import {
   Workflow, RefreshCw, AlertCircle, CheckCircle2, AlertTriangle, XCircle, X,
-  Network, Router as RouterIcon, Server, Cpu, HardDrive, Box, Monitor, ShieldAlert,
+  Network, Router as RouterIcon, Server, Cpu, HardDrive, Box, Monitor, ShieldAlert, Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRegisterObservation } from "@/lib/chat-observer";
-import { callNoc, type AssetInventory } from "@/lib/loki-noc";
+import { useNocUi } from "@/lib/ui-bridge";
+import { fetchAllDevices } from "@/lib/loki-noc";
 import { typeColor, typeLabel, type TopoAsset } from "@/lib/topology";
 import { severityBadge } from "@/lib/noc-format";
 import TopologyGraph from "@/components/loki/TopologyGraph";
+import ExplainButton from "@/components/loki/ExplainButton";
 
 const TYPE_ICON: Record<string, LucideIcon> = {
   switch: Network, router: RouterIcon, network: ShieldAlert, server: Server,
@@ -30,11 +32,18 @@ const STATUS_META: Record<string, { label: string; tint: string; Icon: LucideIco
 
 export default function LokiTopology() {
   const [selected, setSelected] = useState<TopoAsset | null>(null);
+  const { askCompanion } = useNocUi();
 
+  // Full fleet straight from the Loki server (shares the Assets page cache);
+  // loaded once and not auto-refreshed on revisit.
   const { data, isLoading, error, isFetching, refetch } = useQuery({
-    queryKey: ["noc-assets"], // shares the Assets page cache
-    queryFn: () => callNoc<AssetInventory>("asset_inventory", { since: "24h" }),
+    queryKey: ["loki-all-devices"], // shares the Assets page cache
+    queryFn: () => fetchAllDevices(),
     placeholderData: keepPreviousData,
+    staleTime: Infinity,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   useRegisterObservation(
@@ -70,12 +79,15 @@ export default function LokiTopology() {
             {data ? ` · ${data.online} online · ${data.degraded} degraded · ${data.offline} offline` : ""}
           </p>
         </div>
-        <button
-          onClick={() => refetch()}
-          className="flex items-center gap-1.5 rounded-md border border-border bg-background/40 px-3 py-1.5 text-xs text-foreground hover:border-primary/50 hover:text-primary transition-colors"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} /> Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <ExplainButton title="Network topology" hint="Use asset_inventory to summarise the fabric — device counts per type and any offline/degraded nodes." label="Explain topology" />
+          <button
+            onClick={() => refetch()}
+            className="flex items-center gap-1.5 rounded-md border border-border bg-background/40 px-3 py-1.5 text-xs text-foreground hover:border-primary/50 hover:text-primary transition-colors"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} /> Refresh
+          </button>
+        </div>
       </div>
 
       {/* Canvas + detail panel */}
@@ -98,7 +110,13 @@ export default function LokiTopology() {
           )}
         </div>
 
-        {selected && <AssetDetailPanel asset={selected} onClose={() => setSelected(null)} />}
+        {selected && (
+          <AssetDetailPanel
+            asset={selected}
+            onClose={() => setSelected(null)}
+            onAsk={() => askCompanion(`Check the health of device ${selected.name} and summarise its status, open alarms and any related incidents.`)}
+          />
+        )}
       </div>
     </div>
   );
@@ -113,7 +131,7 @@ function DetailRow({ label, value, mono }: { label: string; value: React.ReactNo
   );
 }
 
-function AssetDetailPanel({ asset, onClose }: { asset: TopoAsset; onClose: () => void }) {
+function AssetDetailPanel({ asset, onClose, onAsk }: { asset: TopoAsset; onClose: () => void; onAsk?: () => void }) {
   const Icon = TYPE_ICON[asset.type] ?? Box;
   const color = typeColor(asset.type);
   const status = STATUS_META[asset.status] ?? STATUS_META.up;
@@ -173,6 +191,15 @@ function AssetDetailPanel({ asset, onClose }: { asset: TopoAsset; onClose: () =>
           }
         />
         <DetailRow label="Open Alarms (24h)" value={asset.alarms.toLocaleString()} />
+
+        {onAsk && (
+          <button
+            onClick={onAsk}
+            className="flex w-full items-center justify-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/15"
+          >
+            <Sparkles className="w-3.5 h-3.5" /> Ask the BI Companion about this device
+          </button>
+        )}
       </div>
     </aside>
   );

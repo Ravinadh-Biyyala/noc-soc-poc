@@ -10,6 +10,7 @@ on the normalized output and keep the raw ns where useful.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -64,12 +65,29 @@ class LokiClient:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
+    # Transient transport faults (no HTTP response received). Under the dashboard's
+    # ~15-way parallel fan-out, this Loki instance intermittently drops the heaviest
+    # connection ("Server disconnected without sending a response") — retrying the
+    # same query then succeeds. We only retry these; HTTP 4xx/5xx are real errors.
+    _TRANSIENT = (httpx.RemoteProtocolError, httpx.ConnectError, httpx.ReadError,
+                  httpx.WriteError, httpx.ConnectTimeout, httpx.ReadTimeout, httpx.PoolTimeout)
+    _RETRIES = 3
+
     async def _get(self, path: str, params: dict[str, Any] | None = None) -> dict:
         url = f"{self.base_url}{path}"
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            resp = await client.get(url, params=params)
-            resp.raise_for_status()
-            return resp.json()
+        for attempt in range(self._RETRIES):
+            try:
+                async with httpx.AsyncClient(timeout=self.timeout) as client:
+                    resp = await client.get(url, params=params)
+                    resp.raise_for_status()
+                    return resp.json()
+            except self._TRANSIENT as err:
+                if attempt == self._RETRIES - 1:
+                    raise
+                log.warning("Loki transient error on %s (attempt %d/%d): %s — retrying",
+                            path, attempt + 1, self._RETRIES, err)
+                await asyncio.sleep(0.4 * (attempt + 1))
+        raise RuntimeError("unreachable")  # loop either returns or raises
 
     async def ready(self) -> bool:
         url = f"{self.base_url}/ready"

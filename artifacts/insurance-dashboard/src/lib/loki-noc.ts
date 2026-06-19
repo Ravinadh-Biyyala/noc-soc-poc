@@ -105,6 +105,142 @@ export interface AssetInventory {
   availability_pct: number; by_type: Array<{ type: string; count: number }>;
 }
 
+// ── Direct device inventory (no LogQL query) ────────────────────────────────
+// The Assets + Topology pages pull the *complete* device list straight from the
+// Loki server's `device_id` label-values endpoint (proxied at /api/loki, which
+// targets LOKI_URL). This is a label lookup, not a LogQL query, so it returns
+// EVERY monitored device — not just those surfaced by the alarm-scoped
+// asset_inventory function. Per-device status/severity/model aren't available
+// from a label lookup, so they're left unset (status defaults to "up").
+
+// device_id prefix → asset type (mirrors `_device_type` in app/loki/noc.py).
+const DEVICE_TYPE_PREFIX: Array<[string, string[]]> = [
+  ["atm", ["ATM-"]],
+  ["router", ["RTR-", "ROUTER"]],
+  ["switch", ["SW-", "SWT-", "SWITCH"]],
+  ["server", ["SRV-", "APP-", "DB-", "EXCH-", "WSUS-"]],
+  ["vm", ["VM-", "VMW-"]],
+  ["network", ["FW-", "VPN-", "AP-", "WLC-", "GW-", "LB-"]],
+];
+
+function deviceType(name: string): string {
+  const n = (name || "").toUpperCase();
+  for (const [t, prefixes] of DEVICE_TYPE_PREFIX) {
+    if (prefixes.some((p) => n.startsWith(p))) return t;
+  }
+  return "host";
+}
+
+/** The middle segment(s) of a device id (TYPE-<location>-NN) as a location hint. */
+function deviceLocation(name: string): string | null {
+  const parts = (name || "").split("-").filter(Boolean);
+  if (parts.length >= 3) return parts.slice(1, -1).join("-") || null;
+  return null;
+}
+
+/**
+ * Fetch the full fleet inventory directly from the Loki server (label-values
+ * lookup on `device_id`, no LogQL query). Returns every monitored device.
+ */
+export async function fetchAllDevices(window = "30d"): Promise<AssetInventory> {
+  const r = await fetch(
+    `${API_BASE}/api/loki/label/device_id/values?since=${encodeURIComponent(window)}`,
+    { credentials: "include" },
+  );
+  if (!r.ok) {
+    const detail = await r.json().catch(() => ({}));
+    throw new Error(detail.detail || detail.error || `Loki device lookup failed (${r.status})`);
+  }
+  const body = await r.json();
+  const names: string[] = Array.isArray(body.values) ? body.values : [];
+
+  const assets: AssetRow[] = names
+    .filter((n) => typeof n === "string" && n.trim())
+    .map((name) => ({
+      name,
+      type: deviceType(name),
+      ip: null,
+      location: deviceLocation(name),
+      category: null,
+      model: null,
+      severity: null,
+      status: "up" as const,
+      alarms: 0,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const byType = new Map<string, number>();
+  for (const a of assets) byType.set(a.type, (byType.get(a.type) ?? 0) + 1);
+
+  return {
+    assets,
+    total: assets.length,
+    online: assets.length,
+    degraded: 0,
+    offline: 0,
+    availability_pct: assets.length ? 100 : 0,
+    by_type: [...byType.entries()].map(([type, count]) => ({ type, count })),
+  };
+}
+
+// ── SOC (Security Operations) — mirror the soc_* functions in app/loki/noc.py ──
+
+export interface SocSourceSummary { source: string; total: number; by_severity: SeverityCount[] }
+export interface SocKpis {
+  siem_critical_high: number; darknet_iocs: number; sentinel_alerts: number;
+  windows_alerts: number; firewall_denies: number; edr_events: number; threats_blocked: number;
+}
+export interface SocSummary {
+  sources: SocSourceSummary[]; total: number; by_severity: SeverityCount[]; kpis: SocKpis;
+}
+export interface SocEventTrend { since: string; step: string; series: MetricSeries[] }
+export interface SocFieldItem { value: string; count: number }
+export interface SocTopFields { source: string; field: string; items: SocFieldItem[]; total: number }
+export interface SocEventRow {
+  ts: number; source?: string; severity?: string; host?: string; user?: string; message?: string;
+  event_id?: string | number; mitre_technique?: string; tactics?: string; threat_actor?: string;
+  indicator_type?: string; ioc_value?: string; process?: string; action?: string; protocol?: string;
+  src_ip?: string; dst_ip?: string; dst_port?: string | number; country?: string;
+  rule_name?: string; rule_id?: string; alert_name?: string; platform?: string; confidence?: string;
+  [k: string]: unknown;
+}
+export interface SocRecentEvents { source: string | null; count: number; rows: SocEventRow[] }
+
+export interface SocThreatTrend { since: string; step: string; series: MetricSeries[] }
+export interface SocPosture {
+  security_incidents: number;
+  malicious_queries: number;
+  firewall_availability_pct: number;
+  firewall_total: number;
+  firewall_up: number;
+  mttd_minutes: number;
+  mttr_minutes: number;
+  patch_compliance_pct: number;
+  av_compliance_pct: number;
+  domain_health_pct: number;
+  configured: string[];
+}
+
+// ── NOC deep-dive — mirror noc_alarm_analytics / top_alarming_devices /
+//    noc_node_performance in app/loki/noc.py ───────────────────────────────────
+
+export interface KeyCount { key: string; count: number }
+export interface NocAlarmAnalytics {
+  total: number;
+  by_source: KeyCount[];
+  by_category: KeyCount[];
+  by_severity: SeverityCount[];
+  by_model: KeyCount[];
+  by_site: KeyCount[];
+  by_status: KeyCount[];
+}
+export interface AlarmingDevice { device: string; count: number }
+export interface TopAlarmingDevices { devices: AlarmingDevice[]; total: number }
+export interface NodePerf {
+  node: string; cpu_pct?: number; mem_pct?: number; bandwidth_pct?: number; latency_ms?: number;
+}
+export interface NocNodePerformance { nodes: NodePerf[] }
+
 export const METRIC_LABELS: Record<string, string> = {
   cpu_utilization_percent: "CPU %",
   interface_utilization_percent: "Link util %",

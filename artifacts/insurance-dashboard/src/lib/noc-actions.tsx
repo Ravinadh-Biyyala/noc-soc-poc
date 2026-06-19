@@ -8,12 +8,14 @@ import { useCallback, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useCopilotAction, useCopilotChat } from "@copilotkit/react-core";
 import { TextMessage, Role } from "@copilotkit/runtime-client-gql";
-import { Sparkles, Boxes, AlertOctagon, Server, Activity, ShieldAlert, Workflow, HeartPulse, ArrowRight, Compass, Crosshair, Globe, Building2 } from "lucide-react";
+import { Sparkles, Boxes, AlertOctagon, Server, ServerCog, Activity, ShieldAlert, Workflow, HeartPulse, ArrowRight, Compass, Crosshair, Globe, Building2 } from "lucide-react";
 import {
   callNoc, type IncidentDetail, type DeviceHealth, type TopAlarms, type Incidents,
   type TopDevicesByMetric, type MetricTrend, type SecurityEvents, type AlarmsBySeverity,
   type DeviceInventory, type RecentTraces, type IncidentTrace, type AttackTypes,
-  type ThreatsByCountry, type BranchHealth, METRIC_LABELS,
+  type ThreatsByCountry, type BranchHealth, type SocSummary, type SocTopFields,
+  type SocRecentEvents, type NocAlarmAnalytics, type TopAlarmingDevices,
+  type NocNodePerformance, METRIC_LABELS,
 } from "@/lib/loki-noc";
 import { postLokiQuery, buildChartRows, type LokiTransform } from "@/lib/loki-api";
 import { useLokiPins } from "@/lib/loki-pins";
@@ -163,6 +165,34 @@ function parsePalette(colors: unknown): string[] | undefined {
   return valid.length ? valid : undefined;
 }
 
+// The key visuals on each page, returned by `navigateTo` so the agent can answer
+// "go to page X and explain visual Y" — it navigates, then knows what's there.
+const PAGE_VISUALS: Record<string, string[]> = {
+  dashboard: [
+    "KPI strip (device availability, total/critical alarms, active incidents, security events, threats blocked, peak CPU, branches down)",
+    "Device availability donut", "Top critical alarms table", "Incident summary donut",
+    "Alarm volume over time", "Recent incidents", "Top CPU / WAN link / worst latency rankings",
+    "Attack types blocked", "Threats by origin country", "Security posture", "Branch network map", "Branch health", "Device fabric", "Alarms by category",
+  ],
+  noc: [
+    "NOC KPI strip (total/critical/warning/open/resolved alarms, network incidents, early warnings)",
+    "Alarms by source / severity / status", "Noisiest devices", "Alarms by hardware model / site",
+    "Fleet CPU & latency trends", "SolarWinds core-node telemetry", "Network incident queue", "Early warnings",
+  ],
+  soc: [
+    "SOC KPI strip (SIEM critical/high, darknet IOCs, sentinel alerts, windows alerts, firewall denies, EDR events, threats blocked)",
+    "Security posture & compliance (MTTD/MTTR, patch/AV/domain health)", "Per-source severity strip",
+    "Event volume by source", "Threat trends", "Attacks blocked by type", "Top origin countries",
+    "Security incidents", "FortiSIEM MITRE techniques + alert stream", "Sentinel tactics + cloud alerts",
+    "Darknet threat actors / indicator types / IOC feed", "Windows endpoint events", "Firewall activity",
+  ],
+  assets: ["Searchable asset inventory table (type/name/IP/location/status/severity) with type & status filters"],
+  topology: ["Interactive network topology graph (devices grouped by type, click a node for its asset details)"],
+  traces: ["Live major-incident feed tabbed NOC/SOC", "Selected incident's waterfall trace + diagnosis card"],
+  logs: ["Loki Explorer (label filters + line filter + paginated log table)"],
+  pins: ["Pinned visuals dashboard (charts the agent pinned from chat)"],
+};
+
 // ── the hook ─────────────────────────────────────────────────────────────────
 
 export function useNocCopilotActions() {
@@ -222,17 +252,18 @@ export function useNocCopilotActions() {
   useCopilotAction({
     name: "navigateTo",
     description:
-      "Navigate the app to a page. page ∈ {dashboard, traces, logs, pins}. Optionally pass incident_id to deep-link the Traces view to one incident. Use when the user asks to 'open / go to / take me to' a page, or 'open the trace for INC-…'.",
+      "Navigate the app to a page. page ∈ {dashboard, noc, soc, assets, topology, traces, logs, pins}. Optionally pass incident_id to deep-link the Traces view to one incident. Use when the user asks to 'open / go to / take me to' a page (e.g. 'open the SOC dashboard', 'open the NOC deep-dive'), or 'open the trace for INC-…'. The result lists the key VISUALS on the destination page — when the user asked to 'navigate to X and explain a visual', call this FIRST, then explain the requested visual (grounding with the matching NOC function) using that list.",
     parameters: [
-      { name: "page", type: "string", description: "dashboard | traces | logs | pins", required: true },
+      { name: "page", type: "string", description: "dashboard | noc | soc | assets | topology | traces | logs | pins", required: true },
       { name: "incident_id", type: "string", description: "Optional incident id to deep-link on the traces page.", required: false },
     ],
     handler: async ({ page, incident_id }: { page: string; incident_id?: string }) => {
-      const routes: Record<string, string> = { dashboard: "/dashboard", traces: "/loki-traces", logs: "/loki-logs", pins: "/loki-pins" };
-      const base = routes[(page || "").toLowerCase()] ?? "/dashboard";
+      const routes: Record<string, string> = { dashboard: "/dashboard", noc: "/noc", soc: "/soc", assets: "/assets", topology: "/topology", traces: "/loki-traces", logs: "/loki-logs", pins: "/loki-pins" };
+      const key = (page || "").toLowerCase();
+      const base = routes[key] ?? "/dashboard";
       const path = base === "/loki-traces" && incident_id ? `${base}?incident=${encodeURIComponent(incident_id)}` : base;
       setLocation(path);
-      return { navigated: path };
+      return { navigated: path, page: key, visuals: PAGE_VISUALS[key] ?? [] };
     },
     render: (p: RenderProps<{ navigated?: string }>) => {
       if (p.status !== "complete") return <Loading label="Navigating" />;
@@ -570,6 +601,198 @@ export function useNocCopilotActions() {
           <TraceWaterfall trace={t} compact />
           {t.root_cause && <p className="text-[11px] text-foreground/80 mt-2"><span className="font-semibold">Root cause:</span> {t.root_cause}</p>}
         </CardShell>
+      );
+    },
+  });
+
+  // ── NOC (Network Operations) deep-dive ────────────────────────────────────
+  useCopilotAction({
+    name: "getNocAlarmAnalytics",
+    description:
+      "NOC alarm analytics: monitoring-alarm volume broken down by source (solarwinds/manageengine), category, severity, hardware model, site, and open/resolved status. Use for 'break down the alarms', 'which models/sites alarm most', alarm posture. Suggest navigateTo(page=noc) for the full NOC deep-dive.",
+    parameters: [{ name: "since", type: "string", description: "Lookback, default 24h.", required: false }],
+    handler: async ({ since }: { since?: string }) => {
+      try { return await callNoc<NocAlarmAnalytics>("noc_alarm_analytics", { since: since || "24h" }); }
+      catch (e) { return { error: e instanceof Error ? e.message : "failed" }; }
+    },
+    render: (p: RenderProps<NocAlarmAnalytics & { error?: string }>) => {
+      if (p.status !== "complete" || !p.result) return <Loading label="Analyzing alarms" />;
+      if (p.result.error) return <ErrorLine msg={p.result.error} />;
+      const rows = (p.result.by_category ?? []).map((c) => ({ category: c.key, count: c.count }));
+      return (
+        <CardShell icon={Activity} title={`Alarm analytics · ${fmtNum(p.result.total)} alarms`}>
+          <LokiChart type="bar" xKey="category" yKey="count" data={rows} height={180} />
+          <div className="mt-2 text-[11px] text-muted-foreground">
+            By source: {(p.result.by_source ?? []).map((s) => `${s.key} (${fmtNum(s.count)})`).join(", ") || "—"}
+          </div>
+        </CardShell>
+      );
+    },
+  });
+
+  useCopilotAction({
+    name: "getTopAlarmingDevices",
+    description: "The noisiest devices — those generating the most monitoring alarms over the window, ranked. Use for 'which devices alarm the most' / loudest devices.",
+    parameters: [
+      { name: "since", type: "string", description: "Lookback, default 24h.", required: false },
+      { name: "limit", type: "number", description: "Top N, default 12.", required: false },
+    ],
+    handler: async (args: { since?: string; limit?: number }) => {
+      try { return await callNoc<TopAlarmingDevices>("top_alarming_devices", { since: args.since || "24h", limit: args.limit || 12 }); }
+      catch (e) { return { error: e instanceof Error ? e.message : "failed" }; }
+    },
+    render: (p: RenderProps<TopAlarmingDevices & { error?: string }>) => {
+      if (p.status !== "complete" || !p.result) return <Loading label="Ranking noisiest devices" />;
+      if (p.result.error) return <ErrorLine msg={p.result.error} />;
+      const rows = (p.result.devices ?? []).map((d) => ({ device: d.device, count: d.count }));
+      return <CardShell icon={Server} title="Noisiest devices (most alarms)"><LokiChart type="bar" xKey="device" yKey="count" data={rows} height={200} colors={["#f43f5e"]} /></CardShell>;
+    },
+  });
+
+  useCopilotAction({
+    name: "getNocNodePerformance",
+    description: "SolarWinds core-node telemetry: average CPU%, memory%, bandwidth% and latency(ms) per monitored core node (Core-SW-01, DC-Router-03, FW-Edge-02, VPN-GW-01, WAN-LDN-01). Use for core network-node health.",
+    parameters: [{ name: "since", type: "string", description: "Lookback, default 24h.", required: false }],
+    handler: async ({ since }: { since?: string }) => {
+      try { return await callNoc<NocNodePerformance>("noc_node_performance", { since: since || "24h" }); }
+      catch (e) { return { error: e instanceof Error ? e.message : "failed" }; }
+    },
+    render: (p: RenderProps<NocNodePerformance & { error?: string }>) => {
+      if (p.status !== "complete" || !p.result) return <Loading label="Reading core-node telemetry" />;
+      if (p.result.error) return <ErrorLine msg={p.result.error} />;
+      return (
+        <CardShell icon={ServerCog} title="Core-node telemetry">
+          <div className="space-y-1 text-[11px]">
+            {(p.result.nodes ?? []).map((n) => (
+              <div key={n.node} className="flex items-center justify-between gap-2">
+                <span className="font-mono text-foreground/90 truncate">{n.node}</span>
+                <span className="text-muted-foreground tabular-nums shrink-0">CPU {n.cpu_pct ?? "—"}% · Mem {n.mem_pct ?? "—"}% · BW {n.bandwidth_pct ?? "—"}% · {n.latency_ms ?? "—"}ms</span>
+              </div>
+            ))}
+            {(p.result.nodes ?? []).length === 0 && <p className="text-muted-foreground">No core-node telemetry in range.</p>}
+          </div>
+        </CardShell>
+      );
+    },
+  });
+
+  // ── SOC (Security Operations) ─────────────────────────────────────────────
+  useCopilotAction({
+    name: "getSocSummary",
+    description:
+      "Security Operations (SOC) overview: per-source event volume + severity breakdown for the security feeds (FortiSIEM, Sentinel, darknet, Windows, firewall, EDR) and headline KPIs (SIEM critical+high, darknet IOCs, sentinel alerts, windows alerts, firewall denies, threats blocked). Use for 'security operations summary' / 'how's the SOC looking'. This is the dedicated SOC dashboard's data — suggest opening /soc (navigateTo page=soc) for the full view.",
+    parameters: [{ name: "since", type: "string", description: "Lookback, default 24h.", required: false }],
+    handler: async ({ since }: { since?: string }) => {
+      try { return await callNoc<SocSummary>("soc_summary", { since: since || "24h" }); }
+      catch (e) { return { error: e instanceof Error ? e.message : "failed" }; }
+    },
+    render: (p: RenderProps<SocSummary & { error?: string }>) => {
+      if (p.status !== "complete" || !p.result) return <Loading label="Assessing the SOC" />;
+      if (p.result.error) return <ErrorLine msg={p.result.error} />;
+      const r = p.result;
+      const rows = (r.sources ?? []).map((s) => ({ source: s.source, count: s.total }));
+      return (
+        <CardShell icon={ShieldAlert} title={`SOC overview · ${fmtNum(r.total)} events`}>
+          <LokiChart type="bar" xKey="source" yKey="count" data={rows} height={180} colors={["#f43f5e"]} />
+          <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+            <div className="flex justify-between"><span className="text-muted-foreground">SIEM crit/high</span><span className="font-semibold text-rose-300">{fmtNum(r.kpis.siem_critical_high)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Darknet IOCs</span><span className="font-semibold text-amber-300">{fmtNum(r.kpis.darknet_iocs)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Sentinel</span><span className="font-semibold">{fmtNum(r.kpis.sentinel_alerts)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Firewall denies</span><span className="font-semibold text-rose-300">{fmtNum(r.kpis.firewall_denies)}</span></div>
+          </div>
+        </CardShell>
+      );
+    },
+  });
+
+  useCopilotAction({
+    name: "getSocTopFields",
+    description:
+      "Top values of a security field for one SOC source: fortisiem→mitre_technique/category/rule_name, sentinel→tactics/country/workspace, darknet→threat_actor/indicator_type/platform, windows→event_id/process, firewall→action/protocol/dst_port. Use for 'top MITRE techniques', 'which event IDs are firing', 'attacker tactics', 'top blocked ports'.",
+    parameters: [
+      { name: "source", type: "string", description: "fortisiem | sentinel | darknet | windows | firewall | edr", required: true },
+      { name: "field", type: "string", description: "Field to break down (must be valid for the source).", required: true },
+      { name: "limit", type: "number", description: "Top N, default 10.", required: false },
+      { name: "since", type: "string", description: "Lookback, default 24h.", required: false },
+    ],
+    handler: async (args: { source: string; field: string; limit?: number; since?: string }) => {
+      try { return await callNoc<SocTopFields>("soc_top_fields", { ...args, since: args.since || "24h", limit: args.limit || 10 }); }
+      catch (e) { return { error: e instanceof Error ? e.message : "failed" }; }
+    },
+    render: (p: RenderProps<SocTopFields & { error?: string }>) => {
+      if (p.status !== "complete" || !p.result) return <Loading label="Breaking down security events" />;
+      if (p.result.error) return <ErrorLine msg={p.result.error} />;
+      const rows = (p.result.items ?? []).map((i) => ({ value: i.value, count: i.count }));
+      return <CardShell icon={Crosshair} title={`${p.result.source} · top ${p.result.field}`}><LokiChart type="bar" xKey="value" yKey="count" data={rows} height={200} colors={["#a78bfa"]} /></CardShell>;
+    },
+  });
+
+  useCopilotAction({
+    name: "getSocRecentEvents",
+    description:
+      "Recent parsed security log events across all SOC sources or one source, with the key fields surfaced (mitre_technique, tactics, threat_actor, ioc_value, event_id, process, action, src/dst ip, country). Use for 'show recent security events', 'latest FortiSIEM alerts', 'recent darknet IOCs'.",
+    parameters: [
+      { name: "source", type: "string", description: "Optional SOC source: fortisiem|sentinel|darknet|windows|firewall|edr.", required: false },
+      { name: "severity", type: "string", description: "Optional severity filter.", required: false },
+      { name: "line_filter", type: "string", description: "Optional substring the line must contain.", required: false },
+      { name: "limit", type: "number", description: "Max rows, default 20.", required: false },
+      { name: "since", type: "string", description: "Lookback, default 24h.", required: false },
+    ],
+    handler: async (args: { source?: string; severity?: string; line_filter?: string; limit?: number; since?: string }) => {
+      try { return await callNoc<SocRecentEvents>("soc_recent_events", { ...args, since: args.since || "24h", limit: args.limit || 20 }); }
+      catch (e) { return { error: e instanceof Error ? e.message : "failed" }; }
+    },
+    render: (p: RenderProps<SocRecentEvents & { error?: string }>) => {
+      if (p.status !== "complete" || !p.result) return <Loading label="Fetching security events" />;
+      if (p.result.error) return <ErrorLine msg={p.result.error} />;
+      const rows = p.result.rows ?? [];
+      return (
+        <CardShell icon={ShieldAlert} title={`Recent security events · ${rows.length}${p.result.source ? ` · ${p.result.source}` : ""}`}>
+          <div className="space-y-1 max-h-64 overflow-y-auto">
+            {rows.length === 0 && <p className="text-[11px] text-muted-foreground">None in range.</p>}
+            {rows.slice(0, 20).map((r, i) => (
+              <div key={i} className="flex items-center gap-2 text-[11px]">
+                <span className={`inline-block rounded border px-1 py-0.5 text-[9px] font-semibold uppercase ${severityBadge(r.severity)}`}>{r.severity || "—"}</span>
+                {r.source && <span className="font-mono text-[9px] text-muted-foreground shrink-0">{r.source}</span>}
+                <span className="text-foreground/90 truncate flex-1">{r.message}</span>
+              </div>
+            ))}
+          </div>
+        </CardShell>
+      );
+    },
+  });
+
+  // ── render the visual the user clicked "Explain" on, from on-screen data ──────
+  // Draws the EXACT chart the user is looking at inline in the chat — no Loki
+  // fetch, no pin. The agent passes the chart spec straight from the "visual the
+  // user most recently clicked" context, then writes the structured explanation.
+  useCopilotAction({
+    name: "renderClickedVisual",
+    description:
+      "Redraw INLINE the visual the user just clicked 'Explain' on, from its on-screen values — NO data fetch, NO pin. " +
+      "Call this FIRST on a clicked-visual turn WHEN the 'visual the user most recently clicked' context includes a " +
+      "chart spec: pass that chart's title (use the context's visual name), type, xKey, yKey and data (the chart.data " +
+      "array as a JSON string, VERBATIM — copy the numbers exactly). Then write the structured explanation. If the " +
+      "context has no chart (e.g. a single KPI value), skip this and just explain.",
+    parameters: [
+      { name: "title", type: "string", description: "The visual's name (from context.visual).", required: true },
+      { name: "type", type: "string", description: "bar | line | area | pie (from context.chart.type).", required: true },
+      { name: "xKey", type: "string", description: "Category/x-axis key (context.chart.xKey).", required: true },
+      { name: "yKey", type: "string", description: "Numeric/y-axis key (context.chart.yKey).", required: true },
+      { name: "data", type: "string", description: "context.chart.data as a JSON array string, verbatim.", required: true },
+      { name: "colors", type: "string", description: "Optional JSON array string of hex colors.", required: false },
+    ],
+    handler: async () => ({ ok: true }), // pure UI — the render below draws it
+    render: (p: { args?: { title?: string; type?: string; xKey?: string; yKey?: string; data?: unknown; colors?: unknown } }) => {
+      const a = p.args ?? {};
+      const rows = coerceRows(a.data);
+      if (rows.length === 0) return <Loading label="Rendering the visual" />;
+      return (
+        <div className="my-2 rounded-lg border border-border bg-card p-3">
+          <div className="flex items-center gap-1.5 mb-1.5"><Sparkles className="w-3.5 h-3.5 text-primary" /><span className="text-xs font-semibold">{a.title || "Visual"}</span><span className="ml-auto rounded-full border border-primary/30 bg-primary/5 px-1.5 py-0.5 text-[9px] font-medium text-primary/90">on screen</span></div>
+          <LokiChart type={a.type || "bar"} xKey={a.xKey || "name"} yKey={a.yKey || "value"} data={rows} colors={parsePalette(a.colors)} height={200} />
+        </div>
       );
     },
   });

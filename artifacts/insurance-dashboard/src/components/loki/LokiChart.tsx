@@ -90,8 +90,22 @@ export default function LokiChart({ type, xKey, yKey, data, colors, height = 240
     );
   }
 
+  // Exact category→value pairs, exposed so the "Explain" gesture sends the real
+  // figures to the chat (the rendered SVG mixes axis ticks + labels, which can't
+  // be read back reliably). See readVisualValues in lib/ui-bridge.
+  const explainValues = data
+    .map((r) => `${String(r[xKey] ?? "?")}: ${String(r[yKey] ?? "")}`)
+    .join(", ");
+  // Redraw spec so the chat can re-render THIS exact chart inline on "Explain"
+  // (see readVisualChart + the renderClickedVisual action). Trimmed to the keys
+  // the chart uses, capped so the attribute stays small.
+  const explainChart = JSON.stringify({
+    type, xKey, yKey,
+    data: data.slice(0, 30).map((r) => ({ [xKey]: r[xKey], [yKey]: r[yKey] })),
+  });
+
   return (
-    <div className="w-full" style={{ height }}>
+    <div className="w-full" style={{ height }} data-explain-values={explainValues} data-explain-chart={explainChart}>
       <ResponsiveContainer width="100%" height="100%">
         {type === "pie" ? (
           <PieChart>

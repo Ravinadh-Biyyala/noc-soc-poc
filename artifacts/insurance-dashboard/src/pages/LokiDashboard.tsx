@@ -5,7 +5,7 @@
 // functions (src/lib/loki-dashboard.ts → /api/loki/noc/*) — the same functions the
 // chat agent calls, so the numbers always agree.
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +17,7 @@ import {
   Boxes, Siren, AlertOctagon, Timer, ExternalLink, ChevronRight, Crosshair, Building2, Globe,
 } from "lucide-react";
 import { useRegisterObservation } from "@/lib/chat-observer";
-import { useNocUi } from "@/lib/ui-bridge";
+import { useNocUi, readVisualValues } from "@/lib/ui-bridge";
 import { fetchNocDashboard, DASH_TIME_RANGES, readDashboardCache, writeDashboardCache } from "@/lib/loki-dashboard";
 import { type DeviceMetricRank } from "@/lib/loki-noc";
 import { fmtNum, fmtAgo, severityBadge, metricTone, severityColor } from "@/lib/noc-format";
@@ -26,6 +26,7 @@ import TopologyMap, { type TopoNode } from "@/components/loki/TopologyMap";
 import GeoThreatMap from "@/components/loki/GeoThreatMap";
 import LokiChart from "@/components/loki/LokiChart";
 import AlarmTable from "@/components/loki/AlarmTable";
+import ExplainButton from "@/components/loki/ExplainButton";
 import { type DrawerTarget } from "@/components/loki/DiagnosisDrawer";
 
 const LIVE_OPTIONS = [
@@ -54,13 +55,20 @@ function promptForTarget(t: DrawerTarget): string {
 
 // ── small building blocks ───────────────────────────────────────────────────
 
-function StatCard({ icon: Icon, label, value, suffix, tone = "default", loading, onClick }: {
+function StatCard({ icon: Icon, label, value, suffix, tone = "default", loading, onClick, explain, explainTitle, explainHint }: {
   icon: React.ComponentType<{ className?: string }>; label: string; value: number; suffix?: string;
   tone?: "default" | "danger" | "warn" | "ok"; loading?: boolean; onClick?: () => void;
+  // `explain` (or explainTitle) → clicking sends the tile's on-screen value to chat.
+  explain?: boolean; explainTitle?: string; explainHint?: string;
 }) {
   const toneCls = tone === "danger" ? "text-rose-400" : tone === "warn" ? "text-amber-400" : tone === "ok" ? "text-emerald-400" : "text-cyan-300";
+  const { explainVisual } = useNocUi();
+  const ref = useRef<HTMLDivElement>(null);
+  const handleClick = (explain || explainTitle)
+    ? () => explainVisual(explainTitle ?? label, explainHint, readVisualValues(ref.current))
+    : onClick;
   return (
-    <Card className={`relative overflow-hidden ${onClick ? "cursor-pointer hover:border-primary/50 transition-colors" : ""}`} onClick={onClick}>
+    <Card ref={ref} className={`relative overflow-hidden ${handleClick ? "cursor-pointer hover:border-primary/50 transition-colors" : ""}`} onClick={handleClick}>
       <CardContent className="p-3">
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><Icon className={`w-3.5 h-3.5 ${toneCls}`} /> {label}</div>
         {loading ? <Skeleton className="h-7 w-16 mt-1.5" /> : (
@@ -83,7 +91,6 @@ function AvailabilityCard({ online, total, pct, loading, onClick }: {
         {loading ? <Skeleton className="h-7 w-20 mt-1.5" /> : (
           <div className="mt-0.5 flex items-baseline gap-1.5">
             <span className={`text-xl font-bold ${tone}`}>{fmtNum(online)}/{fmtNum(total)}</span>
-            <span className={`text-xs font-semibold ${tone}`}>{pct}%</span>
           </div>
         )}
       </CardContent>
@@ -91,14 +98,18 @@ function AvailabilityCard({ online, total, pct, loading, onClick }: {
   );
 }
 
-function Panel({ title, icon: Icon, children, action, span = "" }: {
+function Panel({ title, icon: Icon, children, action, span = "", explainHint }: {
   title: string; icon?: React.ComponentType<{ className?: string }>; children: React.ReactNode; action?: React.ReactNode; span?: string;
+  explainHint?: string;
 }) {
   return (
     <Card className={span}>
       <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2">
         <CardTitle className="text-sm flex items-center gap-1.5">{Icon && <Icon className="w-4 h-4 text-cyan-300" />}{title}</CardTitle>
-        {action}
+        <div className="flex items-center gap-2">
+          {action}
+          <ExplainButton title={title} hint={explainHint} />
+        </div>
       </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>
@@ -109,6 +120,24 @@ function ViewAll({ onClick }: { onClick: () => void }) {
   return (
     <button onClick={onClick} className="flex items-center gap-0.5 text-[11px] text-primary hover:underline">
       View all <ChevronRight className="w-3 h-3" />
+    </button>
+  );
+}
+
+// "Open the SOC dashboard" affordance for SOC-related panels.
+function SocLink({ onClick }: { onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="flex items-center gap-0.5 text-[11px] text-rose-300 hover:underline">
+      SOC dashboard <ChevronRight className="w-3 h-3" />
+    </button>
+  );
+}
+
+// "Open the NOC deep-dive" affordance for network-ops panels.
+function NocLink({ onClick }: { onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="flex items-center gap-0.5 text-[11px] text-cyan-300 hover:underline">
+      NOC deep-dive <ChevronRight className="w-3 h-3" />
     </button>
   );
 }
@@ -138,7 +167,7 @@ function MetricBarList({ rows, metric, onPick }: { rows: DeviceMetricRank[]; met
 
 export default function LokiDashboard() {
   const [, setLocation] = useLocation();
-  const [since, setSince] = useState("24h");
+  const [since, setSince] = useState("7d");
   const [live, setLive] = useState("0");
   const { openDiagnosis, askCompanion } = useNocUi();
 
@@ -238,10 +267,10 @@ export default function LokiDashboard() {
             <StatCard icon={Siren} label="Total alarms" value={data?.kpis.totalAlarms ?? 0} loading={isLoading} onClick={() => open({ kind: "alarms", severity: undefined, title: "All alarms" })} />
             <StatCard icon={AlertOctagon} label="Critical alarms" value={data?.kpis.criticalAlarms ?? 0} tone="danger" loading={isLoading} onClick={() => open({ kind: "alarms", severity: "critical", title: "Critical alarms" })} />
             <StatCard icon={AlertCircle} label="Active incidents" value={data?.kpis.activeIncidents ?? 0} tone="danger" loading={isLoading} onClick={() => open({ kind: "incidents", title: "Active incidents" })} />
-            <StatCard icon={ShieldAlert} label="Security events" value={data?.kpis.securityEvents ?? 0} tone="warn" loading={isLoading} onClick={() => open({ kind: "alarms", category: "security", title: "Security alarms" })} />
-            <StatCard icon={Crosshair} label="Threats blocked" value={data?.kpis.threatsBlocked ?? 0} tone="danger" loading={isLoading} />
-            <StatCard icon={Cpu} label="Peak CPU" value={data?.kpis.peakCpu ?? 0} suffix="%" tone="warn" loading={isLoading} />
-            <StatCard icon={Building2} label="Branches down" value={data?.kpis.branchesDown ?? 0} tone="danger" loading={isLoading} />
+            <StatCard icon={ShieldAlert} label="Security events" value={data?.kpis.securityEvents ?? 0} tone="warn" loading={isLoading} onClick={() => setLocation("/soc")} />
+            <StatCard icon={Crosshair} label="Threats blocked" value={data?.kpis.threatsBlocked ?? 0} tone="danger" loading={isLoading} onClick={() => setLocation("/soc")} />
+            <StatCard icon={Cpu} label="Peak CPU" value={data?.kpis.peakCpu ?? 0} suffix="%" tone="warn" loading={isLoading} explain />
+            <StatCard icon={Building2} label="Branches down" value={data?.kpis.branchesDown ?? 0} tone="danger" loading={isLoading} explain />
           </div>
 
           {/* Inventory + top critical alarms + incident summary */}
@@ -293,7 +322,8 @@ export default function LokiDashboard() {
 
           {/* Alarm trend + recent incidents */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-start">
-            <Panel title="Alarm volume over time" icon={Activity} span="lg:col-span-2">
+            <Panel title="Alarm volume over time" icon={Activity} span="lg:col-span-2"
+              action={<NocLink onClick={() => setLocation("/noc")} />}>
               {isLoading ? <Skeleton className="h-[220px]" /> : (
                 <TimeSeriesChart rows={data!.alarmTrend.rows} keys={data!.alarmTrend.keys} type="area" stacked
                   colors={data!.alarmTrend.keys.map((k) => severityColor(k))} />
@@ -332,23 +362,24 @@ export default function LokiDashboard() {
             </Panel>
           </div>
 
-          {/* SOC threat feed: attacks blocked + origin countries + posture */}
+          {/* SOC threat feed: attacks blocked + origin countries + posture.
+              Each panel deep-links into the dedicated SOC dashboard. */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-start">
-            <Panel title="Attack types blocked" icon={Crosshair}>
+            <Panel title="Attack types blocked" icon={Crosshair} action={<SocLink onClick={() => setLocation("/soc")} />}>
               {isLoading ? <Skeleton className="h-[240px]" /> : (
                 <LokiChart type="bar" xKey="attack_type" yKey="count"
                   data={(data?.attackTypes ?? []).map((a) => ({ attack_type: a.attack_type, count: a.count }))}
                   height={240} colors={["#f43f5e"]} />
               )}
             </Panel>
-            <Panel title="Threats by origin country" icon={Globe}>
+            <Panel title="Threats by origin country" icon={Globe} action={<SocLink onClick={() => setLocation("/soc")} />}>
               {isLoading ? <Skeleton className="h-[240px]" /> : (
                 <LokiChart type="bar" xKey="country" yKey="count"
                   data={(data?.threatsByCountry ?? []).map((c) => ({ country: c.country, count: c.count }))}
                   height={240} colors={["#f59e0b"]} />
               )}
             </Panel>
-            <Panel title="Security posture" icon={ShieldAlert}>
+            <Panel title="Security posture" icon={ShieldAlert} action={<SocLink onClick={() => setLocation("/soc")} />}>
               {isLoading ? <Skeleton className="h-[240px]" /> : (
                 <div className="space-y-2">
                   <div className="grid grid-cols-2 gap-2">

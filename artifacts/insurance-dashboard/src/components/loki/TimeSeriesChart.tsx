@@ -42,8 +42,28 @@ export default function TimeSeriesChart({ rows, keys, type = "area", height = 22
     return <div className="flex items-center justify-center text-xs text-muted-foreground" style={{ height }}>No data in this range.</div>;
   }
   const axisProps = { fontSize: 10, tickLine: false, axisLine: false, stroke: "hsl(var(--muted-foreground))" } as const;
+  // Compact per-series summary (start/end/peak/low over N points), exposed so the
+  // "Explain" gesture sends real trend figures to the chat rather than unreadable
+  // SVG axis text. See readVisualValues in lib/ui-bridge.
+  const explainValues = keys
+    .map((k) => {
+      const vals = rows.map((r) => Number(r[k])).filter((v) => isFinite(v));
+      if (!vals.length) return `${legendNames?.[k] ?? k}: no data`;
+      const name = legendNames?.[k] ?? k;
+      return `${name}: start ${vals[0]}, end ${vals[vals.length - 1]}, peak ${Math.max(...vals)}, low ${Math.min(...vals)} (${vals.length} pts)`;
+    })
+    .join("; ");
+  // Redraw spec for the chat (single-series line of the first key). See
+  // readVisualChart + the renderClickedVisual action.
+  const tsKey = keys[0];
+  const explainChart = tsKey
+    ? JSON.stringify({
+        type: type === "area" ? "area" : "line", xKey: "time", yKey: tsKey,
+        data: rows.slice(-60).map((r) => ({ time: r.time, [tsKey]: r[tsKey] })),
+      })
+    : undefined;
   return (
-    <div className="w-full" style={{ height }}>
+    <div className="w-full" style={{ height }} data-explain-values={explainValues} data-explain-chart={explainChart}>
       <ResponsiveContainer width="100%" height="100%">
         {type === "line" ? (
           <LineChart data={rows} margin={{ top: 5, right: 12, left: 4, bottom: 4 }}>
